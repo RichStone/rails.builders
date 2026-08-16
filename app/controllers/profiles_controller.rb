@@ -8,6 +8,7 @@ class ProfilesController < ApplicationController
   def update
     current_user.transaction do
       current_user.assign_attributes(user_params)
+      current_user.public_profile_approved = false
       save_focus_product
       current_user.save!
     end

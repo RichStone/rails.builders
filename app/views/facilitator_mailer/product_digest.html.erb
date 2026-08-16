@@ -1,0 +1,12 @@
+<h1>Product updates for <%= @day.to_fs(:long) %></h1>
+<p>These builders created or updated products today. Review any profiles that are awaiting publication approval.</p>
+<ul>
+  <% @products.each do |product| %>
+    <li>
+      <strong><%= product.created_at.to_date == @day ? "Created" : "Updated" %>: <%= product.name %></strong>
+      by <%= product.user.name.presence || product.user.email %> —
+      <%= link_to product.url, product.url %> ·
+      <% if product.user.public_profile? %><%= link_to "Review profile", facilitator_profile_reviews_url(anchor: "builder-#{product.user_id}") %><% else %>Profile is private<% end %>
+    </li>
+  <% end %>
+</ul>

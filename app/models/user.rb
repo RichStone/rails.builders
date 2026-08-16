@@ -31,6 +31,7 @@ class User < ApplicationRecord
   validate :avatar_is_a_safe_image
   validate :public_profile_is_complete
 
+  before_validation :clear_public_profile_approval_without_opt_in
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
   before_destroy { @released_capacity = (active? || offered?) && !facilitator? }
   after_destroy_commit { Program.current.promote_waitlist! if @released_capacity }
@@ -39,12 +40,13 @@ class User < ApplicationRecord
   scope :active, -> { where(enrollment_status: "active") }
   scope :offered, -> { where(enrollment_status: "offered") }
   scope :waitlisted, -> { where(enrollment_status: "waitlisted") }
-  scope :publicly_visible, -> { where(public_profile: true) }
+  scope :publicly_visible, -> { where(public_profile: true, public_profile_approved: true) }
 
   def verified? = verified_at.present?
   def active? = enrollment_status == "active"
   def offered? = enrollment_status == "offered"
   def waitlisted? = enrollment_status == "waitlisted"
+  def publicly_visible? = public_profile? && public_profile_approved?
 
   def complete_verification!
     program = Program.current
@@ -158,6 +160,10 @@ class User < ApplicationRecord
   end
 
   private
+
+  def clear_public_profile_approval_without_opt_in
+    self.public_profile_approved = false unless public_profile?
+  end
 
   def deliver_enrollment_notifications
     program = Program.current

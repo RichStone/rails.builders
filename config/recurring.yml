@@ -19,3 +19,6 @@ production:
   delete_stale_rails_builders_registrations:
     class: CleanupStaleRegistrationsJob
     schedule: every day at 3am
+  send_product_digest:
+    class: ProductDigestJob
+    schedule: at 12:05am every day

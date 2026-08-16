@@ -10,7 +10,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   test "the public page shows published builders and keeps private OGs anonymous" do
     public_builder = User.create!(email: "public@example.com", name: "Public Builder", og: true)
     public_builder.products.create!(name: "Tiny App", url: "https://example.com", focus: true)
-    public_builder.update!(public_profile: true)
+    public_builder.update!(public_profile: true, public_profile_approved: true)
 
     get root_path
 
@@ -36,6 +36,15 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
 
     get root_path
 
+    assert_select "#waitlisted-builders .builder-card", count: 0
+    assert_not_includes response.body, "Waiting Builder"
+
+    sign_in_as(published_builder)
+    get dashboard_path
+    assert_includes response.body, "Waiting for facilitator approval."
+
+    published_builder.update!(public_profile_approved: true)
+    get root_path
     assert_select "#waitlisted-builders" do
       assert_select "h3", text: "Waitlisted Builders"
       assert_select ".builder-card", count: 1
@@ -44,7 +53,6 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select "#og-builders h4", text: "Waiting Builder", count: 0
     assert_not_includes response.body, "Hidden Builder"
 
-    sign_in_as(published_builder)
     get dashboard_path
     assert_includes response.body, "Published on the homepage."
   end
@@ -52,7 +60,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   test "public profile text is escaped rather than treated as markup" do
     @user.update!(name: "<script>alert('x')</script>")
     @user.products.create!(name: "<strong>Unsafe</strong>", url: "https://example.com", focus: true)
-    @user.update!(testimonial: "<img src=x onerror=alert(1)>", public_profile: true)
+    @user.update!(testimonial: "<img src=x onerror=alert(1)>", public_profile: true, public_profile_approved: true)
 
     get root_path
 
@@ -70,7 +78,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       filename: "avatar.png",
       content_type: "image/png"
     )
-    @user.update!(public_profile: true)
+    @user.update!(public_profile: true, public_profile_approved: true)
 
     get root_path
 
@@ -78,6 +86,20 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get avatar_url
 
     assert_response :redirect
+  end
+
+  test "editing a profile clears facilitator approval" do
+    @user.products.create!(name: "Approved App", url: "https://approved.example", focus: true)
+    @user.update!(name: "Approved Builder", public_profile: true, public_profile_approved: true)
+    sign_in_as(@user)
+
+    patch profile_path, params: {
+      user: { name: "Edited Builder", testimonial: "New copy", public_profile: "1" }
+    }
+
+    assert_redirected_to dashboard_path
+    assert @user.reload.public_profile?
+    assert_not @user.public_profile_approved?
   end
 
   test "a signed-in builder can publish a profile with a focus product" do

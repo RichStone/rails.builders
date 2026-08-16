@@ -10,6 +10,7 @@
 # Ignore all environment files.
 /.env*
 !/.env
+/.worktree.env
 
 # Ignore all logfiles and tempfiles.
 /log/*

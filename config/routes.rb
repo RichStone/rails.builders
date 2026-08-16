@@ -33,4 +33,8 @@ Rails.application.routes.draw do
       post :expire_offers, on: :member
     end
   end
+
+  namespace :facilitator do
+    resources :profile_reviews, only: %i[index update]
+  end
 end

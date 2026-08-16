@@ -11,6 +11,7 @@ og_emails.each do |email|
     og: true,
     name: facilitator ? "Rich Steinmetz" : nil,
     public_profile: false,
+    public_profile_approved: false,
     administrator: facilitator,
     facilitator: facilitator
   )
@@ -23,6 +24,6 @@ og_emails.each do |email|
   if facilitator
     product = user.products.find_or_initialize_by(name: "Loop Labs 🧪")
     product.update!(url: "https://looplabs.cc", focus: true)
-    user.update!(public_profile: true)
+    user.update!(public_profile: true, public_profile_approved: true)
   end
 end

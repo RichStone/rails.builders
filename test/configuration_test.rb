@@ -6,7 +6,6 @@ class RailsBuildersConfigurationTest < ActiveSupport::TestCase
     assert_equal [ "facilitator@example.com", "og-builder@example.com" ], Rails.configuration.x.rails_builders.og_emails
     assert_equal "facilitator@example.com", Rails.configuration.x.rails_builders.facilitator_email
   end
-
   test "error reports exclude request URLs and sessions" do
     assert Honeybadger.config[:"request.disable_url"]
     assert Honeybadger.config[:"request.disable_session"]

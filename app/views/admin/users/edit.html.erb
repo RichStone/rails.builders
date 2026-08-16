@@ -6,7 +6,8 @@
     <%= form.label :enrollment_status %><%= form.select :enrollment_status, User::ENROLLMENT_STATUSES %>
     <%= form.label :waitlist_rank %><%= form.number_field :waitlist_rank, min: 1 %>
     <%= form.label :slack_status %><%= form.select :slack_status, %w[manual_pending invited active removed] %>
-    <label class="check-row"><%= form.check_box :og %><span>OG</span></label><label class="check-row"><%= form.check_box :facilitator %><span>Facilitator</span></label><label class="check-row"><%= form.check_box :administrator %><span>Administrator</span></label><label class="check-row"><%= form.check_box :public_profile %><span>Public profile</span></label>
+    <label class="check-row"><%= form.check_box :og %><span>OG</span></label><label class="check-row"><%= form.check_box :facilitator %><span>Facilitator</span></label><label class="check-row"><%= form.check_box :administrator %><span>Administrator</span></label><label class="check-row"><%= form.check_box :public_profile %><span>Builder opted into a public profile</span></label>
+    <p>Facilitator approval: <strong><%= @user.public_profile_approved? ? "Approved" : "Not approved" %></strong></p>
     <%= form.submit "Save builder", class: "button button-primary" %>
   <% end %>
 

@@ -80,6 +80,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_16_150000) do
     t.datetime "offer_expires_at"
     t.boolean "og", default: false, null: false
     t.boolean "public_profile", default: false, null: false
+    t.boolean "public_profile_approved", default: false, null: false
     t.integer "sign_in_token_version", default: 0, null: false
     t.string "slack_status", default: "manual_pending", null: false
     t.text "testimonial"

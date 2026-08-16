@@ -12,4 +12,5 @@
   <% if current_user.enrollment_status.in?(%w[declined expired withdrawn]) %><div class="action-panel"><h2>Ready for another go?</h2><p>You’ll join at the end of the current waitlist.</p><%= button_to "Add me to the waitlist", join_waitlist_path, class: "button button-primary" %></div><% end %>
 
   <div class="dashboard-grid"><section><h2>Your public profile</h2><p><%= profile_visibility_description(current_user) %></p><%= link_to "Edit profile and products", edit_profile_path, class: "button button-quiet" %></section><section><h2>Continuous</h2><p><%= @program.starts_on.to_fs(:long) %> — <%= @program.ends_on.to_fs(:long) %></p><p><%= @program.capacity %> seats · <%= @program.occupied_seats %> reserved</p></section></div>
+  <% if current_user.facilitator? %><div class="action-panel"><h2>Profile publication</h2><p>Review builders who have asked to appear publicly.</p><%= link_to "Review profiles", facilitator_profile_reviews_path, class: "button button-quiet" %></div><% end %>
 </main>

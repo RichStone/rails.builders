@@ -1,0 +1,10 @@
+Rails Builders product updates for <%= @day.to_fs(:long) %>
+
+These builders created or updated products today. Review any profiles that are awaiting publication approval.
+
+<% @products.each do |product| %><%= product.created_at.to_date == @day ? "Created" : "Updated" %>: <%= product.name %>
+Builder: <%= product.user.name.presence || product.user.email %>
+Product: <%= product.url %>
+<% if product.user.public_profile? %>Review: <%= facilitator_profile_reviews_url(anchor: "builder-#{product.user_id}") %><% else %>Profile is private<% end %>
+
+<% end %>

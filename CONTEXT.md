@@ -45,7 +45,7 @@ The Rails Builders edition with a start line on 20 August and a finish line on 1
 _Avoid_: Membership status
 
 **Public Builder Profile**:
-An OG Builder's name, image, products, and testimonial. Every field remains private unless the OG Builder explicitly chooses “Show my profile publicly on rails.builders.”
+A person's name, image, products, and testimonial. Every field remains private unless the person requests publication and a Facilitator approves it; later profile or Product changes require fresh approval.
 _Avoid_: Account, waitlist profile
 
 **Product**:

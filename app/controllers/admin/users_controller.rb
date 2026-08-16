@@ -5,7 +5,11 @@ class Admin::UsersController < Admin::BaseController
 
   def update
     program = Program.current
-    program.with_lock { @user.update!(user_params) }
+    attributes = user_params
+    program.with_lock do
+      @user.public_profile_approved = false if (attributes.keys & %w[name testimonial avatar public_profile]).any?
+      @user.update!(attributes)
+    end
     program.promote_waitlist! unless program.og_priority?
     redirect_to admin_root_path, notice: "Builder updated."
   end

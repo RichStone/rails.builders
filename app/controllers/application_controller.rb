@@ -22,4 +22,10 @@ class ApplicationController < ActionController::Base
 
     redirect_to(current_user ? dashboard_path : sign_in_path, alert: "Administrator access is required.")
   end
+
+  def require_facilitator
+    return if current_user&.facilitator?
+
+    redirect_to(current_user ? dashboard_path : sign_in_path, alert: "Facilitator access is required.")
+  end
 end

@@ -30,6 +30,17 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_equal "invited", @builder.slack_status
   end
 
+  test "admin profile changes require fresh facilitator approval" do
+    @builder.update!(name: "Waiting Builder")
+    @builder.products.create!(name: "Queue App", url: "https://queue.example", focus: true)
+    @builder.update!(public_profile: true, public_profile_approved: true)
+    sign_in_as(@admin)
+
+    patch admin_user_path(@builder), params: { user: { testimonial: "Updated by an administrator" } }
+
+    assert_not @builder.reload.public_profile_approved?
+  end
+
   private
 
   def sign_in_as(user)

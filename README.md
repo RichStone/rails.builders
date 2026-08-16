@@ -14,6 +14,33 @@ Open [http://localhost:3000](http://localhost:3000). In development, transaction
 
 The seed is idempotent and creates the Continuous cohort, twenty private OG cards, and Rich’s public administrator/facilitator profile.
 
+## ChatGPT worktrees
+
+The ChatGPT desktop app discovers the committed [`.codex/environments/environment.toml`](.codex/environments/environment.toml), so there is no setup script to paste into the app. If this project was previously set to **No local environment**, select the committed default without opening settings:
+
+```sh
+bin/worktree configure-chatgpt
+```
+
+The selected app configuration stays pointed at the tracked file, so future Git changes synchronize automatically. When ChatGPT creates a worktree, it runs:
+
+```sh
+bin/worktree setup
+```
+
+Each worktree receives its own stable, available localhost port in `.worktree.env`. Its SQLite development/test databases, uploads, logs, temp files, and PID file are already isolated because they live inside that worktree. The setup checks dependencies, prepares the database, clears logs/temp files, and finishes with the URL, resource paths, and quick commands.
+
+Use the **Start Rails**, **Stop Rails**, **Test**, and **Worktree info** actions in the ChatGPT toolbar, or run:
+
+```sh
+bin/worktree start
+bin/worktree stop
+bin/worktree info
+bin/rails test
+```
+
+Ignored machine-local files named in [`.worktreeinclude`](.worktreeinclude)—currently `.env.development` and `config/master.key`—are copied from the source checkout before setup when they exist. Never put the generated `.worktree.env` in `.worktreeinclude`; every worktree must retain its own port.
+
 ## Verification
 
 ```sh
