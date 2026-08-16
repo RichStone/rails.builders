@@ -1,0 +1,15 @@
+<main class="dashboard-page">
+  <div class="dashboard-head"><div><p class="eyebrow">Rails Builders</p>
+    <% if current_user.offered? %><h1>Your seat is ready.</h1><p>Confirm by <%= current_user.offer_expires_at.to_fs(:long) %>. Your profile can wait.</p>
+    <% elsif current_user.active? %><h1>You’re an active builder.</h1><p>Your seat in <%= @program.name %> is confirmed.</p>
+    <% elsif current_user.waitlisted? %><h1>You’re on the waitlist.</h1><p>Your current position is <strong>#<%= current_user.waitlist_position %></strong>. We’ll email you when a seat opens.</p>
+    <% elsif current_user.enrollment_status.in?(%w[declined expired withdrawn]) %><h1>Your seat is open.</h1><p>You’re not currently active or waiting. Join again whenever the timing is right.</p>
+    <% else %><h1>Welcome back.</h1><p>Your Rails Builders account is ready.</p><% end %>
+  </div><span class="status-pill"><%= current_user.enrollment_status.humanize %></span></div>
+
+  <% if current_user.offered? %><div class="action-panel"><h2>Make it official</h2><p>A pending offer counts toward the <%= @program.capacity %> seats for 72 hours.</p><div class="button-row"><%= button_to "Confirm my seat", accept_offer_path, class: "button button-primary" %><%= button_to "Decline", decline_offer_path, class: "button button-quiet" %></div></div><% end %>
+  <% if current_user.active? %><div class="action-panel"><h2>Your membership</h2><p>Slack access is currently managed manually by the administrator.</p><%= button_to "Release my seat", withdraw_seat_path, class: "text-danger", data: { turbo_confirm: "Release your active seat?" } %></div><% end %>
+  <% if current_user.enrollment_status.in?(%w[declined expired withdrawn]) %><div class="action-panel"><h2>Ready for another go?</h2><p>You’ll join at the end of the current waitlist.</p><%= button_to "Add me to the waitlist", join_waitlist_path, class: "button button-primary" %></div><% end %>
+
+  <div class="dashboard-grid"><section><h2>Your public profile</h2><p><%= profile_visibility_description(current_user) %></p><%= link_to "Edit profile and products", edit_profile_path, class: "button button-quiet" %></section><section><h2>Continuous</h2><p><%= @program.starts_on.to_fs(:long) %> — <%= @program.ends_on.to_fs(:long) %></p><p><%= @program.capacity %> seats · <%= @program.occupied_seats %> reserved</p></section></div>
+</main>

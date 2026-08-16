@@ -1,0 +1,19 @@
+<article class="builder-card <%= "private-card" unless builder.public_profile? %>" style="--card-index: <%= index %>">
+  <div class="builder-image pattern-<%= index % 8 %>">
+    <% if builder.public_profile? && builder.avatar.attached? %>
+      <%= image_tag builder.avatar.variant(resize_to_limit: [800, 800], saver: { strip: true }), alt: builder.name %>
+    <% elsif builder.public_profile? %>
+      <span class="initial"><%= builder.name.to_s.first || "◆" %></span>
+    <% else %>
+      <span class="anonymous-ruby">◆</span><i></i><i></i>
+    <% end %>
+  </div>
+  <% if builder.public_profile? %>
+    <div class="builder-copy"><h4><%= builder.name.presence || "Rails Builder" %></h4>
+      <% if builder.focus_product %><%= link_to builder.focus_product.name, builder.focus_product.url, class: "product-link", target: "_blank", rel: "noopener" %><% end %>
+      <% if builder.testimonial.present? %><blockquote>“<%= builder.testimonial %>”</blockquote><% end %>
+    </div>
+  <% else %>
+    <div class="builder-copy"><p class="private-label">OG · profile private</p><h4>Builder in stealth</h4><p class="shine-copy">Waiting for their reveal.</p></div>
+  <% end %>
+</article>

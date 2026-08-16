@@ -1,0 +1,6 @@
+api_key: <%= ENV["HONEYBADGER_API_KEY"] %>
+env: <%= Rails.env %>
+report_data: <%= Rails.env.production? %>
+request:
+  disable_url: true
+  disable_session: true

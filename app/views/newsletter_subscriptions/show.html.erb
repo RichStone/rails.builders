@@ -1,0 +1,6 @@
+<main class="narrow-page">
+  <p class="eyebrow">Optional newsletter</p>
+  <h1>Confirm the Loop Labs newsletter.</h1>
+  <p>This subscription is separate from Rails Builders. Confirm only if you asked to receive the Loop Labs newsletter.</p>
+  <%= button_to "Confirm newsletter", confirm_newsletter_path, params: { token: @token }, class: "button button-primary" %>
+</main>

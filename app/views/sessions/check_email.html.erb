@@ -1,0 +1,4 @@
+<main class="auth-page"><section class="auth-card centered"><div class="mail-icon">↗</div><p class="eyebrow">Link sent</p><h1>Go check your inbox.</h1><p>Your sign-in link lasts 30 minutes. You can close this tab safely.</p>
+  <% if @development_token %><div class="local-tools"><strong>Local development</strong><%= link_to "Open verification link", verify_email_path(token: @development_token), class: "button button-primary" %></div><% end %>
+  <%= link_to "Use a different email", sign_in_path %>
+</section></main>

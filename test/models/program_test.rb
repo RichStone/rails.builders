@@ -1,0 +1,50 @@
+require "test_helper"
+
+class ProgramTest < ActiveSupport::TestCase
+  setup do
+    @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 1, og_priority: false)
+  end
+
+  test "a facilitator never consumes a seat" do
+    User.create!(email: "facilitator@example.com", facilitator: true, enrollment_status: "active", verified_at: Time.current)
+    assert_equal 0, @program.occupied_seats
+    assert @program.seat_available?
+  end
+
+  test "paused promotions leave capacity open until resumed" do
+    builder = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
+    @program.update!(promotions_paused: true)
+
+    @program.promote_waitlist!
+    assert builder.reload.waitlisted?
+
+    @program.update!(promotions_paused: false)
+    @program.promote_waitlist!
+    assert builder.reload.offered?
+  end
+
+  test "lowering capacity does not revoke confirmed seats" do
+    first = User.create!(email: "first@example.com", verified_at: Time.current, enrollment_status: "active")
+    second = User.create!(email: "second@example.com", verified_at: Time.current, enrollment_status: "active")
+
+    @program.update!(capacity: 1)
+
+    assert first.reload.active?
+    assert second.reload.active?
+    assert_not @program.seat_available?
+  end
+
+  test "program input rejects an end date before its start date" do
+    @program.assign_attributes(starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 8, 19))
+
+    assert_not @program.valid?
+    assert @program.errors.of_kind?(:ends_on, :after_or_equal_to)
+  end
+
+  test "program name input is normalized before validation" do
+    @program.name = "  Continuous  "
+
+    assert @program.valid?
+    assert_equal "Continuous", @program.name
+  end
+end

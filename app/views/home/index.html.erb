@@ -1,0 +1,98 @@
+<% content_for :title, "Rails Builders — The Continuous cohort" %>
+
+<main>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="live-dot"></span> The Continuous cohort · registrations open</p>
+      <h1>Build in public.<br> <em>Ship with Rails.</em></h1>
+      <p class="hero-lede">A focused group for engineers who build on Rails for their own business. Bi-weekly sessions, momentum, honest feedback, gamification, and fellow devs who notice when you ship.</p>
+      <div class="hero-actions">
+        <%= link_to "Claim your place", sign_in_path, class: "button button-primary" %>
+        <%= link_to "See how it works", "#how-it-works", class: "button button-quiet" %>
+      </div>
+      <p class="microcopy">Email-only sign in · <%= @program.capacity %> seats max 🔥</p>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="ruby ruby-one">◆</div><div class="ruby ruby-two">◆</div><div class="ruby ruby-three">◆</div>
+      <div class="code-window"><span>class</span> RailsBuilder<br>&nbsp;&nbsp;<span>def</span> ship<br>&nbsp;&nbsp;&nbsp;&nbsp;idea.<strong>to_product!</strong><br>&nbsp;&nbsp;<span>end</span><br>end<i class="cursor"></i></div>
+      <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+    </div>
+  </section>
+
+  <section class="cohort-strip" data-controller="countdown" data-countdown-start-value="<%= @program.starts_on.iso8601 %>" data-countdown-finish-value="<%= @program.ends_on.iso8601 %>">
+    <div>
+      <p class="eyebrow">Next cohort</p>
+      <h2><%= @program.name %> <button class="info-tip" title="Earlier cohorts lasted a few months. Continuous runs from August through December.">i</button></h2>
+      <p><%= @program.starts_on.strftime("%d %b") %> — <%= @program.ends_on.strftime("%d %b %Y") %></p>
+    </div>
+    <div class="countdown" data-countdown-target="display">
+      <div><strong data-countdown-target="days">--</strong><span>days</span></div>
+      <div><strong data-countdown-target="hours">--</strong><span>hours</span></div>
+      <div><strong data-countdown-target="minutes">--</strong><span>mins</span></div>
+      <div><strong data-countdown-target="seconds">--</strong><span>secs</span></div>
+    </div>
+    <p class="countdown-label" data-countdown-target="label">until we begin</p>
+  </section>
+
+  <section id="how-it-works" class="section how-it-works">
+    <div class="section-heading">
+      <p class="eyebrow">No sprawling community platform</p>
+      <h2>A simple rhythm that helps you ship more.</h2>
+      <p>Bring one product to focus on. Build alongside fellow devs.</p>
+    </div>
+    <div class="steps">
+      <article><span>01</span><h3>Join with your email</h3><p>OG builders get first access to the <%= @program.capacity %> seats. Everyone else keeps a place on the waitlist.</p></article>
+      <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Add as many products as you like, then name the one receiving your attention now.</p></article>
+      <article><span>03</span><h3>Build with company</h3><p>Biweekly live sessions, Slack for the duration of membership, and builders who understand the hustle.</p></article>
+      <article><span>04</span><h3>See the patterns</h3><p>Personal session summaries and periodic trend analysis turn each conversation into useful next moves.</p></article>
+    </div>
+  </section>
+
+  <section class="section benefits">
+    <div class="benefit-statement"><span>◆</span><p>Not another feed to scroll.</p><h2>Rails Builders is pressure in the useful direction.</h2></div>
+    <div class="benefit-list">
+      <article><h3>Small by design</h3><p><%= @program.capacity %> active seats keep the room useful, familiar, and accountable.</p></article>
+      <article><h3>Your product stays yours</h3><p>Keep your profile private, or publish your work on rails.builders when you’re ready.</p></article>
+      <article><h3>Registration never closes</h3><p>Join the queue anytime. When a seat opens, you get 72 hours to make it yours.</p></article>
+    </div>
+  </section>
+
+  <section class="section facilitator-section">
+    <p class="eyebrow">Currently facilitating</p>
+    <% @facilitators.each do |facilitator| %>
+      <div class="facilitator">
+        <div class="portrait portrait-rich"><%= facilitator.name.to_s.first || "R" %></div>
+        <div><h2><%= facilitator.name %></h2><p>Working on <%= link_to facilitator.focus_product&.name || "Loop Labs", facilitator.focus_product&.url || "https://looplabs.cc" %>. Keeping the room moving, the ass-kicking candid, and the red thread visible.</p></div>
+      </div>
+    <% end %>
+  </section>
+
+  <section id="builders" class="section builders-section">
+    <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails Builders.</h2><p>Profiles appear only when a builder chooses to publish. The gleaming rubies are OGs who haven’t stepped into the spotlight yet.</p></div>
+
+    <div id="active-builders" class="builder-group">
+      <div class="group-title"><h3>Active Builders</h3><span><%= @active_builders.size %> building now</span></div>
+      <div class="builder-grid">
+        <% @active_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
+      </div>
+    </div>
+
+    <div id="waitlisted-builders" class="builder-group">
+      <div class="group-title"><h3>Waitlisted Builders</h3><span><%= @waitlisted_builders.size %> waiting for a seat</span></div>
+      <div class="builder-grid">
+        <% @waitlisted_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
+      </div>
+    </div>
+
+    <div id="og-builders" class="builder-group">
+      <div class="group-title"><h3>The OGs</h3><span>They started the spark</span></div>
+      <div class="builder-grid">
+        <% @og_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div class="ruby-mark">◆</div><p class="eyebrow">Your next commit could use company</p><h2>Come build the thing.</h2><p>One email gets you started. We’ll tell you exactly where you stand.</p><%= link_to "Join Rails Builders", sign_in_path, class: "button button-light" %>
+  </section>
+</main>

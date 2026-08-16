@@ -1,0 +1,7 @@
+<% if @status == "offered" %><h1>Your Rails Builders seat is ready</h1><p>Confirm it within 72 hours. Sign in to accept or decline the offer.</p>
+<% elsif @status == "waitlisted" %><h1>You’re on the Rails Builders waitlist</h1><p>Your current position is #<%= @waitlist_position %>.</p><p><%= @user.og? ? "All #{Program.current.capacity} seats are currently reserved." : "Seats are currently in OG Priority; we’ll contact you when the general waitlist opens and your turn arrives." %></p>
+<% elsif @status == "active" %><h1>Your seat is confirmed</h1><p>You’re officially an active Rails Builder.</p>
+<% elsif @status == "declined" %><h1>Your offer was declined</h1><p>You can explicitly join the end of the waitlist again from your dashboard.</p>
+<% elsif @status == "expired" %><h1>Your offer expired</h1><p>The seat has moved to the next builder. You can join the end of the waitlist again.</p>
+<% elsif @status == "withdrawn" %><h1>Your seat is released</h1><p>You can return to the waitlist whenever you want another run.</p>
+<% end %>

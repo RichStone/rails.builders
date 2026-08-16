@@ -1,0 +1,27 @@
+<main class="narrow-page"><p class="eyebrow">Administrator</p><h1>Manage builder</h1>
+  <%= form_with model: [:admin, @user], class: "stacked-form" do |form| %>
+    <%= form.label :email %><%= form.email_field :email, maxlength: 320 %><%= form.label :name %><%= form.text_field :name, maxlength: 100 %>
+    <%= form.label :avatar, "Bio or company picture" %><%= form.file_field :avatar, accept: "image/png,image/jpeg,image/webp" %>
+    <%= form.label :testimonial %><%= form.text_area :testimonial, rows: 4, maxlength: 2000 %>
+    <%= form.label :enrollment_status %><%= form.select :enrollment_status, User::ENROLLMENT_STATUSES %>
+    <%= form.label :waitlist_rank %><%= form.number_field :waitlist_rank, min: 1 %>
+    <%= form.label :slack_status %><%= form.select :slack_status, %w[manual_pending invited active removed] %>
+    <label class="check-row"><%= form.check_box :og %><span>OG</span></label><label class="check-row"><%= form.check_box :facilitator %><span>Facilitator</span></label><label class="check-row"><%= form.check_box :administrator %><span>Administrator</span></label><label class="check-row"><%= form.check_box :public_profile %><span>Public profile</span></label>
+    <%= form.submit "Save builder", class: "button button-primary" %>
+  <% end %>
+
+  <section class="product-list"><h2>Products</h2>
+    <% @user.products.each do |product| %>
+      <%= form_with model: [:admin, @user, product], class: "stacked-form compact-product-form" do |form| %>
+        <%= form.label :name %><%= form.text_field :name, maxlength: 120 %><%= form.label :url %><%= form.url_field :url, maxlength: 2048 %>
+        <label class="check-row"><%= form.check_box :focus %><span>Focus product</span></label>
+        <div class="button-row"><%= form.submit "Save product", class: "button button-quiet" %><%= link_to "Delete", admin_user_product_path(@user, product), class: "text-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this product?" } %></div>
+      <% end %>
+    <% end %>
+    <h3>Add product</h3><%= form_with model: [:admin, @user, Product.new], class: "stacked-form" do |form| %><%= form.label :name %><%= form.text_field :name, maxlength: 120 %><%= form.label :url %><%= form.url_field :url, maxlength: 2048, placeholder: "https://" %><label class="check-row"><%= form.check_box :focus %><span>Focus product</span></label><%= form.submit "Add product", class: "button button-quiet" %><% end %>
+  </section>
+
+  <section class="product-list"><h2>Newsletter sync</h2><p>Status: <strong><%= @user.clickfunnels_sync_status.humanize %></strong></p><% if @user.newsletter_confirmed_at? %><%= button_to "Retry newsletter sync", retry_newsletter_admin_user_path(@user), class: "button button-quiet" %><% else %><p>The builder has not confirmed the optional newsletter.</p><% end %></section>
+
+  <section class="danger-zone"><h2>Delete builder</h2><p>This removes the account, public card, products, and any reserved seat.</p><%= button_to "Delete builder", admin_user_path(@user), method: :delete, class: "text-danger", data: { turbo_confirm: "Delete this builder?" } %></section>
+</main>
