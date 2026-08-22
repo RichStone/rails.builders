@@ -88,6 +88,24 @@ class UserMailer < ApplicationMailer
         description: "Your place is open for the next builder. If you want another run, you can explicitly join the end of the waitlist from your dashboard.",
         button_label: "Open your dashboard"
       }
+    when "left_waitlist"
+      {
+        subject: "You left the Rails Builders waitlist",
+        preheader: "You are no longer on the Rails Builders waitlist.",
+        eyebrow: "Waitlist update",
+        headline: "You left the waitlist.",
+        description: "You can explicitly join the end of the waitlist again from your dashboard whenever the timing is right.",
+        button_label: "Open your dashboard"
+      }
+    when "removed"
+      {
+        subject: "Your Rails Builders enrollment was removed",
+        preheader: "An Administrator removed your Rails Builders enrollment.",
+        eyebrow: "Enrollment update",
+        headline: "Your enrollment was removed.",
+        description: "An Administrator must reinstate your eligibility before you can join the waitlist again.",
+        button_label: "Open your dashboard"
+      }
     else
       {
         subject: "Your Rails Builders status changed",

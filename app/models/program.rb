@@ -25,10 +25,21 @@ class Program < ApplicationRecord
     promote_waitlist!
   end
 
-  def promote_waitlist!
+  def promote_waitlist!(limit: nil)
     with_lock do
-      while !promotions_paused? && seat_available? && (user = ordered_waitlist.first)
-        user.issue_offer!
+      promote_waitlist(limit: limit)
+    end
+  end
+
+  def release_seat!
+    with_lock do
+      outcome = yield
+      if outcome
+        released, result = outcome
+        promote_waitlist(limit: 1) if released
+        result
+      else
+        false
       end
     end
   end
@@ -38,6 +49,18 @@ class Program < ApplicationRecord
   end
 
   private
+
+  def promote_waitlist(limit:)
+    promoted = 0
+    while !promotions_paused? && seat_available? && (!limit || promoted < limit) && (user = next_eligible_waitlist_entry)
+      user.issue_offer!
+      promoted += 1
+    end
+  end
+
+  def next_eligible_waitlist_entry
+    og_priority? ? ordered_waitlist.where(og: true).first : ordered_waitlist.first
+  end
 
   def ends_on_or_after_starts_on
     return unless starts_on && ends_on && ends_on < starts_on

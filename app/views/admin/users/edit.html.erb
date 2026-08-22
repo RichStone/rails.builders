@@ -3,13 +3,18 @@
     <%= form.label :email %><%= form.email_field :email, maxlength: 320 %><%= form.label :name %><%= form.text_field :name, maxlength: 100 %>
     <%= form.label :avatar, "Bio or company picture" %><%= form.file_field :avatar, accept: "image/png,image/jpeg,image/webp" %>
     <%= form.label :testimonial %><%= form.text_area :testimonial, rows: 4, maxlength: 2000 %>
-    <%= form.label :enrollment_status %><%= form.select :enrollment_status, User::ENROLLMENT_STATUSES %>
+    <p>Enrollment: <strong><%= @user.enrollment_status.humanize %></strong></p>
     <%= form.label :waitlist_rank %><%= form.number_field :waitlist_rank, min: 1 %>
     <%= form.label :slack_status %><%= form.select :slack_status, %w[manual_pending invited active removed] %>
-    <label class="check-row"><%= form.check_box :og %><span>OG</span></label><label class="check-row"><%= form.check_box :facilitator %><span>Facilitator</span></label><label class="check-row"><%= form.check_box :administrator %><span>Administrator</span></label><label class="check-row"><%= form.check_box :public_profile %><span>Builder opted into a public profile</span></label>
+    <p>Desired Slack membership: <strong><%= @user.slack_desired_state.humanize %></strong> <small>This is a local desired state; no external Slack call is made here.</small></p>
+    <label class="check-row"><%= form.check_box :og %><span>OG</span></label><label class="check-row"><%= form.check_box :facilitator %><span>Facilitator</span></label><label class="check-row"><%= form.check_box :public_profile %><span>Builder opted into a public profile</span></label>
     <p>Facilitator approval: <strong><%= @user.public_profile_approved? ? "Approved" : "Not approved" %></strong></p>
     <%= form.submit "Save builder", class: "button button-primary" %>
   <% end %>
+
+  <section class="product-list"><h2>Enrollment lifecycle</h2><% if @user.removed? %><p>Reinstatement restores eligibility only. It does not grant a Seat or join the waitlist.</p><%= button_to "Reinstate enrollment eligibility", reinstate_admin_user_path(@user), class: "button button-quiet", data: { turbo_confirm: "Restore this Builder’s enrollment eligibility?" } %><% else %><p>Removal clears any Seat Offer or waitlist entry, releases reserved capacity, and marks desired Slack membership absent.</p><%= button_to "Remove from Rails Builders", remove_admin_user_path(@user), class: "text-danger", data: { turbo_confirm: "Remove this Builder from Rails Builders?" } %><% end %></section>
+
+  <section class="product-list"><h2>Administrator access</h2><p>Administrator and Facilitator are independent roles.</p><% if @user.administrator? %><%= button_to "Remove Administrator role", revoke_administrator_admin_user_path(@user), class: "text-danger", data: { turbo_confirm: "Remove this Administrator role?" } %><% else %><%= button_to "Grant Administrator role", grant_administrator_admin_user_path(@user), class: "button button-quiet", data: { turbo_confirm: "Grant Administrator access to this Builder?" } %><% end %></section>
 
   <section class="product-list"><h2>Products</h2>
     <% @user.products.each do |product| %>

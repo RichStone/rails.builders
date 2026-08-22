@@ -1,4 +1,4 @@
-<% content_for :preheader, "#{@user.email} is now #{@status}." %>
+<% content_for :preheader, "#{@user.email} is now #{@status.humanize}." %>
 
 <%= render "layouts/heading", eyebrow: "Administrator update", title: "Enrollment changed." %>
 <p style="margin: 0 0 24px; color: #4f3d40; font-size: 16px; line-height: 26px;">A builder’s enrollment status changed.</p>

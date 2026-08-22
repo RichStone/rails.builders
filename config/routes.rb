@@ -16,7 +16,9 @@ Rails.application.routes.draw do
   end
   post "offer/accept", to: "enrollments#accept", as: :accept_offer
   post "offer/decline", to: "enrollments#decline", as: :decline_offer
+  patch "membership", to: "enrollments#membership", as: :membership
   post "seat/withdraw", to: "enrollments#withdraw", as: :withdraw_seat
+  patch "waitlist", to: "enrollments#waitlist", as: :waitlist
   post "waitlist/join", to: "enrollments#join", as: :join_waitlist
   get "newsletter/confirm", to: "newsletter_subscriptions#show", as: :confirm_newsletter
   post "newsletter/confirm", to: "newsletter_subscriptions#create"
@@ -26,6 +28,10 @@ Rails.application.routes.draw do
     root "dashboard#index"
     resources :users, only: %i[edit update destroy] do
       post :retry_newsletter, on: :member
+      post :remove, on: :member
+      post :reinstate, on: :member
+      post :grant_administrator, on: :member
+      post :revoke_administrator, on: :member
       resources :products, only: %i[create update destroy]
     end
     resources :programs, only: :update do

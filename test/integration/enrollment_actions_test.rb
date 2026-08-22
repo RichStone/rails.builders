@@ -29,6 +29,71 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     assert_nil user.waitlist_joined_at
   end
 
+  test "active membership switch only permits withdrawal" do
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active", slack_desired_state: "present")
+    sign_in_as(user)
+
+    get dashboard_path
+    assert_select "label", text: /Active membership/
+    assert_select "input[name='active'][checked]"
+
+    patch membership_path, params: { active: "0" }
+    assert_redirected_to dashboard_path
+    assert_equal "withdrawn", user.reload.enrollment_status
+    assert_equal "absent", user.slack_desired_state
+
+    patch membership_path, params: { active: "1" }
+    assert_equal "withdrawn", user.reload.enrollment_status
+
+    get dashboard_path
+    assert_select "input[name='active'][disabled]:not([checked])"
+  end
+
+  test "eligible builder can switch waitlist participation on and off" do
+    Program.current.update!(capacity: 1)
+    User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active")
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "withdrawn")
+    sign_in_as(user)
+
+    get dashboard_path
+    assert_select "label", text: /Join the waitlist/
+    assert_select "input[name='joined']:not([checked])"
+
+    patch waitlist_path, params: { joined: "1" }
+    assert_redirected_to dashboard_path
+    assert user.reload.waitlisted?
+
+    get dashboard_path
+    assert_select "input[name='joined'][checked]"
+
+    patch waitlist_path, params: { joined: "0" }
+    assert_equal "left_waitlist", user.reload.enrollment_status
+    assert_nil user.waitlist_joined_at
+    assert_nil user.waitlist_rank
+
+    patch waitlist_path, params: { joined: "0" }
+    assert_equal "left_waitlist", user.reload.enrollment_status
+  end
+
+  test "dashboard presents terminal states and keeps explicit Seat Offer actions" do
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "left_waitlist")
+    sign_in_as(user)
+
+    get dashboard_path
+    assert_select "h1", text: "You left the waitlist."
+    assert_select ".status-pill", text: "Left waitlist"
+
+    user.update!(enrollment_status: "removed")
+    get dashboard_path
+    assert_select "h1", text: "Your enrollment was removed."
+    assert_select "label", text: /Join the waitlist/, count: 0
+
+    user.update!(enrollment_status: "offered", offer_expires_at: 2.days.from_now)
+    get dashboard_path
+    assert_select "form[action='#{accept_offer_path}']", text: /Accept/
+    assert_select "form[action='#{decline_offer_path}']", text: /Decline/
+  end
+
   private
 
   def sign_in_as(user)

@@ -5,7 +5,7 @@ class AdministratorMailer < ApplicationMailer
     @url = edit_admin_user_url(user)
     mail(
       to: User.where(administrator: true).pluck(:email),
-      subject: "Rails Builders: #{user.email} is now #{status}"
+      subject: "Rails Builders: #{user.email} is now #{status.humanize}"
     )
   end
 end

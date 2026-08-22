@@ -102,6 +102,19 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_not @user.public_profile_approved?
   end
 
+  test "public profile opt-out does not change enrollment or desired Slack membership" do
+    @user.products.create!(name: "Private App", url: "https://private.example", focus: true)
+    @user.update!(name: "Private Builder", public_profile: true, public_profile_approved: true)
+    sign_in_as(@user)
+
+    patch profile_path, params: { user: { name: "Private Builder", public_profile: "0" } }
+
+    assert_redirected_to dashboard_path
+    assert_not @user.reload.public_profile?
+    assert @user.active?
+    assert_equal "present", @user.slack_desired_state
+  end
+
   test "a signed-in builder can publish a profile with a focus product" do
     sign_in_as(@user)
 
@@ -129,6 +142,23 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_not User.exists?(@user.id)
     get dashboard_path
     assert_redirected_to sign_in_path
+  end
+
+  test "self-service deletion preserves the last verified Administrator" do
+    @user.update!(administrator: true)
+    sign_in_as(@user)
+
+    delete profile_path
+
+    assert_redirected_to dashboard_path
+    assert User.exists?(@user.id)
+    assert @user.reload.administrator?
+
+    User.create!(email: "second-admin@example.com", verified_at: Time.current, administrator: true)
+    delete profile_path
+
+    assert_redirected_to root_path
+    assert_not User.exists?(@user.id)
   end
 
   test "an incomplete profile cannot be published" do

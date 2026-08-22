@@ -122,4 +122,19 @@ class UserMailerTest < ActionMailer::TestCase
       assert_includes mail.text_part.body.decoded, guidance
     end
   end
+
+  test "terminal enrollment outcomes explain re-entry eligibility" do
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "left_waitlist")
+
+    left_mail = UserMailer.enrollment_status(user)
+    assert_equal "You left the Rails Builders waitlist", left_mail.subject
+    assert_includes left_mail.html_part.body.decoded, "join the end of the waitlist again"
+    assert_includes left_mail.text_part.body.decoded, "join the end of the waitlist again"
+
+    user.update!(enrollment_status: "removed")
+    removed_mail = UserMailer.enrollment_status(user)
+    assert_equal "Your Rails Builders enrollment was removed", removed_mail.subject
+    assert_includes removed_mail.html_part.body.decoded, "Administrator must reinstate"
+    assert_includes removed_mail.text_part.body.decoded, "Administrator must reinstate"
+  end
 end

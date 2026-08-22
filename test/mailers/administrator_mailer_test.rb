@@ -10,10 +10,12 @@ class AdministratorMailerTest < ActionMailer::TestCase
     mail = AdministratorMailer.enrollment_status(builder)
 
     assert_equal [ "first-admin@example.com", "second-admin@example.com" ], mail.to.sort
-    assert_equal "Rails Builders: builder@example.com is now active", mail.subject
+    assert_equal "Rails Builders: builder@example.com is now Active", mail.subject
     assert_equal "multipart/alternative", mail.mime_type
     assert_includes mail.html_part.body.decoded, "builder@example.com"
     assert_includes mail.text_part.body.decoded, "builder@example.com"
+    assert_includes mail.html_part.body.decoded, "Active"
+    assert_includes mail.text_part.body.decoded, "Active"
     assert_includes mail.html_part.body.decoded, url
     assert_includes mail.text_part.body.decoded, url
   end

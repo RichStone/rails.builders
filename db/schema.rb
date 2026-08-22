@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_16_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_22_100000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -82,6 +82,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_16_150000) do
     t.boolean "public_profile", default: false, null: false
     t.boolean "public_profile_approved", default: false, null: false
     t.integer "sign_in_token_version", default: 0, null: false
+    t.string "slack_desired_state", default: "absent", null: false
     t.string "slack_status", default: "manual_pending", null: false
     t.text "testimonial"
     t.datetime "updated_at", null: false
