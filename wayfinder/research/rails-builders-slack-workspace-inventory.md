@@ -1,107 +1,83 @@
 # Rails Builders Slack Workspace Inventory
 
 - Inventoried: 2026-08-22
+- Decision updated: 2026-08-22 after the dedicated channel was created and the Pro/guest boundary was settled
 - Evidence policy: actual Slack connector responses and signed-in Slack administration UI for workspace facts; first-party Slack documentation for API and plan boundaries
 - Mutation policy: no Slack messages, membership changes, app installations, permission changes, or token creation were performed
-- Gate question: Can the Rails app currently guarantee that every Active Builder belongs to the actual workspace and target channel, and that every non-active or deleted Builder belongs to neither?
+- Gate question: Can the Rails app guarantee that every Active Builder belongs to the actual workspace and target channel, and that every non-active or deleted Builder belongs to neither?
 
 ## Gate result
 
-**No. Do not implement Slack synchronization code under the current configuration.** The actual workspace is a standalone Free workspace. Slack provides no workspace-provisioning API on that plan, no Rails Builders app or token is installed or configured, and the target conversation is the renamed primary channel, from which `conversations.kick` cannot remove a person. Channel-only automation cannot admit a Builder to the workspace, cannot remove their workspace account, and cannot satisfy the product invariant.
+**No. Do not implement Slack membership synchronization code.** The product decision is to remain on Free for now and consider Pro later, with each Builder admitted manually as a Single-Channel Guest whose only channel is the new private `#rails-builders`. Free has no guest roles. Pro supports the intended guest role, but has neither SCIM nor the Enterprise Admin Users API, so the Rails app cannot create, convert, assign, or deactivate those accounts through a supported API. [Slack guest-role guide](https://slack.com/help/articles/202518103-Understand-guest-roles-in-Slack), [Slack SCIM guide](https://docs.slack.dev/admins/scim-api/), [Slack Admin Users guide](https://docs.slack.dev/admins/managing-users/)
 
-The smallest supported route to full automation is to upgrade this standalone workspace to Business+, keep Builders as full members, authorize a privately operated SCIM integration, disable approved-domain self-join, and prove the lifecycle with a disposable account. Slack limits SCIM to Business+ and Enterprise and requires an OAuth user token with the broad `admin` scope; on Business+, an Owner or Admin can generate that token and must retain the role. [Slack SCIM guide](https://docs.slack.dev/admins/scim-api/)
+The dedicated channel fixes the former primary-channel problem, but channel-only automation remains insufficient. `conversations.invite` and `conversations.kick` operate on an existing workspace identity; they do not make that identity a Single-Channel Guest, deactivate it from the workspace, or prevent workspace access through another path. On Pro, an Owner or Admin must perform and verify both admission and offboarding.
 
-That route is a prerequisite, not an implementation authorization. No adapter, reconciliation job, schema, or UI was added.
+Business+ was relevant only as the smallest standalone-workspace plan with SCIM. Its SCIM path provisions full members, not the intended Single-Channel Guests, and is outside the settled plan ceiling. Enterprise can automate Single-Channel Guest invitation/removal with Admin APIs, but is likewise outside scope. Neither is a recommendation for Rails Builders now.
+
+No adapter, reconciliation job, schema, or UI was added.
 
 ## Directly observed actual state
 
 | Area | Observation | Evidence surface |
 | --- | --- | --- |
 | Workspace | Name `Loop Labs 🧪`; team ID `T0AMMNQ9EMR`; URL `https://joinlooplabs.slack.com` | Signed-in Slack workspace and administration UI |
-| Plan and topology | Free is marked `CURRENT PLAN`. The workspace has its own plan page, workspace administration, and no organization/Enterprise surface. This is a standalone workspace, not an Enterprise workspace inside an organization. | Slack plan and administration UI |
+| Plan and topology | Free is marked `CURRENT PLAN`. The workspace has its own plan page, workspace administration, and no organization/Enterprise surface. This is a standalone workspace. | Slack plan and administration UI |
 | People | One workspace member: Rich, Slack user ID `U0AMS32820N`, email `hey@richsteinmetz.com`, account type `Primary Workspace Owner`, active, default authentication, joined 2026-03-20 | Slack **Manage members** UI |
-| Target channel | `#safe-space`, channel ID `C0AMMNQHX5H`, one member, created by Rich on 2026-03-20. It was renamed from `#all-funnels-on-rails` on 2026-07-25. | Slack channel and channel-details UI |
-| Channel topology | Public, active, local to this workspace, and not Slack Connect. It has no lock, external-organization indicator, or Organizations tab, and its only member is the sole local workspace member. | Slack channel and channel-details UI |
-| Primary-channel status | Slack's Default Channels setting says new members are added to configured defaults "in addition to `#safe-space`." Therefore `#safe-space` is the renamed primary (`#general`) channel, not an ordinary removable channel. | Slack **Settings & Permissions** UI |
-| Intended role | Full member. Free has no guest role, and this workspace is itself the Rails Builders access boundary. | Actual plan/topology plus the product invariant |
+| Target channel | Private `#rails-builders`, channel ID `C0BRTLZRX51`, created by Rich on 2026-08-22, with one member | Slack channel and channel-details UI |
+| Channel topology | Private, active, local to this workspace, and not Slack Connect. There is no Organizations tab or external-organization indicator. | Slack channel and channel-details UI |
+| Intended role | On Pro, each Builder is a Single-Channel Guest assigned only to `#rails-builders`. Free cannot represent this role. | Product decision plus actual plan |
 | Installer authority | Rich is the Primary Workspace Owner. App approval is disabled and apps need not come from Marketplace; members may install apps from any source. Rich is currently the only person who can exercise that policy. | Slack member and App Management Settings UI |
-| Installed/developer apps | The installed-app list and Rich's Slack developer catalog each contain only `Otto Labot` (`A0BKKTFMSP5`), a modern, not-distributed app. No Rails Builders membership app is installed or configured. | Slack Installed Apps and developer-app UIs |
+| Installed/developer apps | The installed-app list and Rich's Slack developer catalog each contain only `Otto Labot` (`A0BKKTFMSP5`), a modern, not-distributed app. The `#rails-builders` Agents & apps panel currently contains no agent or app. | Slack Installed Apps, developer-app, and channel-details UIs |
 | Existing app permissions | Otto has `app_mentions:read`, `chat:write`, `files:write`, `im:write`, `assistant:write`, `commands`, `channels:history`, `channels:read`, `files:read`, `groups:history`, `groups:read`, `im:history`, `im:read`, `mpim:history`, `mpim:read`, `reactions:read`, and `users:read`. It lacks `admin`, `users:read.email`, and channel membership write scopes. | Slack Otto permissions UI |
-| Token situation | The developer catalog lists no app-configuration token and offers `Generate Token`. Otto's installed OAuth credential necessarily exists somewhere, but its value/storage was deliberately not inspected and it is not configured in this repository. No Rails Builders OAuth or SCIM token exists. | Slack developer-app UI and repository configuration |
-| Connector access | The connected Slack read installation lists only ClickFunnels (`T02E9NBRY`). It does not have access to Loop Labs. A connector search found an unrelated archived, empty `#rails-builders` test channel in ClickFunnels (`C0BP30DPHBK`); that is not the actual Rails Builders workspace/channel. | Connected Slack read tools |
+| Token situation | Otto's installed OAuth credential necessarily exists somewhere, but its value/storage was deliberately not inspected and it is not configured in this repository. No Rails Builders membership token exists. | Slack developer-app UI and repository configuration |
+| Connector access | The connected Slack read installation lists only ClickFunnels (`T02E9NBRY`). It cannot access Loop Labs. An unrelated archived `#rails-builders` in ClickFunnels (`C0BP30DPHBK`) is not this channel. | Connected Slack read tools |
 | Repository configuration | `.env` and `.env.development` define no Slack app ID, team ID, channel ID, bot token, user token, or SCIM token. The repository contains no Slack adapter or job. `User#slack_status` is a manual status only. | Repository configuration and source search |
-| Join policy | Approved-domain self-join is enabled for `richsteinmetz.com` and `looplabs.cc`. A person controlling an address on either domain can join independently of Rails Builders desired state. | Slack **Settings & Permissions** UI |
+| Join policy | Approved-domain self-join is enabled for `richsteinmetz.com` and `looplabs.cc`. | Slack **Settings & Permissions** UI |
 
-## Current blockers
+The old public primary channel `#safe-space` (`C0AMMNQHX5H`) is no longer the target. It remains relevant only as historical evidence explaining why the dedicated channel was required.
 
-1. **Plan:** Free cannot use SCIM, and Slack's Admin Users API is Enterprise-only. Manual workspace invitations/deactivations are possible, but the Rails app cannot enforce them. Slack documents SCIM as Business+/Enterprise only. [Slack SCIM guide](https://docs.slack.dev/admins/scim-api/)
-2. **Primary channel:** `#safe-space` is the renamed primary channel. Slack returns `cant_kick_from_general` when `conversations.kick` targets that channel. [Slack method reference](https://docs.slack.dev/reference/methods/conversations.kick/)
-3. **Credentials and scopes:** no Rails Builders Slack app/token exists in the workspace or repository. Otto is a different app and lacks the required scopes.
-4. **Enforcement bypass:** approved-domain self-join can recreate workspace access outside the Rails app. It must be disabled for a strict desired-state invariant.
-5. **Identity binding:** the Rails app has verified, normalized email, but the actual Slack workspace has no Builder accounts to match. The schema stores only a manually selected `slack_status`; it does not persist `team_id`, Slack user ID, provisioning state, or a tombstone that survives local user deletion.
-6. **Deletion ordering:** a Rails Builder can be hard-deleted. Full automation needs a durable binding/outbox so Slack deactivation is not lost when the local `users` row disappears.
+## Settled Pro operating boundary
 
-**Channel-only automation is insufficient.** It cannot cross the workspace boundary, and it cannot remove anyone from this particular primary channel. On this dedicated workspace, workspace deactivation is the operation that removes a person from both the workspace and all channels.
+1. Upgrade to Pro only when guest access is needed.
+2. An Owner or Admin manually invites each eligible person as a Single-Channel Guest assigned only to `C0BRTLZRX51`.
+3. The Rails app may expose an Administrator queue with verified email, desired state, requested time, observed/manual completion time, and overdue/error state. It must not report Slack access as synchronized merely because an admin task exists.
+4. An Owner or Admin manually deactivates every non-active or deleted Builder, then records the observed result. Removing the person only from `#rails-builders` does not satisfy offboarding.
+5. Disable approved-domain self-join before treating workspace access as an enforced entitlement, or explicitly accept that the Rails app cannot guarantee the invariant.
+6. Persist enough audit data outside the deletable user row to retain the Slack user ID and a pending offboarding task after local account deletion.
 
-## Smallest required change
+Slack permits up to five free Single-Channel Guests per paid active member. With only Rich as a paid active member, Pro would cover five Builders, not the program's nine Seats. Nine simultaneous Builder guests require at least two paid active members, which provide an allowance of ten Single-Channel Guests, or a different paid-member arrangement. [Slack guest-role guide](https://slack.com/help/articles/202518103-Understand-guest-roles-in-Slack), [Slack fair-billing policy](https://slack.com/help/articles/218915077-Slacks-Fair-Billing-Policy)
 
-The minimum plan/authority/configuration package is indivisible:
+## Channel agent boundary
 
-1. Upgrade `T0AMMNQ9EMR` from Free to Business+.
-2. Retain Rich as a durable Primary Workspace Owner and have him authorize a private internal app/user token with the SCIM `admin` scope. Slack requires the token-generating account to remain an Owner/Admin. [Slack SCIM guide](https://docs.slack.dev/admins/scim-api/)
-3. Use full-member provisioning. Business+ SCIM cannot provision guest accounts; Slack limits SCIM Multi-Channel Guest provisioning to Enterprise and cannot fully provision Single-Channel Guests through SCIM. [Slack SCIM guide](https://docs.slack.dev/admins/scim-api/), [SCIM reference](https://docs.slack.dev/reference/scim-api/)
-4. Disable approved-domain self-join for `richsteinmetz.com` and `looplabs.cc`, or explicitly weaken the product invariant. A strict gate cannot coexist with an unmanaged re-entry path.
-5. Store the SCIM token outside the repository, configure the fixed team/channel IDs, and persist Slack's user ID as the durable identity after initial verified-email resolution.
-6. Complete the disposable-account test below before authorizing production code.
+An agent is not a membership authority. A local Hermes agent connected as an ordinary Slack bot/app, or a Salesforce Agentforce agent, could potentially participate in `#rails-builders`; neither can make Pro guest admission/offboarding automatic.
 
-Pro is not sufficient: it still has neither SCIM nor the Enterprise Admin Users API. Enterprise is not the smallest change because the actual workspace is standalone and its entire membership is the entitlement being managed.
+Slack's current AI-agent documentation says guests cannot use AI apps or agents. Agentforce also requires an Agentforce license and Slack-to-Salesforce account mapping; people without Salesforce accounts need provisional Salesforce licenses. These constraints make Agentforce unproven for the intended Single-Channel Guest audience. [Slack AI-agent guide](https://slack.com/help/articles/33076000248851-Work-with-AI-agents-in-Slack), [Slack Agentforce setup guide](https://slack.com/help/articles/36218109305875-Set-up-and-manage-Agentforce-in-Slack)
 
-## Conditional API path after prerequisites are met
+Hermes should be evaluated separately in two modes:
 
-This is the exact path to prove before the implementation gate may open. Use SCIM v2 at `https://api.slack.com/scim/v2` with a bearer user token carrying `admin`.
+- As a normal private Slack bot that reads and responds in the channel. Whether a Single-Channel Guest can mention or otherwise interact with that bot must be proven; do not assume the Slack AI-agent restriction does or does not cover this shape.
+- As a Slack-native AI agent. Slack documents this as unavailable to guests, so it is not a viable program promise unless Slack's actual Pro behavior proves otherwise.
 
-### Active Builder admission
+No agent was installed, added to the channel, messaged, or reconfigured during this inventory.
 
-1. Require a verified Rails Builders email and `enrollment_status == "active"`.
-2. Reconcile with paginated `GET /Users?count=1000&startIndex=1` and match the normalized verified email against every returned `emails[].value`, including inactive users. Never create a second identity for a previously deactivated email; Slack rejects duplicate-email provisioning even when the old account is inactive. [Slack SCIM guide](https://docs.slack.dev/admins/scim-api/)
-3. If absent, call `POST /Users` with the SCIM core schema, `userName`, primary `emails`, name/display name when available, and `active: true`. Slack documents `userName` plus at least one email as required and returns the Slack user resource. [SCIM reference](https://docs.slack.dev/reference/scim-api/)
-4. If present but inactive, reactivate that exact Slack ID with `PATCH /Users/{slack_user_id}` setting `active` to `true`.
-5. Persist `(team_id: "T0AMMNQ9EMR", user_id)` and the normalized source email in a binding that survives deletion of the local user.
-6. Do not call `conversations.invite` for `C0AMMNQHX5H`: as the primary channel, Slack adds every workspace member automatically. Re-read SCIM state and channel membership before reporting `active` to the Administrator.
+## Safe test-account path
 
-### Non-active or deleted Builder removal
+After a Pro upgrade, use `hey+rails-builders-slack-smoke-20260822@richsteinmetz.com`. Do not use Rich's owner account or a real Builder.
 
-1. Resolve the durable stored Slack user ID; never select a removal target from a mutable email alone.
-2. Refuse to target `U0AMS32820N` or any Workspace Owner/Admin unless an explicit, separately authorized administrative workflow has first changed the Slack role.
-3. Call `DELETE /Users/{slack_user_id}`. Slack defines this as setting the Slack user to deactivated. [SCIM reference](https://docs.slack.dev/reference/scim-api/)
-4. Do not call `conversations.kick` for `C0AMMNQHX5H`; the method cannot remove a member from the primary channel. Deactivation removes the person from every channel, signs them out, and prevents sign-in, which satisfies both workspace and channel removal in this standalone workspace. [Slack deactivation guide](https://slack.com/help/articles/204475027-Deactivate-a-members-account)
-5. Re-read the SCIM resource and observed channel/workspace state before reporting `removed`. Retain the binding so later reactivation uses the same Slack identity.
+1. Manually invite the alias as a Single-Channel Guest assigned only to `#rails-builders`.
+2. Verify it can sign in, can see only that channel, and cannot discover or enter any other workspace channel.
+3. Add only the selected test agent/app after reviewing its scopes. Do not grant membership-management authority.
+4. From the guest account, test the exact supported interaction: ordinary bot mention/message for Hermes, or Agentforce access if still being considered. Record whether the guest can see, invoke, and receive a response.
+5. Manually deactivate the guest and verify it is signed out and absent from the workspace and channel.
+6. Reinvite/reactivate the same identity once to prove the manual runbook and retained Slack user binding.
 
-### Required public seams if implementation is later authorized
-
-- An adapter contract for lookup/provision/reactivate/deactivate/observe that returns explicit desired and observed states without exposing tokens.
-- A serialized reconciliation job driven by Active Builder desired state, including local deletion tombstones, idempotency, `Retry-After`, and re-read-after-ambiguous-failure behavior.
-- Administrator-visible desired state, observed workspace/channel state, Slack user ID, last attempt/success, pending invitation or activation, error, retry action, and an immutable exclusion for the Primary Workspace Owner.
-
-## Safe disposable-account proof
-
-Use `hey+rails-builders-slack-smoke-20260822@richsteinmetz.com`, which is already controlled by Rich and has been used as a Rails Builders application smoke identity. Do not use Rich's owner account or a real Builder.
-
-After the Business+ upgrade, app authorization, and approved-domain self-join removal:
-
-1. Create and verify the matching local Rails Builders account without making it an Administrator, Facilitator, or OG Builder.
-2. Transition it to Active Builder and run one reconciliation.
-3. Confirm SCIM returns a new or reactivated full member with a stable Slack ID and confirm automatic membership in `#safe-space`.
-4. Complete Slack sign-in through the alias inbox to prove the invited/pre-provisioned account is usable.
-5. Transition it to a non-active status, reconcile, and prove the SCIM resource is inactive, the account is signed out, and it is absent from all channels.
-6. Repeat active → inactive once to prove reactivation, idempotency, and reuse of the same Slack ID.
-7. Delete the local smoke account and prove the durable tombstone still deactivates Slack before marking the test complete.
-
-Do not run this proof against the current Free plan: it would exercise only manual membership and could not prove the production API invariant.
+This is a product/operations proof, not an API automation proof. It must not open the membership-synchronization implementation gate.
 
 ## Unverified and deliberately not changed
 
-- No SCIM or membership token exists yet, so token generation, token rotation, and real SCIM calls remain unverified.
-- No non-owner workspace account exists, so email-match, invite acceptance, reactivation, deactivation, and channel-removal behavior remain unproven against this workspace.
-- The repository's production hosting and secret store are not settled, so outbound IP allowlisting and durable token ownership remain unverified.
-- No Slack membership, channel, app, permission, workspace setting, or message was changed during this inventory.
+- Pro guest invitation, sole-channel visibility, deactivation, and reactivation have not been exercised against this workspace.
+- The actual paid-member count after a future Pro upgrade is not settled; therefore the nine-guest allowance is not yet secured.
+- Hermes' connection method, app identity, token storage, exact scopes, hosting, and Single-Channel Guest interaction behavior are unverified.
+- Agentforce licensing, Salesforce org connection, provisional-user licensing, account mapping, and guest behavior are unverified.
+- The repository's production hosting and secret store are not settled.
+- No Slack membership, channel membership, app, permission, workspace setting, or message was changed during this inventory.

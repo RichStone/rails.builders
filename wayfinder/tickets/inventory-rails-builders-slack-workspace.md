@@ -13,4 +13,4 @@ Record the actual Slack plan and topology, target channel and visibility, intend
 
 ## Outcome
 
-Resolved by the [actual workspace inventory](../research/rails-builders-slack-workspace-inventory.md) and [resolution](../resolutions/inventory-rails-builders-slack-workspace.md). End-to-end automation is blocked on the current Free workspace and remains unauthorized.
+Resolved by the [actual workspace inventory](../research/rails-builders-slack-workspace-inventory.md) and [resolution](../resolutions/inventory-rails-builders-slack-workspace.md). The actual private target is `#rails-builders` (`C0BRTLZRX51`). The settled Pro/Single-Channel-Guest design requires manual Owner/Admin admission and deactivation, so end-to-end membership automation remains blocked and unauthorized. Agent access requires a separate disposable-guest proof.
