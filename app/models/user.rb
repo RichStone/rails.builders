@@ -2,7 +2,7 @@ class User < ApplicationRecord
   ENROLLMENT_STATUSES = %w[unverified waitlisted offered active declined expired withdrawn left_waitlist removed].freeze
   SLACK_STATUSES = %w[manual_pending invited active removed].freeze
   SLACK_DESIRED_STATES = %w[absent present].freeze
-  CLICKFUNNELS_SYNC_STATUSES = %w[not_requested pending missing_configuration subscribed blocked_suppressed failed].freeze
+  CLICKFUNNELS_SYNC_STATUSES = %w[not_requested pending skipped_local missing_configuration subscribed blocked_suppressed failed].freeze
 
   generates_token_for :email_verification, expires_in: 30.minutes do
     sign_in_token_version

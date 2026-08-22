@@ -57,7 +57,8 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 ## Email and optional integrations
 
 - `RESEND_API_KEY` is required for production delivery of transactional email through Resend. The `rails.builders` sending domain must be verified in Resend.
-- `CLICKFUNNELS_API_TOKEN` enables newsletter contact/tag reconciliation after a person separately opts in, confirms the newsletter email, and verifies their Rails Builders email. Without it, the admin UI reports `missing configuration`; registration still works.
+- Production ClickFunnels configuration lives under `clickfunnels` in encrypted Rails credentials: `api_token`, `base_url`, `workspace_id`, `newsletter_tag_id`, and optional `newsletter_tag_public_id`. The newsletter job runs only after a person separately opts in, confirms the newsletter email, and verifies their Rails Builders email. Missing production configuration is visible to Administrators without breaking registration.
+- Development and test make no ClickFunnels requests by default and record `skipped_local`. A deliberate local smoke run may set `CLICKFUNNELS_SMOKE_TEST_PROFILE=test-only`; that mode is bound to the isolated Test Only workspace and rejects every other profile. Pass its token through the inherited descriptor named by `CLICKFUNNELS_API_TOKEN_FD` so it never enters a project file, command argument, or exported environment variable.
 - `HONEYBADGER_API_KEY` enables production error reporting.
 - `APP_HOST` controls links in production email and defaults to `rails.builders`.
 
