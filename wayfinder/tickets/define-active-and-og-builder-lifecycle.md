@@ -10,3 +10,7 @@
 ## Question
 
 When does a person become or cease to be an Active Builder or OG Builder, how do the two public groups handle overlap, what does Continuous finishing on 17 December change if Active Builder status persists, and which events control Slack entitlement and future waitlist eligibility?
+
+## Settled input
+
+Each verified enrollment transition with operational impact—waitlisted, offered, active, declined, expired, or withdrawn—must generate one email notification to every Facilitator. Notification delivery is a side effect and must not roll back the authoritative enrollment transition.
