@@ -1,3 +1,11 @@
-Your Rails Builders status is now: <%= @status %>.
+<%= @content.fetch(:headline) %>
 
-<% if @status == "waitlisted" %>Your current waitlist position is #<%= @waitlist_position %>.<% elsif @status == "offered" %>Sign in and confirm your seat within 72 hours.<% elsif @status.in?(%w[declined expired withdrawn]) %>You can join the end of the waitlist again from your dashboard.<% end %>
+<% if @content.key?(:position) %>Your current waitlist position is #<%= @content[:position] %>.
+
+<% end %><%= @content.fetch(:description) %>
+<% if @content[:note] %>
+
+<%= @content[:note] %><% end %>
+
+Open your Rails Builders dashboard:
+<%= @url %>

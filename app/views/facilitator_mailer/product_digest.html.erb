@@ -1,12 +1,24 @@
-<h1>Product updates for <%= @day.to_fs(:long) %></h1>
-<p>These builders created or updated products today. Review any profiles that are awaiting publication approval.</p>
-<ul>
-  <% @products.each do |product| %>
-    <li>
-      <strong><%= product.created_at.to_date == @day ? "Created" : "Updated" %>: <%= product.name %></strong>
-      by <%= product.user.name.presence || product.user.email %> —
-      <%= link_to product.url, product.url %> ·
-      <% if product.user.public_profile? %><%= link_to "Review profile", facilitator_profile_reviews_url(anchor: "builder-#{product.user_id}") %><% else %>Profile is private<% end %>
-    </li>
-  <% end %>
-</ul>
+<% content_for :preheader, "#{pluralize(@products.size, "product update")} for #{@day.to_fs(:long)}." %>
+
+<%= render "layouts/heading", eyebrow: "Facilitator digest · #{@day.to_fs(:long)}", title: "Today’s product movement." %>
+<p style="margin: 0 0 8px; color: #4f3d40; font-size: 16px; line-height: 26px;"><%= pluralize(@products.size, "product was", "products were") %> created or updated. Review any public profiles waiting for approval.</p>
+
+<%= render "layouts/button", label: "Open facilitator review queue", url: @url %>
+
+<% @products.each do |product| %>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fffaf6" style="width: 100%; margin-top: 16px; border: 1px solid #ead8d5; background-color: #fffaf6;">
+    <tr>
+      <td class="digest-item" style="padding: 24px;">
+        <p style="margin: 0 0 9px; color: #d4143d; font-size: 11px; line-height: 17px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;"><%= product.created_at.to_date == @day ? "Created" : "Updated" %></p>
+        <h2 style="margin: 0 0 8px; color: #24181a; font-family: Arial, Helvetica, sans-serif; font-size: 23px; line-height: 28px;"><%= product.name %></h2>
+        <p style="margin: 0 0 16px; color: #715f62; font-size: 13px; line-height: 20px;">Builder: <strong style="color: #4f3d40;"><%= product.user.name.presence || product.user.email %></strong></p>
+        <p style="margin: 0; font-size: 14px; line-height: 22px;"><%= link_to "Open #{product.name}", product.url, style: "color: #a40f32; font-weight: 700;" %></p>
+        <% if product.user.public_profile? %>
+          <p style="margin: 8px 0 0; font-size: 14px; line-height: 22px;"><%= link_to "Review #{product.user.name.presence || product.user.email}’s profile", facilitator_profile_reviews_url(anchor: "builder-#{product.user_id}"), style: "color: #a40f32; font-weight: 700;" %></p>
+        <% else %>
+          <p style="margin: 8px 0 0; color: #715f62; font-size: 13px; line-height: 20px;">Profile is private. There’s no review action.</p>
+        <% end %>
+      </td>
+    </tr>
+  </table>
+<% end %>
