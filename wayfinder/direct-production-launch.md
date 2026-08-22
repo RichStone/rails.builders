@@ -48,7 +48,7 @@ provider snapshots alone are not a SQLite consistency guarantee. See
 4. Provision the Hetzner server with SSH keys, a firewall, daily backups, and
    deletion protection. Configure the off-host Restic repository and install the
    backup units, but do not run them before an application container exists.
-5. Build and push the accepted image to GHCR, set `KAMAL_PROXY_SSL=false`, run
+5. Build and push the accepted image to Docker Hub, set `KAMAL_PROXY_SSL=false`, run
    `kamal setup`, and smoke-test the host through an explicit `Host` header
    before DNS changes.
 6. Run one coherent backup against the live container, pass the restore smoke

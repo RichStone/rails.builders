@@ -1,5 +1,5 @@
 service: rails-builders
-image: richstone/rails-builders
+image: <%= ENV.fetch("KAMAL_IMAGE", "richwhale/rails-builders") %>
 
 servers:
   web:
@@ -13,7 +13,7 @@ proxy:
     - www.rails.builders
 
 registry:
-  server: ghcr.io
+  server: <%= ENV.fetch("KAMAL_REGISTRY_SERVER", "docker.io") %>
   username: <%= ENV.fetch("KAMAL_REGISTRY_USERNAME") %>
   password:
     - KAMAL_REGISTRY_PASSWORD

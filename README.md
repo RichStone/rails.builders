@@ -75,7 +75,8 @@ bin/kamal setup
 ```
 
 `KAMAL_BUILD_ARCH` must match the purchased server (`arm64` or `amd64`). The
-registry password must be a GitHub token that can write packages. Keep
+default image repository is `docker.io/richwhale/rails-builders`; the registry
+password must be a Docker Hub access token with Read & Write permission. Keep
 `KAMAL_PROXY_SSL=false` for the first pre-DNS deployment and smoke-test the new
 host directly:
 
