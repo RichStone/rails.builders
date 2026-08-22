@@ -47,6 +47,20 @@ The old public primary channel `#safe-space` (`C0AMMNQHX5H`) is no longer the ta
 
 Slack permits up to five free Single-Channel Guests per paid active member. With only Rich as a paid active member, Pro would cover five Builders, not the program's nine Seats. Nine simultaneous Builder guests require at least two paid active members, which provide an allowance of ten Single-Channel Guests, or a different paid-member arrangement. [Slack guest-role guide](https://slack.com/help/articles/202518103-Understand-guest-roles-in-Slack), [Slack fair-billing policy](https://slack.com/help/articles/218915077-Slacks-Fair-Billing-Policy)
 
+## Why SCIM, Zapier, and Free do not change the boundary
+
+SCIM is a standardized identity-provisioning API. Slack exposes it as a REST API over HTTP for creating, updating, and deactivating workspace accounts, but only on Business+ and Enterprise. It is not a bot or channel API. Slack also states that SCIM cannot fully provision a Single-Channel Guest: it must first create a full member, then an admin must restrict that account in Slack's UI. [Slack SCIM guide](https://docs.slack.dev/admins/scim-api/), [Slack SCIM reference](https://docs.slack.dev/reference/scim-api/)
+
+Single-Channel and Multi-Channel Guest roles are paid-plan features. On Free, Slack can invite a person only as a full workspace member. If a paid workspace downgrades to Free, Slack deactivates existing guests unless they are reactivated as full members. A full member who happens to participate only in `#rails-builders` is not access-limited to that channel. [Slack guest-role guide](https://slack.com/help/articles/202518103-Understand-guest-roles-in-Slack), [Slack Free-plan limitations](https://slack.com/help/articles/27204752526611-Feature-limitations-on-the-free-version-of-Slack), [Slack workspace invitation guide](https://slack.com/help/articles/201330256-Invite-new-members-to-your-workspace)
+
+Zapier's current Slack action is **Invite User to Channel**, explicitly defined as inviting an **existing** Slack user to an existing channel. It cannot create a workspace identity, assign the Single-Channel Guest role, or deactivate the account, and it cannot grant itself Slack capabilities that the connected plan/token lacks. Zapier can still automate the surrounding Administrator queue, reminders, and completion logging. [Zapier Slack integration](https://zapier.com/apps/slack/integrations)
+
+Slack's supported API that directly invites a Single-Channel Guest is `admin.users.invite` with `is_ultra_restricted`; that method and the corresponding workspace-removal APIs are Enterprise-only. [Slack `admin.users.invite` reference](https://docs.slack.dev/reference/methods/admin.users.invite/), [Slack Admin Users guide](https://docs.slack.dev/admins/managing-users/)
+
+Slack Connect is a different model: the person remains a member of another workspace while organizations share a channel. Ordinary Slack Connect channels require paid plans for each organization, and external participants do not become guests in the Loop Labs workspace. It therefore does not satisfy the settled Single-Channel Guest design or the original workspace-membership invariant. [Slack Connect guide](https://slack.com/help/articles/115004151203-Slack-Connect-guide--work-with-external-organizations), [Slack Connect channel guide](https://slack.com/help/articles/360035092414-Use-Slack-Connect-to-work-with-other-companies-in-channels-Use-Slack-Connect-to-work-with-other-companies-in-channels)
+
+A local Hermes agent could drive the signed-in Slack admin UI as robotic process automation. That may reduce clicks, but it depends on an Owner's live session, UI selectors, authentication challenges, and Slack's current screen flow. Treat it as human-approved operational assistance, not as authoritative or unattended membership synchronization.
+
 ## Channel agent boundary
 
 An agent is not a membership authority. A local Hermes agent connected as an ordinary Slack bot/app, or a Salesforce Agentforce agent, could potentially participate in `#rails-builders`; neither can make Pro guest admission/offboarding automatic.
