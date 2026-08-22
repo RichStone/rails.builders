@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Rails Builders backup nightly
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=rails-builders-backup.service
+
+[Install]
+WantedBy=timers.target

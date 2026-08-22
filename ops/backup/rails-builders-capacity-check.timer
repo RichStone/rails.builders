@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Rails Builders storage capacity hourly
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+Persistent=true
+Unit=rails-builders-capacity-check.service
+
+[Install]
+WantedBy=timers.target

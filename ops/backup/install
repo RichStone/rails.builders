@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+if ((EUID != 0)); then
+  printf 'rails-builders-backup-install: ERROR: run as root\n' >&2
+  exit 1
+fi
+
+for command_name in install systemctl; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'rails-builders-backup-install: ERROR: required command not found: %s\n' "$command_name" >&2
+    exit 1
+  fi
+done
+
+source_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+install -d -m 0755 /usr/local/libexec/rails-builders
+install -m 0755 "$source_dir/backup" /usr/local/libexec/rails-builders/backup
+install -m 0755 "$source_dir/capacity-check" /usr/local/libexec/rails-builders/capacity-check
+install -m 0755 "$source_dir/restic-check" /usr/local/libexec/rails-builders/restic-check
+install -m 0755 "$source_dir/restore-smoke" /usr/local/libexec/rails-builders/restore-smoke
+
+install -d -m 0755 /etc/rails-builders
+if [[ ! -e /etc/rails-builders/backup ]]; then
+  install -m 0600 "$source_dir/environment.example" /etc/rails-builders/backup
+fi
+chmod 0600 /etc/rails-builders/backup
+
+for unit in "$source_dir"/*.service "$source_dir"/*.timer; do
+  install -m 0644 "$unit" "/etc/systemd/system/${unit##*/}"
+done
+
+systemctl daemon-reload
+
+printf '%s\n' \
+  'Backup units installed.' \
+  'Next: fill /etc/rails-builders/backup, initialize Restic, run the smoke checks, then enable the timers.'

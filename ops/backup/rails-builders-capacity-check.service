@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Rails Builders storage capacity
+After=local-fs.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/rails-builders/backup
+ExecStart=/usr/local/libexec/rails-builders/capacity-check
+UMask=0077

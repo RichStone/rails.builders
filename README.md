@@ -39,7 +39,7 @@ bin/worktree info
 bin/rails test
 ```
 
-Ignored machine-local files named in [`.worktreeinclude`](.worktreeinclude)—currently `.env.development` and `config/master.key`—are copied from the source checkout before setup when they exist. Never put the generated `.worktree.env` in `.worktreeinclude`; every worktree must retain its own port.
+Ignored machine-local files named in [`.worktreeinclude`](.worktreeinclude)—currently only `.env.development`—are copied from the source checkout before setup when they exist. Secrets such as `config/master.key` stay in the source checkout unless an operator deliberately provides them. Never put the generated `.worktree.env` in `.worktreeinclude`; every worktree must retain its own port.
 
 ## Verification
 
@@ -53,6 +53,42 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 ```
 
 `bin/ci` runs the full local pipeline, including a seed replant after the test suite.
+
+## Production deployment
+
+Production runs as one Kamal web role. Puma also runs Solid Queue, and the four
+SQLite databases plus Active Storage share the persistent host directory
+`/srv/rails-builders/storage`.
+
+Once the server architecture and IP address are known, copy `.env.example` to
+the ignored `.env`, replace every production value, and export it before using
+Kamal:
+
+```sh
+set -a
+. ./.env
+set +a
+
+ssh root@"$KAMAL_HOST" "install -d -o 1000 -g 1000 /srv/rails-builders/storage"
+bin/kamal config
+bin/kamal setup
+```
+
+`KAMAL_BUILD_ARCH` must match the purchased server (`arm64` or `amd64`). The
+registry password must be a GitHub token that can write packages. Keep
+`KAMAL_PROXY_SSL=false` for the first pre-DNS deployment and smoke-test the new
+host directly:
+
+```sh
+curl --fail --header 'Host: rails.builders' "http://$KAMAL_HOST/up"
+```
+
+After both apex and `www` DNS records resolve to the server, set
+`KAMAL_PROXY_SSL=true` and deploy again so Kamal Proxy can obtain certificates.
+Do not run
+the first deployment until an off-server backup target and restore check have
+been chosen for `/srv/rails-builders/storage`. Install and prove the supplied
+[backup and restore bundle](ops/backup/RUNBOOK.md) before calling recovery ready.
 
 ## Email and integrations
 

@@ -1,0 +1,45 @@
+service: rails-builders
+image: richstone/rails-builders
+
+servers:
+  web:
+    - <%= ENV.fetch("KAMAL_HOST") %>
+
+proxy:
+  ssl: <%= ENV.fetch("KAMAL_PROXY_SSL") == "true" %>
+  forward_headers: true
+  hosts:
+    - rails.builders
+    - www.rails.builders
+
+registry:
+  server: ghcr.io
+  username: <%= ENV.fetch("KAMAL_REGISTRY_USERNAME") %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    APP_HOST: rails.builders
+    SOLID_QUEUE_IN_PUMA: true
+  secret:
+    - RAILS_MASTER_KEY
+    - RAILS_BUILDERS_OG_EMAILS
+    - RAILS_BUILDERS_FACILITATOR_EMAIL
+    - RESEND_API_KEY
+    - HONEYBADGER_API_KEY
+    - GOOGLE_OAUTH_CLIENT_ID
+    - GOOGLE_OAUTH_CLIENT_SECRET
+
+volumes:
+  - /srv/rails-builders/storage:/rails/storage
+
+asset_path: /rails/public/assets
+
+builder:
+  arch: <%= ENV.fetch("KAMAL_BUILD_ARCH") %>
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  logs: app logs -f
+  shell: app exec --interactive --reuse "bash"

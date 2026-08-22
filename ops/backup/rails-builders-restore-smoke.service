@@ -1,0 +1,14 @@
+[Unit]
+Description=Restore and verify the latest Rails Builders backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/rails-builders/backup
+ExecStart=/usr/local/libexec/rails-builders/restore-smoke
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=infinity
+UMask=0077

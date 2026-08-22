@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+source_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+test_root="$(mktemp -d "${TMPDIR:-/tmp}/rails-builders-backup-test.XXXXXX")"
+
+cleanup() {
+  if [[ -d "$test_root" && "$test_root" == "${TMPDIR:-/tmp}/rails-builders-backup-test."* ]]; then
+    rm -rf -- "$test_root"
+  fi
+}
+trap cleanup EXIT
+
+bin_dir="$test_root/bin"
+event_log="$test_root/events"
+storage_path="$test_root/storage"
+cache_path="$test_root/cache"
+lock_path="$test_root/restic.lock"
+mkdir -p "$bin_dir" "$storage_path" "$cache_path"
+
+cat >"$bin_dir/docker" <<'STUB'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'docker %s\n' "$*" >>"$EVENT_LOG"
+case "$1" in
+  ps)
+    printf '%s\n' "${DOCKER_PS_OUTPUT:-app-container}"
+    ;;
+  stop | start)
+    ;;
+  *)
+    exit 2
+    ;;
+esac
+STUB
+
+cat >"$bin_dir/curl" <<'STUB'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'curl %s\n' "$*" >>"$EVENT_LOG"
+exit "${CURL_STATUS:-0}"
+STUB
+
+cat >"$bin_dir/flock" <<'STUB'
+#!/usr/bin/env bash
+exit 0
+STUB
+
+cat >"$bin_dir/df" <<'STUB'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'df %s\n' "$*" >>"$EVENT_LOG"
+case "$*" in
+  *--output=pcent*)
+    printf 'Use%%\n %s%%\n' "${DF_USAGE_PERCENT:-42}"
+    ;;
+  *--output=avail*)
+    printf 'Avail\n %s\n' "${DF_AVAILABLE_BYTES:-2147483648}"
+    ;;
+  *)
+    exit 2
+    ;;
+esac
+STUB
+
+cat >"$bin_dir/restic" <<'STUB'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'restic %s\n' "$*" >>"$EVENT_LOG"
+case "$1" in
+  backup)
+    if [[ "${FAIL_BACKUP:-0}" == 1 ]]; then
+      exit 12
+    fi
+    ;;
+  stats)
+    printf '{"total_size":%s}\n' "${RESTIC_STATS_TOTAL_SIZE:-1048576}"
+    ;;
+  restore)
+    target=""
+    shift
+    while (($#)); do
+      if [[ "$1" == "--target" ]]; then
+        target="$2"
+        break
+      fi
+      shift
+    done
+    [[ -n "$target" ]]
+    cp -R "$FIXTURE_ROOT/." "$target/"
+    ;;
+esac
+exit 0
+STUB
+
+chmod 0755 "$bin_dir/docker" "$bin_dir/curl" "$bin_dir/df" "$bin_dir/flock" "$bin_dir/restic"
+
+run_backup() {
+  env \
+    PATH="$bin_dir:$PATH" \
+    EVENT_LOG="$event_log" \
+    RESTIC_REPOSITORY=test:repository \
+    RESTIC_PASSWORD=test-password \
+    RESTIC_CACHE_DIR="$cache_path" \
+    RESTIC_LOCK_FILE="$lock_path" \
+    STORAGE_PATH="$storage_path" \
+    HEALTHCHECK_URL=http://rails.builders/up \
+    "$source_dir/backup"
+}
+
+: >"$event_log"
+if ! run_backup >"$test_root/happy-backup-output" 2>&1; then
+  cat "$test_root/happy-backup-output" >&2
+  exit 1
+fi
+
+expected_events="$test_root/expected-events"
+cat >"$expected_events" <<EOF
+restic snapshots
+docker ps --filter label=service=rails-builders --filter label=role=web --format {{.ID}}
+docker stop --time 30 app-container
+restic backup --tag rails-builders $storage_path
+docker start app-container
+curl --fail --silent --show-error --header Cache-Control: no-cache --location --max-time 10 --output /dev/null --resolve rails.builders:80:127.0.0.1 --resolve rails.builders:443:127.0.0.1 --retry 23 --retry-all-errors --retry-delay 5 --retry-max-time 130 http://rails.builders/up
+restic forget --tag rails-builders --group-by paths,tags --keep-daily 7 --keep-weekly 5 --keep-monthly 12 --prune
+EOF
+diff -u "$expected_events" "$event_log"
+
+: >"$event_log"
+set +e
+FAIL_BACKUP=1 run_backup >"$test_root/failed-backup-output" 2>&1
+failed_status=$?
+set -e
+((failed_status != 0))
+grep -Fx 'docker start app-container' "$event_log" >/dev/null
+if grep -Fq 'restic forget' "$event_log"; then
+  printf 'retention ran after a failed backup\n' >&2
+  exit 1
+fi
+
+fixture_root="$test_root/fixture"
+fixture_storage="$fixture_root/srv/rails-builders/storage"
+mkdir -p "$fixture_storage"
+for database_name in \
+  production.sqlite3 \
+  production_cache.sqlite3 \
+  production_queue.sqlite3 \
+  production_cable.sqlite3; do
+  sqlite3 "$fixture_storage/$database_name" 'CREATE TABLE smoke_test (id INTEGER PRIMARY KEY);'
+done
+
+sqlite3 "$fixture_storage/production.sqlite3" \
+  'CREATE TABLE active_storage_blobs (key TEXT NOT NULL, byte_size INTEGER NOT NULL);'
+blob_key=abcd1234
+blob_contents=hello
+mkdir -p "$fixture_storage/${blob_key:0:2}/${blob_key:2:2}"
+printf '%s' "$blob_contents" >"$fixture_storage/${blob_key:0:2}/${blob_key:2:2}/$blob_key"
+sqlite3 "$fixture_storage/production.sqlite3" \
+  "INSERT INTO active_storage_blobs (key, byte_size) VALUES ('$blob_key', ${#blob_contents});"
+
+: >"$event_log"
+env \
+  PATH="$bin_dir:$PATH" \
+  EVENT_LOG="$event_log" \
+  FIXTURE_ROOT="$fixture_root" \
+  RESTIC_REPOSITORY=test:repository \
+  RESTIC_PASSWORD=test-password \
+  RESTIC_CACHE_DIR="$cache_path" \
+  RESTIC_LOCK_FILE="$lock_path" \
+  STORAGE_PATH=/srv/rails-builders/storage \
+  RESTORE_TMP_PARENT="$test_root" \
+  "$source_dir/restore-smoke" >"$test_root/restore-output"
+
+grep -F 'SQLite integrity checks passed for 4 databases' "$test_root/restore-output" >/dev/null
+grep -F 'verified 1 referenced Active Storage blobs' "$test_root/restore-output" >/dev/null
+grep -F "restic stats latest --tag rails-builders --mode restore-size --json" "$event_log" >/dev/null
+
+: >"$event_log"
+set +e
+env \
+  PATH="$bin_dir:$PATH" \
+  EVENT_LOG="$event_log" \
+  FIXTURE_ROOT="$fixture_root" \
+  RESTIC_REPOSITORY=test:repository \
+  RESTIC_PASSWORD=test-password \
+  RESTIC_CACHE_DIR="$cache_path" \
+  RESTIC_LOCK_FILE="$lock_path" \
+  STORAGE_PATH=/srv/rails-builders/storage \
+  RESTORE_TMP_PARENT="$test_root" \
+  RESTIC_STATS_TOTAL_SIZE=1048576 \
+  DF_AVAILABLE_BYTES=1074790400 \
+  "$source_dir/restore-smoke" >"$test_root/restore-capacity-output" 2>&1
+restore_capacity_status=$?
+set -e
+((restore_capacity_status != 0))
+grep -F 'insufficient restore scratch space' "$test_root/restore-capacity-output" >/dev/null
+if grep -Fq 'restic restore' "$event_log"; then
+  printf 'restore ran without sufficient scratch headroom\n' >&2
+  exit 1
+fi
+
+run_capacity_check() {
+  env \
+    PATH="$bin_dir:$PATH" \
+    EVENT_LOG="$event_log" \
+    STORAGE_PATH="$storage_path" \
+    DISK_USAGE_CHECK_IN_URL=https://checks.example/capacity \
+    "$source_dir/capacity-check"
+}
+
+: >"$event_log"
+DF_USAGE_PERCENT=64 run_capacity_check >"$test_root/capacity-output"
+grep -F 'storage filesystem usage is 64% (limit: 65%)' "$test_root/capacity-output" >/dev/null
+grep -F 'curl --fail --silent --show-error --max-time 10 --output /dev/null https://checks.example/capacity' "$event_log" >/dev/null
+
+: >"$event_log"
+set +e
+DF_USAGE_PERCENT=65 run_capacity_check >"$test_root/full-capacity-output" 2>&1
+full_capacity_status=$?
+set -e
+((full_capacity_status != 0))
+grep -F 'storage filesystem is 65% full; limit is 65%' "$test_root/full-capacity-output" >/dev/null
+if grep -Fq 'curl ' "$event_log"; then
+  printf 'capacity dead-man check-in ran after a failed check\n' >&2
+  exit 1
+fi
+
+grep -F 'capacity-check" /usr/local/libexec/rails-builders/capacity-check' \
+  "$source_dir/install" >/dev/null
+[[ -f "$source_dir/rails-builders-capacity-check.service" ]]
+[[ -f "$source_dir/rails-builders-capacity-check.timer" ]]
+
+printf 'backup, capacity, and restore smoke tests passed\n'

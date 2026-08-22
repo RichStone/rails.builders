@@ -1,4 +1,8 @@
 Rails.application.routes.draw do
+  constraints(host: "www.rails.builders") do
+    match "(*path)", to: redirect(status: 308) { |_params, request| "https://rails.builders#{request.fullpath}" }, via: :all
+  end
+
   get "up" => "rails/health#show", as: :rails_health_check
   mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
 

@@ -1,5 +1,10 @@
 # Ship Rails Builders
 
+> Launch override (2026-08-22): follow the
+> [direct production launch plan](direct-production-launch.md). Slack is handled
+> manually outside the MVP promise, and the launch goes directly to the
+> production hostname without an intermediate rehearsal app.
+
 - Label: `wayfinder:map`
 - Status: open
 

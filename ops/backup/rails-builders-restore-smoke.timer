@@ -1,0 +1,11 @@
+[Unit]
+Description=Restore and verify a Rails Builders backup monthly
+
+[Timer]
+OnCalendar=*-*-01 05:00:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=rails-builders-restore-smoke.service
+
+[Install]
+WantedBy=timers.target

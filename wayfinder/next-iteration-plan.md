@@ -1,5 +1,10 @@
 # Rails Builders Next Iteration Plan
 
+> Superseded for the 2026-08-22 launch by the
+> [direct production launch plan](direct-production-launch.md): Slack operations
+> remain entirely manual and are not a public MVP promise, and this cutover skips
+> the temporary rehearsal hostname.
+
 - Status: ready for implementation; Slack access remains gated by the Pro capacity and disposable-guest rehearsal
 - Baseline: the current `main` branch and accepted public experience
 - Outcome: production on `rails.builders`, with automated enrollment and ClickFunnels sync, an Administrator-operated Slack Entitlement workflow, and a tested recovery path

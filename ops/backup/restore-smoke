@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 077
+
+readonly PROGRAM="rails-builders-restore-smoke"
+
+log() {
+  printf '%s: %s\n' "$PROGRAM" "$*"
+}
+
+die() {
+  log "ERROR: $*" >&2
+  exit 1
+}
+
+for command_name in df flock jq restic sqlite3 wc; do
+  command -v "$command_name" >/dev/null 2>&1 || die "required command not found: $command_name"
+done
+
+[[ -n "${RESTIC_REPOSITORY:-}" ]] || die "RESTIC_REPOSITORY must be set by the systemd EnvironmentFile"
+[[ -n "${RESTIC_PASSWORD:-}" ]] || die "RESTIC_PASSWORD must be set by the systemd EnvironmentFile"
+
+STORAGE_PATH="${STORAGE_PATH:-/srv/rails-builders/storage}"
+RESTIC_TAG="${RESTIC_TAG:-rails-builders}"
+RESTIC_LOCK_FILE="${RESTIC_LOCK_FILE:-/run/lock/rails-builders-restic.lock}"
+RESTIC_CACHE_DIR="${RESTIC_CACHE_DIR:-/var/cache/rails-builders-restic}"
+RESTORE_SNAPSHOT="${RESTORE_SNAPSHOT:-latest}"
+RESTORE_TMP_PARENT="${RESTORE_TMP_PARENT:-/var/tmp}"
+RESTORE_CHECK_IN_URL="${RESTORE_CHECK_IN_URL:-}"
+export RESTIC_CACHE_DIR
+
+[[ -d "$RESTORE_TMP_PARENT" ]] || die "temporary restore parent does not exist: $RESTORE_TMP_PARENT"
+
+mkdir -p "$RESTIC_CACHE_DIR"
+exec 9>"$RESTIC_LOCK_FILE"
+flock --nonblock 9 || die "another backup, check, or restore drill is already running"
+
+log "measuring tagged snapshot $RESTORE_SNAPSHOT before allocating restore scratch space"
+if ! snapshot_stats="$(
+  restic stats "$RESTORE_SNAPSHOT" --tag "$RESTIC_TAG" --mode restore-size --json
+)"; then
+  die "could not measure snapshot restore size"
+fi
+if ! snapshot_size_bytes="$(
+  jq -er '
+    .total_size
+    | select(type == "number" and . >= 0 and floor == .)
+    | tostring
+  ' <<<"$snapshot_stats"
+)"; then
+  die "restic stats did not return a non-negative integer total_size"
+fi
+[[ "$snapshot_size_bytes" =~ ^[0-9]+$ ]] || \
+  die "restic stats returned an unsupported total_size: $snapshot_size_bytes"
+((${#snapshot_size_bytes} <= 18)) || die "snapshot is too large for the capacity preflight"
+
+ten_percent_headroom=$((snapshot_size_bytes / 10))
+if ((snapshot_size_bytes % 10 != 0)); then
+  ten_percent_headroom=$((ten_percent_headroom + 1))
+fi
+one_gibibyte=$((1024 * 1024 * 1024))
+headroom_bytes="$ten_percent_headroom"
+if ((headroom_bytes < one_gibibyte)); then
+  headroom_bytes="$one_gibibyte"
+fi
+required_bytes=$((snapshot_size_bytes + headroom_bytes))
+
+if ! available_output="$(
+  LC_ALL=C df --block-size=1 --output=avail -- "$RESTORE_TMP_PARENT"
+)"; then
+  die "could not read available scratch space for $RESTORE_TMP_PARENT"
+fi
+available_line="${available_output##*$'\n'}"
+available_bytes="${available_line//[[:space:]]/}"
+[[ "$available_bytes" =~ ^[0-9]+$ ]] || die "df returned invalid available bytes: $available_line"
+((${#available_bytes} <= 18)) || die "available scratch size is too large for the capacity preflight"
+
+if ((available_bytes <= required_bytes)); then
+  die "insufficient restore scratch space: snapshot needs $snapshot_size_bytes bytes plus $headroom_bytes bytes headroom, but only $available_bytes bytes are free"
+fi
+log "capacity preflight passed: $available_bytes bytes free; more than $required_bytes bytes required"
+
+restore_root="$(mktemp -d "${RESTORE_TMP_PARENT%/}/rails-builders-restore.XXXXXX")"
+readonly restore_root
+cleanup() {
+  if [[ -d "$restore_root" && "$restore_root" == "${RESTORE_TMP_PARENT%/}/rails-builders-restore."* ]]; then
+    rm -rf -- "$restore_root"
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+log "restoring tagged snapshot $RESTORE_SNAPSHOT into a temporary directory"
+restic restore "$RESTORE_SNAPSHOT" --tag "$RESTIC_TAG" --target "$restore_root"
+
+restored_storage="${restore_root}${STORAGE_PATH}"
+[[ -d "$restored_storage" ]] || die "snapshot did not contain $STORAGE_PATH"
+
+expected_databases=(
+  production.sqlite3
+  production_cache.sqlite3
+  production_queue.sqlite3
+  production_cable.sqlite3
+)
+
+for database_name in "${expected_databases[@]}"; do
+  database="$restored_storage/$database_name"
+  [[ -f "$database" ]] || die "snapshot is missing $database_name"
+  integrity_result="$(sqlite3 -batch -noheader "$database" 'PRAGMA integrity_check;')"
+  [[ "$integrity_result" == "ok" ]] || die "SQLite integrity check failed for $database_name: $integrity_result"
+done
+
+log "SQLite integrity checks passed for ${#expected_databases[@]} databases"
+
+primary_database="$restored_storage/production.sqlite3"
+blob_manifest="$restore_root/active-storage-blobs"
+sqlite3 -batch -noheader "$primary_database" \
+  "SELECT key || '|' || byte_size FROM active_storage_blobs ORDER BY key;" >"$blob_manifest"
+
+blob_count=0
+while IFS='|' read -r blob_key expected_size; do
+  [[ -n "$blob_key" ]] || continue
+  [[ "$blob_key" =~ ^[[:alnum:]_-]{4,}$ ]] || die "Active Storage contains an unsafe blob key"
+  [[ "$expected_size" =~ ^[0-9]+$ ]] || die "Active Storage contains an invalid byte size for $blob_key"
+
+  blob_path="$restored_storage/${blob_key:0:2}/${blob_key:2:2}/$blob_key"
+  [[ -f "$blob_path" ]] || die "referenced Active Storage blob is missing: $blob_key"
+
+  actual_size="$(wc -c <"$blob_path")"
+  actual_size="${actual_size//[[:space:]]/}"
+  [[ "$actual_size" == "$expected_size" ]] || die "Active Storage blob size mismatch: $blob_key"
+  blob_count=$((blob_count + 1))
+done <"$blob_manifest"
+
+log "verified $blob_count referenced Active Storage blobs"
+if [[ -n "$RESTORE_CHECK_IN_URL" ]]; then
+  command -v curl >/dev/null 2>&1 || die "required command not found: curl"
+  curl --fail --silent --show-error --max-time 10 --output /dev/null "$RESTORE_CHECK_IN_URL"
+fi
+log "restore smoke test completed successfully"

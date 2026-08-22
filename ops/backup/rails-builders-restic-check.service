@@ -1,0 +1,14 @@
+[Unit]
+Description=Check the Rails Builders Restic repository
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/rails-builders/backup
+ExecStart=/usr/local/libexec/rails-builders/restic-check
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=infinity
+UMask=0077
