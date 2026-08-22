@@ -1,10 +1,15 @@
 class Program < ApplicationRecord
+  belongs_to :main_facilitator, class_name: "User", optional: true
+  has_one :calendar_connection, class_name: "ProgramCalendarConnection", dependent: :destroy
+  has_many :builder_sessions, dependent: :restrict_with_error
+
   normalizes :name, with: ->(name) { name.strip }
 
   validates :name, :starts_on, :ends_on, presence: true
   validates :name, length: { maximum: 100 }
   validates :capacity, numericality: { only_integer: true, greater_than: 0 }
   validate :ends_on_or_after_starts_on
+  validate :main_facilitator_has_role
 
   def self.current
     first || create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 9)
@@ -48,6 +53,14 @@ class Program < ApplicationRecord
     User.offered.where(offer_expires_at: ..Time.current).find_each(&:expire_offer!)
   end
 
+  def calendar_credentials_in_use?
+    return true if builder_sessions.active.exists?
+
+    builder_sessions.joins(:transcript)
+      .where(builder_session_transcripts: { state: BuilderSessionTranscript::AUTOMATIC_IMPORT_STATES })
+      .exists?
+  end
+
   private
 
   def promote_waitlist(limit:)
@@ -66,5 +79,11 @@ class Program < ApplicationRecord
     return unless starts_on && ends_on && ends_on < starts_on
 
     errors.add(:ends_on, :after_or_equal_to, message: "must be on or after the start date")
+  end
+
+  def main_facilitator_has_role
+    return if main_facilitator.nil? || main_facilitator.facilitator?
+
+    errors.add(:main_facilitator, "must have the Facilitator role")
   end
 end

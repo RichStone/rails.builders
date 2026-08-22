@@ -34,6 +34,30 @@
     <p class="countdown-label" data-countdown-target="label">until we begin</p>
   </section>
 
+  <% if @live_session || @upcoming_sessions.any? %>
+    <section class="section public-sessions" data-public-sessions>
+      <% if @live_session %>
+        <div class="live-session-banner">
+          <span class="live-signal" aria-hidden="true"></span>
+          <div><p class="eyebrow">Live now</p><h2><%= public_session_title(@live_session) %></h2><p>Facilitated by <%= public_session_facilitator_name(@live_session) %></p></div>
+        </div>
+      <% end %>
+      <% if @upcoming_sessions.any? %>
+        <div class="section-heading"><p class="eyebrow">On the calendar</p><h2>Build together, on purpose.</h2></div>
+        <div class="public-session-grid">
+          <% @upcoming_sessions.each do |builder_session| %>
+            <article>
+              <time datetime="<%= builder_session.scheduled_starts_at.iso8601 %>"><%= builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime("%a %d %b · %H:%M %Z") %></time>
+              <h3><%= public_session_title(builder_session) %></h3>
+              <p>Facilitated by <%= public_session_facilitator_name(builder_session) %></p>
+              <span><%= ((builder_session.scheduled_ends_at - builder_session.scheduled_starts_at) / 60).round %> minutes</span>
+            </article>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
   <section id="how-it-works" class="section how-it-works">
     <div class="section-heading">
       <p class="eyebrow">No sprawling community platform</p>

@@ -54,7 +54,7 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 
 `bin/ci` runs the full local pipeline, including a seed replant after the test suite.
 
-## Email and optional integrations
+## Email and integrations
 
 - `RESEND_API_KEY` is required for production delivery of transactional email through Resend. The `rails.builders` sending domain must be verified in Resend.
 - Production ClickFunnels configuration lives under `clickfunnels` in encrypted Rails credentials: `api_token`, `base_url`, `workspace_id`, `newsletter_tag_id`, and optional `newsletter_tag_public_id`. The newsletter job runs only after a person separately opts in, confirms the newsletter email, and verifies their Rails Builders email. Missing production configuration is visible to Administrators without breaking registration.
@@ -62,4 +62,20 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 - `HONEYBADGER_API_KEY` enables production error reporting.
 - `APP_HOST` controls links in production email and defaults to `rails.builders`.
 
-Slack membership is deliberately manual in v1. Administrators can track its status for each builder. Live-session attendance, timers, and Three Strikes are outside v1.
+### Google Calendar and Meet
+
+Sessions use a dedicated secondary Google Calendar owned by the Program’s main facilitator. Every timed event within the Program dates becomes a session, recurring events are expanded into their occurrences, all-day events are ignored, and Google Calendar remains the schedule source of truth. Create the recurring session event—including its Google Meet conference—on that calendar before connecting it in Administration.
+
+Create a Google Cloud OAuth web client, enable the Google Calendar API and Google Meet REST API, and register this exact production redirect URI:
+
+```text
+https://rails.builders/admin/calendar_connection/callback
+```
+
+Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, or add `google_workspace.client_id` and `google_workspace.client_secret` to encrypted Rails credentials. If `APP_HOST` is not `rails.builders`, register the matching HTTPS callback. Configure the OAuth consent screen and complete Google’s verification requirements before production use. The integration requests read-only Calendar-list access, read-only access to events on calendars the account owns, and read-only access to Meet spaces the account can access; application queries are narrowed to the selected Program calendar and its synced Meet links. The connected Google email must exactly match the main facilitator’s Rails Builders email, and only secondary calendars owned by that account can be selected.
+
+Turn on Meet transcription or automatic transcription for the recurring meeting in Google Workspace. The read-only Rails Builders integration imports the resulting artifact but does not change the meeting’s transcription settings.
+
+Calendar sync runs hourly and can also be queued by a facilitator or Administrator. Active-session maintenance runs every minute. Google Meet transcript import uses adaptive retries from the five-minute recurring job and stops after a final attempt at 24 hours. OAuth tokens, Meet links, Google transcript resource identifiers, and transcript content are encrypted in the application database.
+
+Slack membership is deliberately manual in v1. Administrators can track its status for each builder. Sessions include Calendar-backed scheduling, shared live timers, attendance, speaker order, and read-only transcripts. Three Strikes remains outside v1.

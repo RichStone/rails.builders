@@ -22,3 +22,12 @@ production:
   send_product_digest:
     class: ProductDigestJob
     schedule: at 12:05am every day
+  sync_builder_session_calendars:
+    class: GoogleCalendarSyncJob
+    schedule: every hour at minute 20
+  maintain_active_builder_sessions:
+    class: BuilderSessionMaintenanceJob
+    schedule: every minute
+  import_google_meet_transcripts:
+    class: GoogleMeetTranscriptImportJob
+    schedule: every 5 minutes

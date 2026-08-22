@@ -11,6 +11,23 @@ Rails.application.routes.draw do
   delete "sign-out", to: "sessions#destroy"
 
   resource :dashboard, only: :show, controller: :dashboard
+  resources :builder_sessions, path: "sessions", only: %i[index show] do
+    post :sync_calendar, on: :collection
+    resource :transcript, only: %i[create destroy], controller: "builder_session_transcripts"
+    member do
+      get :join
+      post :start
+      post :pause
+      post :resume
+      post :advance
+      post :next_speaker
+      post :finish
+      patch :attendance
+      patch :speaker_order
+      patch :end_time
+      patch :heartbeat
+    end
+  end
   resource :profile, only: %i[edit update destroy]
   resources :products, only: %i[create update destroy] do
     patch :focus, on: :member
@@ -27,6 +44,10 @@ Rails.application.routes.draw do
 
   namespace :admin do
     root "dashboard#index"
+    resource :calendar_connection, only: %i[show create update destroy] do
+      get :callback
+      post :sync
+    end
     resources :users, only: %i[edit update destroy] do
       post :retry_newsletter, on: :member
       post :remove, on: :member

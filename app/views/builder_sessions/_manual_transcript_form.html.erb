@@ -1,0 +1,8 @@
+<details class="manual-transcript">
+  <summary>Add a fallback transcript</summary>
+  <%= form_with scope: :transcript, url: builder_session_transcript_path(builder_session) do |form| %>
+    <%= form.label :content, "Transcript text" %>
+    <%= form.text_area :content, rows: 12, maxlength: 1.megabyte, required: true %>
+    <%= form.submit "Save read-only transcript", class: "button button-primary" %>
+  <% end %>
+</details>

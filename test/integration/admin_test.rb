@@ -31,6 +31,82 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_equal "invited", @builder.slack_status
   end
 
+  test "admin assigns the Program main facilitator from facilitator-role users" do
+    @builder.update!(facilitator: true)
+    sign_in_as(@admin)
+
+    patch admin_program_path(@program), params: { program: { main_facilitator_id: @builder.id } }
+
+    assert_redirected_to admin_root_path
+    assert_equal @builder, @program.reload.main_facilitator
+  end
+
+  test "changing the main facilitator disconnects the old Calendar but keeps the schedule until reconnection" do
+    old_facilitator = User.create!(email: "old-facilitator@example.com", facilitator: true, verified_at: Time.current)
+    @builder.update!(facilitator: true)
+    @program.update!(main_facilitator: old_facilitator)
+    connection = @program.create_calendar_connection!(
+      facilitator: old_facilitator,
+      google_account_email: old_facilitator.email,
+      google_calendar_id: "old-calendar",
+      google_calendar_name: "Old Sessions",
+      oauth_token_json: "{}"
+    )
+    upcoming = @program.builder_sessions.create!(
+      google_event_id: "old-event",
+      title: "Old recurring session",
+      scheduled_starts_at: 2.days.from_now,
+      scheduled_ends_at: 2.days.from_now + 1.hour,
+      time_zone: "Europe/Madrid"
+    )
+    sign_in_as(@admin)
+
+    fake_authorization = Object.new
+    fake_authorization.define_singleton_method(:revoke!) { true }
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(**) { fake_authorization }) do
+      patch admin_program_path(@program), params: { program: { main_facilitator_id: @builder.id } }
+    end
+
+    assert_redirected_to admin_root_path
+    assert_not ProgramCalendarConnection.exists?(connection.id)
+    assert_equal "ready", upcoming.reload.state
+    assert_equal @builder, upcoming.assigned_facilitator
+    assert_nil upcoming.meet_url
+  end
+
+  test "changing the main facilitator waits for automatic transcript import" do
+    old_facilitator = User.create!(email: "old-facilitator@example.com", facilitator: true, verified_at: Time.current)
+    @builder.update!(facilitator: true)
+    @program.update!(main_facilitator: old_facilitator)
+    connection = @program.create_calendar_connection!(
+      facilitator: old_facilitator,
+      google_account_email: old_facilitator.email,
+      google_calendar_id: "old-calendar",
+      google_calendar_name: "Old Sessions",
+      oauth_token_json: "{}"
+    )
+    builder_session = @program.builder_sessions.create!(
+      google_event_id: "just-finished",
+      title: "Just finished",
+      meet_url: "https://meet.google.com/abc-defg-hij",
+      scheduled_starts_at: 1.hour.ago,
+      scheduled_ends_at: Time.current,
+      time_zone: "Europe/Madrid"
+    )
+    travel_to 25.hours.ago do
+      builder_session.start!(facilitator: old_facilitator)
+      builder_session.finish!
+    end
+    sign_in_as(@admin)
+
+    patch admin_program_path(@program), params: { program: { main_facilitator_id: @builder.id } }
+
+    assert_redirected_to admin_root_path
+    assert_equal old_facilitator, @program.reload.main_facilitator
+    assert ProgramCalendarConnection.exists?(connection.id)
+    assert_equal "pending", builder_session.transcript.reload.state
+  end
+
   test "admin profile changes require fresh facilitator approval" do
     @builder.update!(name: "Waiting Builder")
     @builder.products.create!(name: "Queue App", url: "https://queue.example", focus: true)

@@ -27,3 +27,7 @@ og_emails.each do |email|
     user.update!(public_profile: true, public_profile_approved: true)
   end
 end
+
+if facilitator_email.present? && (main_facilitator = User.find_by(email: facilitator_email))
+  program.update!(main_facilitator: main_facilitator)
+end

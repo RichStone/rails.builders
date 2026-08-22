@@ -13,6 +13,10 @@ class User < ApplicationRecord
   end
 
   has_many :products, dependent: :destroy
+  has_many :builder_session_attendances, dependent: :nullify
+  has_many :assigned_builder_sessions, class_name: "BuilderSession", foreign_key: :assigned_facilitator_id, dependent: :nullify
+  has_many :calendar_connections, class_name: "ProgramCalendarConnection", foreign_key: :facilitator_id, dependent: :restrict_with_error
+  has_many :facilitated_programs, class_name: "Program", foreign_key: :main_facilitator_id, dependent: :restrict_with_error
   has_one_attached :avatar
 
   normalizes :email, with: ->(email) { email.strip.downcase }
@@ -33,6 +37,7 @@ class User < ApplicationRecord
   validate :avatar_is_a_safe_image
   validate :public_profile_is_complete
   validate :preserve_last_verified_administrator, if: :will_save_change_to_administrator?
+  validate :preserve_program_main_facilitator, if: :will_save_change_to_facilitator?
 
   before_validation :set_slack_desired_state
   before_validation :clear_public_profile_approval_without_opt_in
@@ -203,11 +208,17 @@ class User < ApplicationRecord
         next false if last_verified_administrator?
 
         released_seat = (active? || offered?) && !facilitator?
+        builder_session_attendances.update_all(user_id: nil, display_name: "Former Builder", updated_at: Time.current)
+        assigned_builder_sessions.update_all(
+          assigned_facilitator_id: nil,
+          facilitator_name_snapshot: "Former Facilitator",
+          updated_at: Time.current
+        )
         destroy!
         [ released_seat, true ]
       end
     end
-  rescue ActiveRecord::RecordNotFound
+  rescue ActiveRecord::RecordNotFound, ActiveRecord::RecordNotDestroyed
     false
   end
 
@@ -259,6 +270,12 @@ class User < ApplicationRecord
 
     errors.add(:base, "The last verified administrator cannot be deleted")
     throw :abort
+  end
+
+  def preserve_program_main_facilitator
+    return unless facilitator_in_database && !facilitator? && facilitated_programs.exists?
+
+    errors.add(:facilitator, "cannot be removed while this person is a Program's main facilitator")
   end
 
   def deliver_enrollment_notifications

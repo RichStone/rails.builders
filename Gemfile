@@ -38,6 +38,11 @@ gem "image_processing", "~> 1.2"
 # Deliver transactional email through Resend
 gem "resend"
 
+# Sync the Program calendar and import structured Google Meet transcripts.
+gem "google-apis-calendar_v3", "~> 0.57"
+gem "google-apis-meet_v2", "~> 0.14"
+gem "googleauth", "~> 1.17"
+
 group :development, :test do
   # Load checked-in development defaults and ignored local overrides.
   gem "dotenv-rails"

@@ -1,0 +1,192 @@
+<% content_for :title, "#{@builder_session.title} — Rails Builders" %>
+
+<main class="session-page <%= "is-live" if @builder_session.active? %>">
+  <%= link_to "← All sessions", builder_sessions_path, class: "back-link" %>
+
+  <header class="session-detail-heading">
+    <p class="eyebrow"><%= @builder_session.state.humanize %></p>
+    <h1><%= @builder_session.title %></h1>
+    <p><%= @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone).strftime("%A %d %B · %H:%M %Z") %> · Facilitated by <%= @builder_session.assigned_facilitator&.name || Program.current.main_facilitator&.name || "Rails Builders" %></p>
+    <% if @builder_session.description.present? %><p class="session-description"><%= @builder_session.description %></p><% end %>
+    <% if @builder_session.location.present? %><p class="session-location"><strong>Location:</strong> <%= @builder_session.location %></p><% end %>
+    <% if @builder_session.meeting_code && @builder_session.joinable? %>
+      <%= link_to "Join Google Meet", join_builder_session_path(@builder_session), class: "button button-primary", target: "_blank", rel: "noopener noreferrer" %>
+      <p class="privacy-note">This meeting may be transcribed. Session transcripts are retained for Program participants.</p>
+    <% end %>
+  </header>
+
+  <% if @builder_session.state == "cancelled" %>
+    <section class="session-ready-panel">
+      <p class="eyebrow">Cancelled on Google Calendar</p>
+      <h2>This session is no longer scheduled.</h2>
+      <p>The record stays here so the Calendar history remains intact.</p>
+    </section>
+  <% elsif @builder_session.state == "ready" %>
+    <section class="session-ready-panel">
+      <h2>Ready when the room is.</h2>
+      <p>The Calendar event is the schedule source. Choose the formal timer length before starting.</p>
+      <% if session_operator? %>
+        <% scheduled_minutes = ((@builder_session.scheduled_ends_at - @builder_session.scheduled_starts_at) / 60).round %>
+        <%= form_with url: start_builder_session_path(@builder_session), class: "start-session-form", data: { turbo_confirm: (Time.current.between?(@builder_session.scheduled_starts_at - 30.minutes, @builder_session.scheduled_starts_at + 30.minutes) ? nil : "This is outside the scheduled start window. Start anyway?") } do |form| %>
+          <%= form.label :duration_minutes, "Formal timer (minutes)" %>
+          <%= form.number_field :duration_minutes, value: scheduled_minutes, min: 1, max: 300, required: true %>
+          <%= form.submit "Start session", class: "button button-primary" %>
+        <% end %>
+      <% end %>
+    </section>
+  <% elsif @builder_session.active? %>
+    <section class="live-session-stage <%= "is-paused" if @builder_session.paused? %>"
+      data-controller="session-timer"
+      data-session-timer-seconds-value="<%= @builder_session.clock_seconds %>"
+      data-session-timer-total-seconds-value="<%= @builder_session.total_remaining_seconds %>"
+      data-session-timer-rendered-at-value="<%= (Time.current.to_f * 1000).round %>"
+      data-session-timer-mode-value="<%= @builder_session.clock_mode %>"
+      data-session-timer-paused-value="<%= @builder_session.paused? %>"
+      data-session-timer-heartbeat-url-value="<%= heartbeat_builder_session_path(@builder_session) %>"
+      data-session-timer-version-value="<%= @builder_session.updated_at.iso8601(6) %>"
+      data-session-timer-state-value="<%= @builder_session.state %>">
+      <div aria-live="polite">
+        <p class="live-phase"><%= @builder_session.paused? ? "Paused" : @builder_session.state.humanize %></p>
+        <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %>
+          <h2><%= @builder_session.current_speaker_attendance.display_name %></h2>
+        <% elsif @builder_session.state == "connection" %>
+          <h2>What did you ship—or learn—since we last met?</h2>
+        <% elsif @builder_session.state == "closing" %>
+          <h2>Name the next useful move.</h2>
+        <% else %>
+          <h2>Hang out. The formal timer is done.</h2>
+        <% end %>
+      </div>
+      <div class="session-clock" data-session-timer-target="display" role="timer" aria-label="Current phase time remaining">--:--</div>
+      <% unless @builder_session.state == "hangout" %><p class="total-clock"><span data-session-timer-target="total">--:--</span> formal time remains</p><% end %>
+    </section>
+
+    <% if session_operator? %>
+      <section class="session-controls" data-session-controls>
+        <%= button_to(@builder_session.paused? ? "Resume" : "Pause", @builder_session.paused? ? resume_builder_session_path(@builder_session) : pause_builder_session_path(@builder_session), class: "button button-quiet") %>
+        <% if @builder_session.state == "builder_updates" %><%= button_to "Speaker complete", next_speaker_builder_session_path(@builder_session), class: "button button-primary" %><% end %>
+        <% unless @builder_session.state == "hangout" %>
+          <% advance_label = { "connection" => "Start builder updates", "builder_updates" => "Start closing", "closing" => "Start hangout" }.fetch(@builder_session.state) %>
+          <% skip_confirmation = @builder_session.state == "builder_updates" && @builder_session.unspoken_speakers.any? ? "Start closing and skip every Builder still in the queue?" : nil %>
+          <%= button_to advance_label, advance_builder_session_path(@builder_session), class: "button button-quiet", form: { data: { turbo_confirm: skip_confirmation } } %>
+        <% end %>
+        <%= button_to "Finish session", finish_builder_session_path(@builder_session), class: "button button-quiet", form: { data: { turbo_confirm: "Finish this session now?" } } %>
+      </section>
+    <% end %>
+
+    <% unspoken_speakers = @builder_session.unspoken_speakers.to_a %>
+    <% if @builder_session.state == "builder_updates" && unspoken_speakers.any? %>
+      <section class="attendance-panel">
+        <div class="section-heading"><p class="eyebrow">Coming up</p><h2>Speaker queue</h2></div>
+        <%= tag.ol class: "attendance-list speaker-queue",
+          data: (session_operator? ? {
+            controller: "speaker-order",
+            speaker_order_url_value: speaker_order_builder_session_path(@builder_session),
+            action: "dragover->speaker-order#over drop->speaker-order#drop"
+          } : {}) do %>
+          <% if session_operator? %><li class="sr-only" data-speaker-order-target="status" aria-live="polite"></li><% end %>
+          <% unspoken_speakers.each do |attendance| %>
+            <%= tag.li class: "attendance-row",
+              data: (session_operator? ? { speaker_order_target: "item", attendance_id: attendance.id } : {}) do %>
+              <div><strong><%= attendance.display_name %></strong><span>Up next</span></div>
+              <% if session_operator? %>
+                <span class="queue-actions">
+                  <button type="button" data-action="speaker-order#earlier" aria-label="Move <%= attendance.display_name %> earlier">↑</button>
+                  <button type="button" data-action="speaker-order#later" aria-label="Move <%= attendance.display_name %> later">↓</button>
+                  <button type="button" class="drag-handle" draggable="true"
+                    data-action="dragstart->speaker-order#start dragend->speaker-order#end"
+                    aria-label="Drag <%= attendance.display_name %> to reorder"
+                    title="Drag to reorder">↕</button>
+                </span>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <section class="attendance-panel">
+      <div class="section-heading"><p class="eyebrow">In the room</p><h2>Builders</h2></div>
+      <ul class="attendance-list">
+        <% @builder_session.attendances.order(Arel.sql("CASE role WHEN 'facilitator' THEN 0 ELSE 1 END"), :speaker_position, :display_name).each do |attendance| %>
+          <li class="attendance-row">
+            <div><strong><%= attendance.display_name %></strong><span><%= attendance.role.humanize %> · <%= attendance.status.humanize %><%= " · #{attendance.speaker_state.humanize}" if attendance.speaker_state %></span></div>
+            <% if session_operator? %>
+              <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present" }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") if attendance.user_id %>
+            <% else %>
+              <span class="status-pill"><%= attendance.status.humanize %></span>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% elsif @builder_session.state == "completed" %>
+    <section class="session-complete-panel">
+      <p class="eyebrow">Session complete</p>
+      <h2><%= @builder_session.facilitator_name_snapshot %> kept the room moving.</h2>
+      <% attendee_count = @builder_session.attendances.where(status: "present").count %>
+      <% duration_minutes = ((@builder_session.ended_at - @builder_session.started_at) / 60).floor %>
+      <p><%= pluralize(attendee_count, "attendee") %> · <%= duration_minutes < 1 ? "under 1 minute" : pluralize(duration_minutes, "minute") %></p>
+      <% if session_operator? && @builder_session.finish_reason == "automatic" %>
+        <%= form_with url: end_time_builder_session_path(@builder_session), method: :patch, class: "start-session-form" do |form| %>
+          <% zone = ActiveSupport::TimeZone[@builder_session.time_zone] %>
+          <%= form.label :ended_at, "Actual end time" %>
+          <%= form.datetime_local_field :ended_at,
+            value: @builder_session.ended_at.in_time_zone(zone).strftime("%Y-%m-%dT%H:%M"),
+            min: @builder_session.started_at.in_time_zone(zone).strftime("%Y-%m-%dT%H:%M"),
+            max: (@builder_session.started_at + 5.hours).in_time_zone(zone).strftime("%Y-%m-%dT%H:%M"),
+            required: true %>
+          <%= form.submit "Correct end time", class: "button button-quiet" %>
+        <% end %>
+      <% end %>
+    </section>
+
+    <section class="attendance-panel">
+      <div class="section-heading"><p class="eyebrow">Attendance record</p><h2>Who was there</h2></div>
+      <ul class="attendance-list">
+        <% @builder_session.attendances.order(Arel.sql("CASE role WHEN 'facilitator' THEN 0 ELSE 1 END"), :display_name).each do |attendance| %>
+          <li class="attendance-row">
+            <div><strong><%= attendance.display_name %></strong><span><%= attendance.role.humanize %> · <%= attendance.status.humanize %></span></div>
+            <% if session_operator? && attendance.user_id %>
+              <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present" }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") %>
+            <% else %>
+              <span class="status-pill"><%= attendance.status.humanize %></span>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+
+    <% transcript = @builder_session.transcript %>
+    <section class="transcript-panel"
+      <% if transcript&.state.in?(%w[pending processing]) %>
+        data-controller="session-refresh"
+        data-session-refresh-url-value="<%= heartbeat_builder_session_path(@builder_session) %>"
+        data-session-refresh-version-value="<%= @builder_session.updated_at.iso8601(6) %>"
+      <% end %>>
+      <div class="section-heading"><p class="eyebrow">Captured conversation</p><h2>Transcript</h2></div>
+      <% if transcript&.state == "ready" %>
+        <div class="session-transcript" data-session-transcript><%= simple_format(h(transcript.content)) %></div>
+        <% if current_user.administrator? %>
+          <%= button_to "Delete transcript", builder_session_transcript_path(@builder_session), method: :delete, class: "button button-quiet", form: { data: { turbo_confirm: "Permanently delete this transcript?" } } %>
+        <% end %>
+      <% elsif transcript&.state == "deleted" %>
+        <p>This transcript was deleted.</p>
+      <% elsif transcript&.state == "unavailable" %>
+        <div class="transcript-processing">
+          <span class="transcript-orbit" aria-hidden="true">◆</span>
+          <p><strong>Automatic transcript unavailable</strong></p>
+          <p>Google did not make a transcript available within 24 hours. A facilitator can add the fallback copy.</p>
+        </div>
+        <%= render "manual_transcript_form", builder_session: @builder_session if session_operator? %>
+      <% else %>
+        <div class="transcript-processing">
+          <span class="transcript-orbit" aria-hidden="true">◆</span>
+          <p><strong>Processing transcript</strong></p>
+          <p><%= transcript&.processing_tip || BuilderSessionTranscript::PROCESSING_TIPS.first %></p>
+        </div>
+        <%= render "manual_transcript_form", builder_session: @builder_session if session_operator? %>
+      <% end %>
+    </section>
+  <% end %>
+</main>
