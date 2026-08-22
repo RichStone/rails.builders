@@ -123,18 +123,8 @@ SCIM can create and deactivate a full member of a standalone Business+ workspace
 
 Expose a reliable Administrator queue instead of pretending automation succeeded: verified email, desired guest/member role, target channel, invite status, requested/fulfilled timestamps, retry/resend action, and inactive-removal task. Free/Pro workspaces and paid workspaces where Rails Builders does not control SCIM/Admin API credentials fall here.
 
-## Workspace-specific unknowns that must be answered before choosing a boundary
+## Actual workspace gate
 
-These facts are not present in the repository and cannot be inferred from Slack's general documentation:
+The workspace-specific facts were inventoried on 2026-08-22 in [Rails Builders Slack Workspace Inventory](rails-builders-slack-workspace-inventory.md). The actual space is the standalone Free `Loop Labs 🧪` workspace (`T0AMMNQ9EMR`), and the Builder-facing `#safe-space` (`C0AMMNQHX5H`) is its renamed primary channel. No Rails Builders membership app/token exists, the connected Slack read installation cannot access this workspace, and approved-domain self-join is enabled.
 
-1. **Unknown — plan and topology:** Is the relevant Slack a Free, Pro, Business+, or Enterprise workspace? Is Rails Builders the whole standalone workspace, one channel in a broader workspace, or an Enterprise workspace inside an org?
-2. **Unknown — target conversation:** What is the channel ID; is it public/private, `#general`, org-shared, or Slack Connect? Is an internal app allowed to join it?
-3. **Unknown — intended Slack role:** Full member, Multi-Channel Guest, or Single-Channel Guest? Who owns any resulting paid seats and guest limits?
-4. **Unknown — authority:** Will a Workspace/Org Owner approve an internal app and requested scopes? On Enterprise, is there an Org Owner who can install it org-wide and a durable Admin/Owner identity that can hold the user token?
-5. **Unknown — existing identity management:** Is Slack already controlled by SSO/SCIM or IDP groups? If so, the Rails app should not independently fight that source of truth; an IDP-group integration or Administrator workflow may be required.
-6. **Unknown — identity quality:** Does every Active Builder have a verified email that matches their Slack account, and how should mismatches, changed emails, pending invites, duplicate/deactivated accounts, and Enterprise IDs be resolved?
-7. **Unknown — offboarding intent:** Should becoming inactive remove only Rails Builders channel access, remove the person from the Rails Builders workspace, or deactivate their entire Slack account? What access must OG Builders retain?
-8. **Unknown — overrides and recovery:** Who may suppress an automatic removal, restore access, or resolve a failed/pending invitation? What delay, if any, separates Active Builder status loss from Slack removal?
-9. **Unknown — workspace policy:** Are invitations, guest management, channel invitations/removals, and app installation restricted by local admin settings? Is outbound hosting on a stable IP required if token IP allowlisting is enabled?
-
-Until these are answered, it is accurate to say that Slack **channel entitlement is automatable**, while end-to-end **workspace entitlement is not yet proven for the actual Rails Builders workspace**.
+End-to-end workspace plus channel automation is therefore **not supported by the actual plan or current configuration**. Channel-only automation is insufficient and cannot remove anyone from this primary channel. The smallest supportable path is Business+, full-member SCIM provision/deactivation under a durable Owner token, disabled domain self-join, persisted Slack user bindings, and a successful disposable-account proof. Until those prerequisites are met, Slack remains an explicit Administrator workflow and no synchronization code is authorized.

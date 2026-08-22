@@ -22,6 +22,7 @@ Reach an implementation-ready product and technical specification for a producti
 - [Research the ClickFunnels Newsletter Subscription API](tickets/research-clickfunnels-newsletter-api.md) — Reconcile verified, newsletter-confirmed contacts by email and the existing `newsletter-subscriber` tag; prove `General` topic delivery with a controlled smoke test.
 - [Research Newsletter Consent Requirements](tickets/research-newsletter-consent.md) — Registration verification and privacy-policy disclosure are not newsletter consent; use a separate optional affirmative choice and newsletter-specific confirmation.
 - [Research Slack Membership Automation](tickets/research-slack-membership-automation.md) — Dedicated-channel sync is feasible for existing workspace users, but workspace admission/removal is plan-dependent and may require an Administrator workflow.
+- [Inventory the Rails Builders Slack Workspace](tickets/inventory-rails-builders-slack-workspace.md) — The actual standalone Free workspace cannot enforce end-to-end membership; Business+, owner-authorized SCIM, disabled domain self-join, and a disposable-account proof are required before implementation.
 - [Define Seat Offers and Waitlist Promotion](tickets/define-seat-offers-and-waitlist-promotion.md) — Reserve capacity for 72-hour offers, launch with OG Priority, then automatically offer the Administrator-ordered waitlist; returning always requires explicit opt-in.
 
 ## Not yet specified
