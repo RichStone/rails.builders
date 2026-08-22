@@ -13,4 +13,4 @@ When does a person become or cease to be an Active Builder or OG Builder, how do
 
 ## Settled input
 
-Each verified enrollment transition with operational impact—waitlisted, offered, active, declined, expired, or withdrawn—must generate one email notification to every Facilitator. Notification delivery is a side effect and must not roll back the authoritative enrollment transition.
+Each verified enrollment transition with operational impact—waitlisted, offered, active, declined, expired, withdrawn, left waitlist, or removed—must generate one email notification to every Facilitator. Notification delivery is a side effect and must not roll back the authoritative enrollment transition.

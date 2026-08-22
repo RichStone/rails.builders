@@ -268,6 +268,9 @@ class User < ApplicationRecord
 
     UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later
     AdministratorMailer.enrollment_status(self, enrollment_status).deliver_later if User.where(administrator: true).exists?
+    User.where(facilitator: true, administrator: false).find_each do |facilitator|
+      FacilitatorMailer.enrollment_status(facilitator, self, enrollment_status).deliver_later
+    end
     UserMailer.offer_reminder(self).deliver_later(wait_until: offer_expires_at - 24.hours) if offered? && offer_expires_at > 24.hours.from_now
   end
 
