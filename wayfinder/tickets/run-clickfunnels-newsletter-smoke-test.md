@@ -2,11 +2,11 @@
 
 - Label: `wayfinder:task`
 - Order: 40
-- Status: open
-- Assignee: unassigned
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Status: closed
+- Assignee: Rich Steinmetz via Codex
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: [Research the ClickFunnels Newsletter Subscription API](research-clickfunnels-newsletter-api.md)
 
 ## Question
 
-Using a controlled consenting address, perform the researched email upsert and tag reconciliation, send a `General` topic test broadcast filtered to `newsletter-subscriber`, verify delivery and one-click unsubscribe, and record whether ClickFunnels suppression prevents a later send without relying on an undocumented topic-enrollment endpoint.
+Keep development and test as no-ops, reserve encrypted Rails credentials for the separate production profile, and verify the job upserts a contact only after Rails email verification and newsletter confirmation. Using the isolated `test-only` profile and a controlled consenting address, then prove tag reconciliation, `General` topic delivery, one-click unsubscribe, and suppression on a later retry.

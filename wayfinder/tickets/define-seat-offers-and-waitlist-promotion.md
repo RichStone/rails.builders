@@ -4,7 +4,7 @@
 - Order: 10
 - Status: closed
 - Assignee: Rich Steinmetz via current Codex task
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: none
 
 ## Question

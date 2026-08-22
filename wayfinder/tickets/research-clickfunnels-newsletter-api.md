@@ -4,7 +4,7 @@
 - Order: 1
 - Status: closed
 - Assignee: research agent `clickfunnels_newsletter_api`
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: none
 
 ## Question

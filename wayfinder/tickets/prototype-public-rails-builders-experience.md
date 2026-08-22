@@ -2,9 +2,9 @@
 
 - Label: `wayfinder:prototype`
 - Order: 110
-- Status: open
-- Assignee: unassigned
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Status: closed
+- Assignee: Rich Steinmetz via roadmap reconciliation
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: [Define the Active Builder and OG Builder Lifecycle](define-active-and-og-builder-lifecycle.md), [Define Profile Publication and Account Deletion](define-profile-publication-and-account-deletion.md), [Define the Public Program Promise](define-public-program-promise.md)
 
 ## Question

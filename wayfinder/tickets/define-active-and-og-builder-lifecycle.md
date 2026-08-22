@@ -2,9 +2,9 @@
 
 - Label: `wayfinder:grilling`
 - Order: 60
-- Status: open
-- Assignee: unassigned
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Status: closed
+- Assignee: Rich Steinmetz via roadmap reconciliation
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: [Define Seat Offers and Waitlist Promotion](define-seat-offers-and-waitlist-promotion.md)
 
 ## Question

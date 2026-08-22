@@ -1,0 +1,7 @@
+# Resolution: Choose Slack Membership Enforcement
+
+Slack Entitlement is derived state backed by an explicit Owner/Admin workflow, not a free-form status. An Active Builder must be present in the Rails Builders workspace as a Single-Channel Guest assigned only to `#rails-builders`; a withdrawn, waitlisted, inactive, removed, or deleted Builder must be deactivated. OG status and public-profile visibility do not affect Slack Entitlement.
+
+The Rails application records the desired state, requested time, verified completion time, stable Slack identifiers once known, and a bounded operational note in a durable Administrator queue. Enrollment transitions create or supersede the appropriate admission or offboarding task idempotently. A pending offboarding task may outlive account deletion long enough to verify deactivation. The application must distinguish requested from observed state and never label a manual action as synchronized.
+
+The [workspace inventory](inventory-rails-builders-slack-workspace.md) settled the ceiling at Pro. Pro has no supported API for provisioning or deactivating Single-Channel Guests, and channel-only automation cannot satisfy workspace offboarding, so v1 must not add a Slack membership adapter or token. Before Slack access becomes a launch promise, secure guest capacity for all nine Seats and rehearse manual admission, sole-channel visibility, deactivation, and reactivation with a disposable guest.

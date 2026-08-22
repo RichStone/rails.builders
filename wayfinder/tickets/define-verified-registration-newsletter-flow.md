@@ -2,10 +2,10 @@
 
 - Label: `wayfinder:grilling`
 - Order: 100
-- Status: open
-- Assignee: unassigned
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
-- Blocked by: [Research the ClickFunnels Newsletter Subscription API](research-clickfunnels-newsletter-api.md), [Research Newsletter Consent Requirements](research-newsletter-consent.md), [Run the ClickFunnels Newsletter Delivery Smoke Test](run-clickfunnels-newsletter-smoke-test.md)
+- Status: closed
+- Assignee: Rich Steinmetz via roadmap reconciliation
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
+- Blocked by: [Research the ClickFunnels Newsletter Subscription API](research-clickfunnels-newsletter-api.md), [Research Newsletter Consent Requirements](research-newsletter-consent.md)
 
 ## Question
 

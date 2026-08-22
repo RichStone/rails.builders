@@ -4,7 +4,7 @@
 - Order: 50
 - Status: closed
 - Assignee: Rich Steinmetz via delegated Codex task
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: [Research Slack Membership Automation](research-slack-membership-automation.md)
 
 ## Question

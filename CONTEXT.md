@@ -29,8 +29,16 @@ The initial admission phase in which available Seat Offers go only to verified O
 _Avoid_: Permanent eligibility rule
 
 **Active Builder**:
-A Rails Builder who has confirmed a Seat in Continuous.
+A Rails Builder who has confirmed a Seat in Continuous. Active Builder status continues until the person withdraws, an Administrator removes them, or their account is deleted; the program finish date does not end it automatically.
 _Avoid_: OG Builder, Registrant, Facilitator
+
+**Inactive Builder**:
+A verified person with no Seat Offer, Seat, or Waitlist Entry after voluntarily leaving, declining an offer, or allowing an offer to expire. An Inactive Builder may opt into the waitlist again.
+_Avoid_: Non-active Builder, former member
+
+**Removed Builder**:
+A person an Administrator has made ineligible for a Seat and the waitlist. A Removed Builder cannot self-enroll again until an Administrator reinstates them.
+_Avoid_: Kicked user, banned account
 
 **Waitlist Entry**:
 A verified Registrant who has neither a Seat nor a pending Seat Offer. Waitlist Entries are ordered by their earliest registration time, subject to Administrator reordering; an unverified registration does not hold capacity or appear on the active waitlist.
@@ -39,6 +47,10 @@ _Avoid_: Member, Seat
 **Waitlist Opt-In**:
 The explicit action by which someone whose Seat Offer expired or was declined, or who withdrew from a Seat, joins the end of the waitlist again.
 _Avoid_: Automatic re-enrollment
+
+**Waitlist Opt-Out**:
+The explicit action by which a Waitlist Entry leaves the queue without deleting their account. Opting out releases the person's rank and makes them an Inactive Builder.
+_Avoid_: Account deletion, Seat withdrawal
 
 **Continuous**:
 The Rails Builders edition with a start line on 20 August and a finish line on 17 December 2026. Reaching the finish line does not by itself end Active Builder status.
@@ -67,3 +79,7 @@ _Avoid_: Administrator
 **Administrator**:
 A User with the assignable role authorized to manage all app data and settings, including assigning Administrators and Facilitators. Rich Steinmetz is the only initial Administrator.
 _Avoid_: Facilitator
+
+**Slack Entitlement**:
+Access to the Rails Builders Slack workspace and dedicated channel owed to an Active Builder and enforced through the Administrator workflow supported by the current Slack plan. Public profile visibility and OG status do not affect Slack Entitlement.
+_Avoid_: Slack status, profile publication
