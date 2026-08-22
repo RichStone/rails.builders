@@ -26,6 +26,26 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "no-referrer", response.headers["Referrer-Policy"]
   end
 
+  test "a first visit receives a nonempty CSP nonce shared by every script" do
+    get root_path
+
+    csp = response.headers.fetch("Content-Security-Policy")
+    nonce = csp.match(/script-src[^;]*'nonce-([^']+)'/)&.captures&.first
+    script_nonces = css_select("script[nonce]").map { |script| script["nonce"] }
+
+    assert_predicate nonce, :present?
+    assert_predicate script_nonces, :any?
+    assert_equal [ nonce ], script_nonces.uniq
+    assert_equal nonce, css_select("meta[name='csp-nonce']").first&.[]("content")
+
+    get root_path
+
+    next_nonce = response.headers.fetch("Content-Security-Policy")
+      .match(/script-src[^;]*'nonce-([^']+)'/)&.captures&.first
+    assert_predicate next_nonce, :present?
+    assert_not_equal nonce, next_nonce
+  end
+
   test "www redirects to the apex before application flows begin" do
     host! "www.rails.builders"
 
