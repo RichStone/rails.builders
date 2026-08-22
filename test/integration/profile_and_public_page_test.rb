@@ -26,6 +26,15 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "no-referrer", response.headers["Referrer-Policy"]
   end
 
+  test "www redirects to the apex before application flows begin" do
+    host! "www.rails.builders"
+
+    get "/admin/calendar_connection?from=www"
+
+    assert_response 308
+    assert_equal "https://rails.builders/admin/calendar_connection?from=www", response.location
+  end
+
   test "the public page lists only published waitlisted builders in their own group" do
     published_builder = User.create!(email: "waiting-public@example.com", name: "Waiting Builder", og: true,
       verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)

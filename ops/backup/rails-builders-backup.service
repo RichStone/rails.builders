@@ -1,0 +1,15 @@
+[Unit]
+Description=Rails Builders coherent Restic backup
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/rails-builders/backup
+ExecStart=/usr/local/libexec/rails-builders/backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=infinity
+UMask=0077

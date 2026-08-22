@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 077
+
+readonly PROGRAM="rails-builders-backup"
+
+log() {
+  printf '%s: %s\n' "$PROGRAM" "$*"
+}
+
+die() {
+  log "ERROR: $*" >&2
+  exit 1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+require_secret() {
+  [[ -n "${!1:-}" ]] || die "$1 must be set by the systemd EnvironmentFile"
+}
+
+STORAGE_PATH="${STORAGE_PATH:-/srv/rails-builders/storage}"
+HEALTHCHECK_URL="${HEALTHCHECK_URL:-}"
+APP_STOP_TIMEOUT_SECONDS="${APP_STOP_TIMEOUT_SECONDS:-30}"
+RESTIC_TAG="${RESTIC_TAG:-rails-builders}"
+RESTIC_LOCK_FILE="${RESTIC_LOCK_FILE:-/run/lock/rails-builders-restic.lock}"
+RESTIC_CACHE_DIR="${RESTIC_CACHE_DIR:-/var/cache/rails-builders-restic}"
+BACKUP_CHECK_IN_URL="${BACKUP_CHECK_IN_URL:-}"
+export RESTIC_CACHE_DIR
+
+require_secret RESTIC_REPOSITORY
+require_secret RESTIC_PASSWORD
+[[ -n "$HEALTHCHECK_URL" ]] || die "HEALTHCHECK_URL must be set by the systemd EnvironmentFile"
+[[ "$APP_STOP_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || die "APP_STOP_TIMEOUT_SECONDS must be a positive integer"
+[[ -d "$STORAGE_PATH" ]] || die "storage directory does not exist: $STORAGE_PATH"
+
+for command_name in curl docker flock restic; do
+  require_command "$command_name"
+done
+
+mkdir -p "$RESTIC_CACHE_DIR"
+exec 9>"$RESTIC_LOCK_FILE"
+flock --nonblock 9 || die "another backup, check, or restore drill is already running"
+
+wait_for_health() {
+  if ! curl --fail --silent --show-error \
+    --header "Cache-Control: no-cache" \
+    --location \
+    --max-time 10 \
+    --output /dev/null \
+    --resolve "rails.builders:80:127.0.0.1" \
+    --resolve "rails.builders:443:127.0.0.1" \
+    --retry 23 \
+    --retry-all-errors \
+    --retry-delay 5 \
+    --retry-max-time 130 \
+    "$HEALTHCHECK_URL"; then
+    log "ERROR: health check did not pass after 24 attempts" >&2
+    return 1
+  fi
+
+  log "health check passed"
+}
+
+container_id=""
+app_needs_restart=0
+
+restart_app() {
+  log "starting application container $container_id"
+  if ! docker start "$container_id" >/dev/null; then
+    log "ERROR: failed to start application container $container_id" >&2
+    return 1
+  fi
+
+  app_needs_restart=0
+  wait_for_health
+}
+
+finish() {
+  local status=$?
+
+  trap - EXIT INT TERM
+  if ((app_needs_restart)); then
+    log "recovering application after an interrupted or failed backup"
+    if ! restart_app; then
+      status=1
+    fi
+  fi
+
+  exit "$status"
+}
+
+trap finish EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+log "checking repository access before stopping the application"
+restic snapshots >/dev/null
+
+if ! container_output="$(
+  docker ps \
+    --filter "label=service=rails-builders" \
+    --filter "label=role=web" \
+    --format '{{.ID}}'
+)"; then
+  die "could not list Kamal application containers"
+fi
+
+containers=()
+while IFS= read -r candidate; do
+  [[ -n "$candidate" ]] && containers+=("$candidate")
+done <<<"$container_output"
+
+if ((${#containers[@]} != 1)); then
+  die "expected exactly one running rails-builders/web container; found ${#containers[@]}"
+fi
+
+container_id="${containers[0]}"
+app_needs_restart=1
+log "stopping application container $container_id"
+docker stop --time "$APP_STOP_TIMEOUT_SECONDS" "$container_id" >/dev/null
+
+log "creating a coherent snapshot of $STORAGE_PATH"
+restic backup --tag "$RESTIC_TAG" "$STORAGE_PATH"
+
+if ! restart_app; then
+  die "application restart or health check failed"
+fi
+
+log "applying snapshot retention"
+restic forget \
+  --tag "$RESTIC_TAG" \
+  --group-by paths,tags \
+  --keep-daily 7 \
+  --keep-weekly 5 \
+  --keep-monthly 12 \
+  --prune
+
+if [[ -n "$BACKUP_CHECK_IN_URL" ]]; then
+  curl --fail --silent --show-error --max-time 10 --output /dev/null "$BACKUP_CHECK_IN_URL"
+fi
+
+log "backup, restart, health check, and retention completed successfully"

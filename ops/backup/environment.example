@@ -1,0 +1,27 @@
+# Installed as /etc/rails-builders/backup with mode 0600. Keep real values off Git.
+
+STORAGE_PATH=/srv/rails-builders/storage
+HEALTHCHECK_URL=http://rails.builders/up
+APP_STOP_TIMEOUT_SECONDS=30
+
+# Fail the hourly capacity job when storage's filesystem reaches this usage.
+DISK_USAGE_LIMIT_PERCENT=65
+
+RESTIC_REPOSITORY=
+RESTIC_PASSWORD=
+RESTIC_TAG=rails-builders
+RESTIC_CACHE_DIR=/var/cache/rails-builders-restic
+RESTIC_LOCK_FILE=/run/lock/rails-builders-restic.lock
+
+# Optional dead-man check-in URLs. A failed job deliberately sends no ping.
+BACKUP_CHECK_IN_URL=
+DISK_USAGE_CHECK_IN_URL=
+RESTIC_CHECK_IN_URL=
+RESTORE_CHECK_IN_URL=
+
+# Set only the credentials used by the selected Restic backend.
+# B2_ACCOUNT_ID=
+# B2_ACCOUNT_KEY=
+# AWS_ACCESS_KEY_ID=
+# AWS_SECRET_ACCESS_KEY=
+# AWS_DEFAULT_REGION=

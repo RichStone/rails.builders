@@ -62,6 +62,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     click_button "Pause"
     assert_button "Resume"
     click_button "Resume", exact: true
+    assert_button "Pause"
     accept_confirm("Finish this session now?") { click_button "Finish session" }
     assert_text(/session complete/i)
     assert_text "Processing transcript"
