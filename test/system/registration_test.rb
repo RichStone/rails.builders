@@ -28,6 +28,15 @@ class RegistrationTest < ApplicationSystemTestCase
 
     assert_text "You’re on the waitlist."
     assert_text "#1"
+    within("[data-waitlist-readiness]") do
+      assert_selector "input[name='readiness[]']:checked", count: 6, visible: :all
+
+      find(".membership-activation label").click
+      assert_no_selector "input[name='readiness[]']:checked", visible: :all
+
+      find(".membership-activation label").click
+      assert_selector "input[name='readiness[]']:checked", count: 6, visible: :all
+    end
     assert_link "Profile"
   end
 
@@ -58,5 +67,8 @@ class RegistrationTest < ApplicationSystemTestCase
 
     assert_text "You’re an active builder."
     assert user.reload.active?
+    within(".membership-panel") do
+      assert_no_selector "input[name='readiness[]']:checked", visible: :all
+    end
   end
 end

@@ -34,7 +34,7 @@
   <% if current_user.waitlisted? || current_user.waitlist_eligible? %>
     <div class="action-panel waitlist-panel" data-waitlist-readiness>
       <h2>Waitlist</h2>
-      <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: !current_user.waitlisted? } do %>
+      <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: !current_user.waitlisted?, readiness_checklist_choice_controls_checkboxes_value: true } do %>
         <div class="membership-activation" <%= "hidden" unless current_user.waitlisted? %> data-readiness-checklist-target="activation">
           <%= hidden_field_tag :joined, "0" %>
           <label class="check-row"><%= check_box_tag :joined, "1", current_user.waitlisted?, data: { readiness_checklist_target: "choice", action: "change->readiness-checklist#toggleChoice" } %><span><strong>Join the waitlist</strong><small><%= current_user.waitlisted? ? "Turn this off to leave the queue without changing your account." : "I’m ready for a Seat Offer when my turn comes." %></small></span></label>
