@@ -20,26 +20,26 @@ No adapter, reconciliation job, schema, or UI was added.
 
 | Area | Observation | Evidence surface |
 | --- | --- | --- |
-| Workspace | Name `Loop Labs 🧪`; team ID `T0AMMNQ9EMR`; URL `https://joinlooplabs.slack.com` | Signed-in Slack workspace and administration UI |
+| Workspace | Standalone workspace; exact workspace identifiers are deliberately omitted from public source | Signed-in Slack workspace and administration UI |
 | Plan and topology | Free is marked `CURRENT PLAN`. The workspace has its own plan page, workspace administration, and no organization/Enterprise surface. This is a standalone workspace. | Slack plan and administration UI |
-| People | One workspace member: Rich, Slack user ID `U0AMS32820N`, email `hey@richsteinmetz.com`, account type `Primary Workspace Owner`, active, default authentication, joined 2026-03-20 | Slack **Manage members** UI |
-| Target channel | Private `#rails-builders`, channel ID `C0BRTLZRX51`, created by Rich on 2026-08-22, with one member | Slack channel and channel-details UI |
+| People | One active Primary Workspace Owner; personal identifiers are deliberately omitted from public source | Slack **Manage members** UI |
+| Target channel | Private `#rails-builders`, with one member; its exact identifier is deliberately omitted from public source | Slack channel and channel-details UI |
 | Channel topology | Private, active, local to this workspace, and not Slack Connect. There is no Organizations tab or external-organization indicator. | Slack channel and channel-details UI |
 | Intended role | On Pro, each Builder is a Single-Channel Guest assigned only to `#rails-builders`. Free cannot represent this role. | Product decision plus actual plan |
-| Installer authority | Rich is the Primary Workspace Owner. App approval is disabled and apps need not come from Marketplace; members may install apps from any source. Rich is currently the only person who can exercise that policy. | Slack member and App Management Settings UI |
-| Installed/developer apps | The installed-app list and Rich's Slack developer catalog each contain only `Otto Labot` (`A0BKKTFMSP5`), a modern, not-distributed app. The `#rails-builders` Agents & apps panel currently contains no agent or app. | Slack Installed Apps, developer-app, and channel-details UIs |
+| Installer authority | The Primary Workspace Owner is currently the only person who can exercise the workspace's app-installation policy. | Slack member and App Management Settings UI |
+| Installed/developer apps | One unrelated, not-distributed app is installed. The `#rails-builders` Agents & apps panel currently contains no agent or app. Exact app identifiers are deliberately omitted from public source. | Slack Installed Apps, developer-app, and channel-details UIs |
 | Existing app permissions | Otto has `app_mentions:read`, `chat:write`, `files:write`, `im:write`, `assistant:write`, `commands`, `channels:history`, `channels:read`, `files:read`, `groups:history`, `groups:read`, `im:history`, `im:read`, `mpim:history`, `mpim:read`, `reactions:read`, and `users:read`. It lacks `admin`, `users:read.email`, and channel membership write scopes. | Slack Otto permissions UI |
 | Token situation | Otto's installed OAuth credential necessarily exists somewhere, but its value/storage was deliberately not inspected and it is not configured in this repository. No Rails Builders membership token exists. | Slack developer-app UI and repository configuration |
-| Connector access | The connected Slack read installation lists only ClickFunnels (`T02E9NBRY`). It cannot access Loop Labs. An unrelated archived `#rails-builders` in ClickFunnels (`C0BP30DPHBK`) is not this channel. | Connected Slack read tools |
+| Connector access | The connected Slack read installation cannot access this workspace. Exact third-party workspace and channel identifiers are deliberately omitted from public source. | Connected Slack read tools |
 | Repository configuration | `.env` and `.env.development` define no Slack app ID, team ID, channel ID, bot token, user token, or SCIM token. The repository contains no Slack adapter or job. `User#slack_status` is a manual status only. | Repository configuration and source search |
-| Join policy | Approved-domain self-join is enabled for `richsteinmetz.com` and `looplabs.cc`. | Slack **Settings & Permissions** UI |
+| Join policy | Approved-domain self-join is enabled; exact domain names are deliberately omitted from public source. | Slack **Settings & Permissions** UI |
 
-The old public primary channel `#safe-space` (`C0AMMNQHX5H`) is no longer the target. It remains relevant only as historical evidence explaining why the dedicated channel was required.
+The old public primary channel is no longer the target. It remains relevant only as historical evidence explaining why the dedicated channel was required.
 
 ## Settled Pro operating boundary
 
 1. Upgrade to Pro only when guest access is needed.
-2. An Owner or Admin manually invites each eligible person as a Single-Channel Guest assigned only to `C0BRTLZRX51`.
+2. An Owner or Admin manually invites each eligible person as a Single-Channel Guest assigned only to `#rails-builders`.
 3. The Rails app may expose an Administrator queue with verified email, desired state, requested time, observed/manual completion time, and overdue/error state. It must not report Slack access as synchronized merely because an admin task exists.
 4. An Owner or Admin manually deactivates every non-active or deleted Builder, then records the observed result. Removing the person only from `#rails-builders` does not satisfy offboarding.
 5. Disable approved-domain self-join before treating workspace access as an enforced entitlement, or explicitly accept that the Rails app cannot guarantee the invariant.
@@ -76,7 +76,7 @@ No agent was installed, added to the channel, messaged, or reconfigured during t
 
 ## Safe test-account path
 
-After a Pro upgrade, use `hey+rails-builders-slack-smoke-20260822@richsteinmetz.com`. Do not use Rich's owner account or a real Builder.
+After a Pro upgrade, use a disposable email alias controlled by the workspace owner. Do not use the owner's account or a real Builder.
 
 1. Manually invite the alias as a Single-Channel Guest assigned only to `#rails-builders`.
 2. Verify it can sign in, can see only that channel, and cannot discover or enter any other workspace channel.

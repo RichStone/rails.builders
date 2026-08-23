@@ -23,7 +23,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Public Builder"
     assert_not_includes response.body, "builder@example.com"
     assert_includes response.headers.fetch("Content-Security-Policy"), "default-src 'self'"
-    assert_equal "same-origin", response.headers["Referrer-Policy"]
+    assert_equal "no-referrer", response.headers["Referrer-Policy"]
   end
 
   test "the public page uses live Program capacity, name, and dates" do

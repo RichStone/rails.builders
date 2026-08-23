@@ -20,6 +20,7 @@ class AdminTest < ActionDispatch::IntegrationTest
 
     assert_select "form[action='#{admin_calendar_connection_path}'][data-turbo='false'] button",
       text: "Connect Google Calendar"
+    assert_equal "same-origin", response.headers["Referrer-Policy"]
     assert_includes response.headers.fetch("Content-Security-Policy"),
       "form-action 'self' https://accounts.google.com"
   end
