@@ -75,7 +75,8 @@ bin/kamal setup
 ```
 
 `KAMAL_BUILD_ARCH` must match the purchased server (`arm64` or `amd64`). The
-registry password must be a GitHub token that can write packages. Keep
+default image repository is `docker.io/richwhale/rails-builders`; the registry
+password must be a Docker Hub access token with Read & Write permission. Keep
 `KAMAL_PROXY_SSL=false` for the first pre-DNS deployment and smoke-test the new
 host directly:
 
@@ -85,10 +86,14 @@ curl --fail --header 'Host: rails.builders' "http://$KAMAL_HOST/up"
 
 After both apex and `www` DNS records resolve to the server, set
 `KAMAL_PROXY_SSL=true` and deploy again so Kamal Proxy can obtain certificates.
-Do not run
-the first deployment until an off-server backup target and restore check have
-been chosen for `/srv/rails-builders/storage`. Install and prove the supplied
-[backup and restore bundle](ops/backup/RUNBOOK.md) before calling recovery ready.
+Hetzner's rolling daily server backups are the MVP recovery layer. The supplied
+[backup and restore bundle](ops/backup/RUNBOOK.md) is the path to off-provider
+backups and a rehearsed restore when stronger recovery guarantees are needed.
+
+Every push to `main` runs the full CI workflow. After all five CI jobs pass, the
+`deploy` job uses the GitHub `production` environment to deploy that exact commit
+with Kamal and verify the public health endpoint. Deployments are serialized and
+an older workflow run refuses to replace a newer commit from `main`.
 
 ## Email and integrations
 
@@ -109,6 +114,8 @@ https://rails.builders/admin/calendar_connection/callback
 ```
 
 Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, or add `google_workspace.client_id` and `google_workspace.client_secret` to encrypted Rails credentials. If `APP_HOST` is not `rails.builders`, register the matching HTTPS callback. Configure the OAuth consent screen and complete Google’s verification requirements before production use. The integration requests read-only Calendar-list access, read-only access to events on calendars the account owns, and read-only access to Meet spaces the account can access; application queries are narrowed to the selected Program calendar and its synced Meet links. The connected Google email must exactly match the main facilitator’s Rails Builders email, and only secondary calendars owned by that account can be selected.
+
+For a live local smoke test, create a separate OAuth web client and run `bin/worktree info` to find this worktree's port. Register the exact redirect URI `http://localhost:<PORT>/admin/calendar_connection/callback`—an authorized JavaScript origin is not needed—and put that client's ID and secret in the ignored `.env.development`. Start and finish the OAuth flow in the same browser profile so the Administrator session and OAuth state remain available to the callback. Development does not run the hourly recurring schedule; use **Sync now** in Administration when testing subsequent Calendar changes.
 
 Turn on Meet transcription or automatic transcription for the recurring meeting in Google Workspace. The read-only Rails Builders integration imports the resulting artifact but does not change the meeting’s transcription settings.
 

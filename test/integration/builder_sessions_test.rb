@@ -167,6 +167,31 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_equal "completed", @builder_session.reload.state
   end
 
+  test "the facilitator sees a two-thirds timer default and the session prompts" do
+    @builder_session.update!(scheduled_ends_at: @builder_session.scheduled_starts_at + 90.minutes)
+    sign_in_as(@facilitator)
+
+    get builder_session_path(@builder_session)
+
+    assert_select "input[name='duration_minutes'][value='60']"
+
+    post start_builder_session_path(@builder_session)
+    assert_equal 60.minutes.to_i, @builder_session.reload.timer_duration_seconds
+
+    get builder_session_path(@builder_session)
+    assert_select "h2", text: "What did you ship—or learn—since we last met?"
+
+    @builder_session.mark_present!(@builder)
+    post advance_builder_session_path(@builder_session)
+    get builder_session_path(@builder_session)
+
+    assert_select "[data-session-prompts]" do
+      assert_select "li", text: "One business challenge"
+      assert_select "li", text: "One AI-building challenge"
+      assert_select "li", text: "What will you have done by the next session?"
+    end
+  end
+
   test "facilitators drag the complete unspoken queue into a new order" do
     second_builder = User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     third_builder = User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)

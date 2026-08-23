@@ -11,6 +11,19 @@ class ProgramTest < ActiveSupport::TestCase
     assert @program.seat_available?
   end
 
+  test "places left reflects seats that builders have reserved" do
+    @program.update!(capacity: 3)
+    User.create!(email: "active@example.com", enrollment_status: "active", verified_at: Time.current)
+    User.create!(email: "offered@example.com", enrollment_status: "offered", offer_expires_at: 1.day.from_now, verified_at: Time.current)
+
+    assert_equal 1, @program.places_left
+  end
+
+  test "the session format is stored as an ordered list on the Program" do
+    assert_equal "🚂 Forever free & community-led", @program.format_points_list.first
+    assert_equal 9, @program.format_points_list.size
+  end
+
   test "paused promotions leave capacity open until resumed" do
     builder = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
     @program.update!(promotions_paused: true)

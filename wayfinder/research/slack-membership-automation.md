@@ -125,7 +125,7 @@ Expose a reliable Administrator queue instead of pretending automation succeeded
 
 ## Actual workspace gate
 
-The workspace-specific facts were inventoried on 2026-08-22 in [Rails Builders Slack Workspace Inventory](rails-builders-slack-workspace-inventory.md). The actual space is the standalone Free `Loop Labs 🧪` workspace (`T0AMMNQ9EMR`). Its dedicated target is now the private, local, non-Slack-Connect `#rails-builders` (`C0BRTLZRX51`). No Rails Builders membership app/token exists, the connected Slack read installation cannot access this workspace, and approved-domain self-join is enabled.
+The workspace-specific facts were inventoried on 2026-08-22 in [Rails Builders Slack Workspace Inventory](rails-builders-slack-workspace-inventory.md). The actual space is a standalone Free workspace. Its dedicated target is now the private, local, non-Slack-Connect `#rails-builders` channel. No Rails Builders membership app/token exists, the connected Slack read installation cannot access this workspace, and approved-domain self-join is enabled. Exact workspace and channel identifiers are deliberately omitted from public source.
 
 The settled ceiling is Pro and the intended role is Single-Channel Guest assigned only to `#rails-builders`. That choice selects Boundary D: an Owner/Admin must manually admit and deactivate guests, while the Rails app may expose an honest operational queue. Pro cannot automate the guest's workspace lifecycle, and channel-only automation is insufficient because removing an existing identity from the channel does not remove it from the workspace. Business+ full-member SCIM and Enterprise guest Admin APIs are documented expansion paths, not current recommendations or implementation authorization.
 
