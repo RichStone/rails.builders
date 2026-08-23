@@ -41,8 +41,8 @@
           <%= submit_tag current_user.waitlisted? ? "Update waitlist" : "Join the waitlist", class: "button button-primary", disabled: !current_user.waitlisted?, data: { readiness_checklist_target: "submit" } %>
         </div>
         <div class="membership-readiness">
-          <h3><%= current_user.waitlisted? ? "Keep the readiness promise" : "First, check your readiness" %></h3>
-          <p><%= current_user.waitlisted? ? "These are the shared ingredients behind the live sessions." : "Your Join waitlist checkbox unlocks when every answer is yes." %></p>
+          <h3><%= current_user.waitlisted? ? "Keep the readiness promise" : "The readiness checklist" %></h3>
+          <p><%= current_user.waitlisted? ? "These are the shared ingredients behind the live sessions." : "These are the shared ingredients behind the live sessions. If the direction feels right, but you are missing some of these, you still have time to get them in until the start of the sessions, just get your spot then! Tick them off to join the waitlist." %></p>
           <%= render "shared/readiness_points", program: @program, checkbox_name: "readiness[]" %>
           <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
         </div>
