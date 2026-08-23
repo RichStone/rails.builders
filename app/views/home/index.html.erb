@@ -88,23 +88,35 @@
       <h2>How to join</h2>
       <p>Bring one product to focus on. Build alongside fellow devs.</p>
     </div>
-    <div class="steps">
-      <article><span>01</span><h3>Join with your email</h3><p>OG builders get first access to the <%= @program.capacity %> seats. Everyone else keeps a place on the waitlist.</p></article>
-      <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Add as many products as you like (hopefully ONE 😉).</p></article>
-      <article><span>03</span><h3>Build with company</h3><p>Biweekly live sessions and builders who understand the hustle.</p></article>
-      <article><span>04</span><h3>Keep the context</h3><p>Session history and transcripts keep each conversation available for useful next moves.</p></article>
-    </div>
+    <details class="section-reveal join-reveal">
+      <summary class="section-reveal-trigger join-reveal-trigger">
+        <span class="reveal-ruby" aria-hidden="true"><i>◆</i><i>◆</i><i>◆</i></span>
+        <span><strong>Crack open the build path</strong><small>See all four steps</small></span>
+      </summary>
+      <div class="steps">
+        <article><span>01</span><h3>Join with your email</h3><p>OG builders get first access to the <%= @program.capacity %> seats. Everyone else keeps a place on the waitlist.</p></article>
+        <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Add as many products as you like (hopefully ONE 😉).</p></article>
+        <article><span>03</span><h3>Build with company</h3><p>Biweekly live sessions and builders who understand the hustle.</p></article>
+        <article><span>04</span><h3>Keep the context</h3><p>Session history and transcripts keep each conversation available for useful next moves.</p></article>
+      </div>
+    </details>
   </section>
 
   <section class="section benefits">
     <div class="benefit-statement"><span>◆</span><p>Not another feed to scroll.</p><h2>Group principles</h2></div>
-    <div class="benefit-list">
-      <article><h3>Live contact preferred</h3><p>The meat of being an active Rails Builder is the live sessions—this is where most of the action happens. The rest of the time, we want you to focus on building.</p></article>
-      <article><h3>Small by design</h3><p><%= @program.capacity %> active seats keep the room useful, familiar, and accountable.</p></article>
-      <article><h3>Your product stays yours</h3><p>Keep your profile private, or publish your work on rails.builders when you’re ready.</p></article>
-      <article><h3>Registration never closes</h3><p>Join the queue anytime. When a seat opens, you get 72 hours to make it yours.</p></article>
-      <article><h3>Private paid Slack channel</h3><p>Not the central piece, but it’s there when you want to connect with Rich, ask the group a question, or ask Otto Labot—our robotic Lab Bot—anything about previous sessions or changes to the rails.builders app.</p></article>
-    </div>
+    <details class="section-reveal principles-reveal">
+      <summary class="section-reveal-trigger principles-reveal-trigger">
+        <span><strong>Open the Builders’ code</strong><small>Five things we protect</small></span>
+        <span class="reveal-builders" aria-hidden="true"><i>R</i><i>B</i><i>◆</i></span>
+      </summary>
+      <div class="benefit-list">
+        <article><h3>Live contact preferred</h3><p>The meat of being an active Rails Builder is the live sessions—this is where most of the action happens. The rest of the time, we want you to focus on building.</p></article>
+        <article><h3>Small by design</h3><p><%= @program.capacity %> active seats keep the room useful, familiar, and accountable.</p></article>
+        <article><h3>Your product stays yours</h3><p>Keep your profile private, or publish your work on rails.builders when you’re ready.</p></article>
+        <article><h3>Registration never closes</h3><p>Join the queue anytime. When a seat opens, you get 72 hours to make it yours.</p></article>
+        <article><h3>Private paid Slack channel</h3><p>Not the central piece, but it’s there when you want to connect with Rich, ask the group a question, or ask Otto Labot—our robotic Lab Bot—anything about previous sessions or changes to the rails.builders app.</p></article>
+      </div>
+    </details>
   </section>
 
   <section class="program-format" data-controller="program-format" data-program-format>

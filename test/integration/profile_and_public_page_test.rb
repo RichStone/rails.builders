@@ -51,6 +51,19 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the public page keeps joining steps and group principles behind reveal controls" do
+    get root_path
+
+    assert_select "#how-it-works details.section-reveal:not([open])" do
+      assert_select "summary", text: /Crack open the build path/
+      assert_select ".steps article", count: 4
+    end
+    assert_select ".benefits details.section-reveal:not([open])" do
+      assert_select "summary", text: /Open the Builders’ code/
+      assert_select ".benefit-list article", count: 5
+    end
+  end
+
   test "the dashboard displays the Program name everywhere" do
     @program.update!(name: "Continuous r-AI-ls.Builders Edition")
     sign_in_as(@user)
