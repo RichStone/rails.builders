@@ -131,3 +131,64 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [ scan_ruby, scan_js, lint, test, system-test ]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://rails.builders
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      KAMAL_HOST: ${{ vars.KAMAL_HOST }}
+      KAMAL_BUILD_ARCH: ${{ vars.KAMAL_BUILD_ARCH }}
+      KAMAL_PROXY_SSL: ${{ vars.KAMAL_PROXY_SSL }}
+      KAMAL_REGISTRY_USERNAME: ${{ vars.KAMAL_REGISTRY_USERNAME }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Configure production SSH
+        env:
+          KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
+          KAMAL_SSH_KNOWN_HOSTS: ${{ secrets.KAMAL_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_ed25519
+          printf '%s\n' "$KAMAL_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          install -m 600 /dev/null ~/.ssh/known_hosts
+          printf '%s\n' "$KAMAL_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes root@"$KAMAL_HOST" true
+
+      - name: Deploy current main
+        env:
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+          RAILS_BUILDERS_OG_EMAILS: ${{ secrets.RAILS_BUILDERS_OG_EMAILS }}
+          RAILS_BUILDERS_FACILITATOR_EMAIL: ${{ secrets.RAILS_BUILDERS_FACILITATOR_EMAIL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          HONEYBADGER_API_KEY: ${{ secrets.HONEYBADGER_API_KEY }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+        run: |
+          git fetch origin main --depth=1
+          current_main=$(git rev-parse origin/main)
+          if [[ "$GITHUB_SHA" != "$current_main" ]]; then
+            echo "Refusing to deploy stale commit $GITHUB_SHA; main is $current_main"
+            exit 1
+          fi
+          bin/kamal deploy --version="$GITHUB_SHA" --lock-wait
+
+      - name: Verify production health
+        run: curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 https://rails.builders/up

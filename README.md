@@ -86,10 +86,14 @@ curl --fail --header 'Host: rails.builders' "http://$KAMAL_HOST/up"
 
 After both apex and `www` DNS records resolve to the server, set
 `KAMAL_PROXY_SSL=true` and deploy again so Kamal Proxy can obtain certificates.
-Do not run
-the first deployment until an off-server backup target and restore check have
-been chosen for `/srv/rails-builders/storage`. Install and prove the supplied
-[backup and restore bundle](ops/backup/RUNBOOK.md) before calling recovery ready.
+Hetzner's rolling daily server backups are the MVP recovery layer. The supplied
+[backup and restore bundle](ops/backup/RUNBOOK.md) is the path to off-provider
+backups and a rehearsed restore when stronger recovery guarantees are needed.
+
+Every push to `main` runs the full CI workflow. After all five CI jobs pass, the
+`deploy` job uses the GitHub `production` environment to deploy that exact commit
+with Kamal and verify the public health endpoint. Deployments are serialized and
+an older workflow run refuses to replace a newer commit from `main`.
 
 ## Email and integrations
 
