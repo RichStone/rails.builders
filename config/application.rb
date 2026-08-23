@@ -15,7 +15,7 @@ module RailsBuilders
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
-    config.action_dispatch.default_headers["Referrer-Policy"] = "no-referrer"
+    config.action_dispatch.default_headers["Referrer-Policy"] = "same-origin"
     config.filter_redirect += [
       %r{\Ahttps://meet\.google\.com/},
       %r{\Ahttps://accounts\.google\.com/}

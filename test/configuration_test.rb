@@ -25,6 +25,10 @@ class RailsBuildersConfigurationTest < ActiveSupport::TestCase
     assert Honeybadger.config[:"request.disable_session"]
   end
 
+  test "Google API clients do not log authenticated HTTP details" do
+    assert_not Google::Apis.logger.debug?
+  end
+
   test "application startup rejects malformed private seed addresses" do
     _output, errors, status = Open3.capture3(
       {

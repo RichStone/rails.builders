@@ -70,6 +70,25 @@ class GoogleCalendarSyncTest < ActiveSupport::TestCase
     assert_in_delta Time.current, @connection.last_synced_at, 1.second
   end
 
+  test "reconciles events when Google refreshes stored credentials during the request" do
+    connection = @connection
+    event = event_hash(id: "event-1", title: "Builder Clinic")
+    client = Object.new
+    client.define_singleton_method(:list_events) do |**|
+      GoogleWorkspace::TokenStore.new(connection: connection).store(
+        "program-calendar-connection:#{connection.id}",
+        '{"access_token":"refreshed-access-token","refresh_token":"refresh-secret"}'
+      )
+      [ event ]
+    end
+
+    GoogleCalendarSync.new(connection: @connection, client: client).call
+
+    assert_equal "Builder Clinic", @program.builder_sessions.find_by!(google_event_id: "event-1").title
+    assert_includes @connection.reload.oauth_token_json, "refreshed-access-token"
+    assert @connection.last_synced_at
+  end
+
   test "updates upcoming sessions without rewriting sessions that already started" do
     upcoming = @program.builder_sessions.create!(
       assigned_facilitator: @facilitator,

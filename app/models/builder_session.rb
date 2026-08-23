@@ -40,6 +40,7 @@ class BuilderSession < ApplicationRecord
 
   def connection_duration_seconds = timer_duration_seconds / 6
   def closing_duration_seconds = [ timer_duration_seconds / 30, 1 ].max
+  def default_timer_minutes = ((scheduled_ends_at - scheduled_starts_at) / 90).round.clamp(1, 300)
 
   def mark_present!(user, at: Time.current)
     with_lock do
@@ -242,7 +243,7 @@ class BuilderSession < ApplicationRecord
         raise AlreadyActive if program.builder_sessions.active.where.not(id: id).exists?
         raise ActiveRecord::RecordInvalid, self unless state == "ready"
 
-        duration = duration_seconds || (scheduled_ends_at - scheduled_starts_at).to_i
+        duration = duration_seconds || default_timer_minutes.minutes.to_i
         update!(
           assigned_facilitator: facilitator,
           facilitator_name_snapshot: facilitator.name.presence || "Facilitator",

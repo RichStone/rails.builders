@@ -12,7 +12,7 @@ Rails.application.configure do
     policy.base_uri :self
     policy.connect_src :self
     policy.font_src :self, :data
-    policy.form_action :self
+    policy.form_action :self, "https://accounts.google.com"
     policy.frame_ancestors :none
     policy.img_src :self, :data
     policy.object_src :none

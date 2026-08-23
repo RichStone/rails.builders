@@ -29,7 +29,7 @@
     <% else %>
       <p>Connect the dedicated secondary calendar owned by the main facilitator. Upcoming sessions will follow it automatically.</p>
       <% if @calendar_connection %><p>Status: <%= @calendar_connection.status.humanize %></p><% end %>
-      <div class="button-row"><%= button_to(@calendar_connection ? "Reconnect Google Calendar" : "Connect Google Calendar", admin_calendar_connection_path, class: "button button-primary") %></div>
+      <div class="button-row"><%= button_to(@calendar_connection ? "Reconnect Google Calendar" : "Connect Google Calendar", admin_calendar_connection_path, class: "button button-primary", form: { data: { turbo: false } }) %></div>
     <% end %>
   </section>
 

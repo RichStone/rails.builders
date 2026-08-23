@@ -13,6 +13,17 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
+  test "Calendar connection leaves Turbo so the browser can follow Google redirects" do
+    sign_in_as(@admin)
+
+    get admin_root_path
+
+    assert_select "form[action='#{admin_calendar_connection_path}'][data-turbo='false'] button",
+      text: "Connect Google Calendar"
+    assert_includes response.headers.fetch("Content-Security-Policy"),
+      "form-action 'self' https://accounts.google.com"
+  end
+
   test "admin can open general waitlist and update builder roles" do
     sign_in_as(@admin)
     get admin_root_path

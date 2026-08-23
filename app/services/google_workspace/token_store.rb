@@ -31,7 +31,7 @@ module GoogleWorkspace
     attr_reader :connection
 
     def persist(token)
-      connection.update!(oauth_token_json: token)
+      connection.update_columns(oauth_token_json: token)
     end
   end
 end
