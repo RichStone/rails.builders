@@ -25,6 +25,20 @@ class AdminTest < ActionDispatch::IntegrationTest
       "form-action 'self' https://accounts.google.com"
   end
 
+  test "admin explains how pausing waitlist promotion works" do
+    sign_in_as(@admin)
+
+    get admin_root_path
+
+    assert_select ".admin-check-with-help" do
+      assert_select "label.check-row", text: /Pause waitlist promotion/
+      assert_select "details.info-tip:not([open])" do
+        assert_select "summary[aria-label='About pausing waitlist promotion']", text: "?"
+        assert_select "p", text: /Existing offers and confirmed seats are unchanged/
+      end
+    end
+  end
+
   test "admin can open general waitlist and update builder roles" do
     sign_in_as(@admin)
     get admin_root_path

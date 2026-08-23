@@ -11,7 +11,13 @@
       <%= form.label :capacity %><%= form.number_field :capacity, min: 1 %>
       <%= form.label :main_facilitator_id, "Main facilitator" %><%= form.collection_select :main_facilitator_id, User.where(facilitator: true).order(:name, :email), :id, ->(user) { user.name.presence || user.email }, include_blank: "Not assigned" %>
       <label class="check-row"><%= form.check_box :og_priority %><span>OG Priority</span></label>
-      <label class="check-row"><%= form.check_box :promotions_paused %><span>Pause promotion</span></label>
+      <div class="admin-check-with-help">
+        <label class="check-row"><%= form.check_box :promotions_paused %><span>Pause waitlist promotion</span></label>
+        <details class="info-tip">
+          <summary aria-label="About pausing waitlist promotion"><span aria-hidden="true">?</span></summary>
+          <p>After you check this and click Update program, people on the waitlist will not receive Seat Offers, even when seats are available. Existing offers and confirmed seats are unchanged, and Promote waitlist does nothing. Uncheck this and update the program to resume promotion. Newly verified OG Builders can still receive direct offers while OG Priority is on.</p>
+        </details>
+      </div>
       <div class="format-points-field"><%= form.label :format_points, "Session format points (one per line)" %><%= form.text_area :format_points, rows: 10 %></div>
       <div class="format-points-field"><%= form.label :readiness_points, "Builder readiness points (one per line)" %><%= form.text_area :readiness_points, rows: 7 %></div>
       <%= form.submit "Update program", class: "button button-primary" %>
