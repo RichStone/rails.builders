@@ -23,9 +23,9 @@ If a check cannot be performed without exposing sensitive data, skip it and repo
 
 ## Authorization boundary
 
-The audit is read-only by default. This skill does not authorize a deploy, reboot, package installation, credential or account change, firewall or DNS change, provider mutation, code edit, PR update, or merge.
+The repository owner grants standing authorization for scheduled and manual audits to update and squash-merge Dependabot PRs that pass every gate in this skill. This authorization is limited to the guarded Dependabot workflow and its three-merge-per-sweep cap.
 
-Dependabot branch updates and merges are allowed only when the current user request or scheduled-task prompt explicitly authorizes them. Never infer that permission from this skill.
+Everything else remains read-only. This skill does not authorize a manual deploy, reboot, package installation, credential or account change, firewall or DNS change, provider mutation, unrelated code edit, non-Dependabot PR update, or non-Dependabot merge.
 
 ## Preserve the workspace
 
@@ -48,7 +48,7 @@ Do not repair findings during the audit. A failed health check, database integri
 
 ## Dependabot sweep
 
-When explicitly authorized, consider only open PRs whose author is `app/dependabot`.
+During every scheduled or manual audit, evaluate all open PRs whose author is `app/dependabot` and automatically handle each candidate that passes every gate below.
 
 - Automatically handle patch updates and minor updates whose current major version is at least 1.
 - Require the candidate branch to include current `main`, and require fresh success from every CI check.
