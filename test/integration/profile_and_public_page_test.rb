@@ -30,6 +30,17 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "no-referrer", response.headers["Referrer-Policy"]
   end
 
+  test "the site serves its red ruby favicon" do
+    get root_path
+
+    assert_select "link[rel='icon'][href='/favicon.svg'][type='image/svg+xml']", count: 1
+
+    get "/favicon.svg"
+
+    assert_response :success
+    assert_includes response.body, "#d4143d"
+  end
+
   test "the public page uses live Program capacity, name, and dates" do
     @program.update!(name: "Continuous r-AI-ls.Builders Edition")
 
