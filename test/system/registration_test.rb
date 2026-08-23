@@ -7,7 +7,7 @@ class RegistrationTest < ApplicationSystemTestCase
 
   test "visitor verifies an email and sees an exact waitlist position" do
     visit root_path
-    assert_text "Build in public."
+    assert_text "Build in public with other Rails.Builders"
     click_link "Claim your place"
     fill_in "Email address", with: "browser@example.com"
     click_button "Email me a secure link"
