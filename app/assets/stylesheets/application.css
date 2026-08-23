@@ -28,6 +28,8 @@ button, input, textarea, select { font: inherit; }
 .site-header nav a:not(.button):hover { color: var(--ruby); }
 .site-footer { max-width: 1240px; margin: auto; padding: 30px 28px 48px; border-top: 1px solid var(--line); display: flex; gap: 28px; justify-content: space-between; color: var(--muted); font-size: 14px; }
 .site-footer > span:first-child { color: var(--ink); font-weight: 700; }
+.github-link { display: inline-flex; gap: 5px; align-items: center; }.github-link svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.footer-legal { display: flex; gap: 18px; }
 
 .flash { position: relative; z-index: 20; max-width: 720px; margin: 12px auto; padding: 13px 18px; border: 1px solid #efb6c1; border-radius: 12px; background: #fff0f2; color: var(--ruby-dark); text-align: center; font-weight: 600; }
 .flash.alert { border-color: #eb928c; }

@@ -283,9 +283,12 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   end
 
 
-  test "the footer links to Terms" do
+  test "the footer links to Terms and the source" do
     get root_path
     assert_select "footer a[href='/terms']", text: "Terms"
+    assert_select "footer a[href='https://github.com/RichStone/rails.builders']", text: /open source/ do
+      assert_select "svg[aria-hidden='true']", count: 1
+    end
 
     get "/terms"
     assert_response :success
