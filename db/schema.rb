@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_22_124000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_23_120000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -152,6 +152,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_22_124000) do
     t.integer "capacity", default: 9, null: false
     t.datetime "created_at", null: false
     t.date "ends_on", null: false
+    t.text "format_points", default: "🚂 Forever free & community-led\n💪 Weekly live sessions. OBLIGATORY: Missing 3 sessions in a row opens a spot for the waitlist ☠️\n🎯 ~1 hour: everyone takes a random turn to share one business challenge, one AI-building thing, and one thing they want to achieve by the next session\n🛋️ (optional) ~30m just for a fun hangout to go deeper on anything or talk current events\n🏃‍♂️ Learn from others during the sessions & execute until the next one.\n⛑️ Get support or your ass kicked — whatever you need most right now\n💌 (optional) Personalized session summary email\n📈 (optional) Monthly trend analysis email of your Builder journey\n💬 (optional) Get support or message other Builders in Slack", null: false
     t.integer "main_facilitator_id"
     t.string "name", null: false
     t.boolean "og_priority", default: true, null: false

@@ -6,6 +6,7 @@ class UserMailerTest < ActionMailer::TestCase
     url = Rails.application.routes.url_helpers.verify_email_url(token: "verification-token", host: "example.com")
     home_url = Rails.application.routes.url_helpers.root_url(host: "example.com")
     privacy_url = Rails.application.routes.url_helpers.privacy_url(host: "example.com")
+    terms_url = Rails.application.routes.url_helpers.terms_url(host: "example.com")
 
     mail = UserMailer.verification(user, "verification-token")
 
@@ -20,6 +21,10 @@ class UserMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.decoded, home_url
     assert_includes mail.html_part.body.decoded, privacy_url
     assert_includes mail.text_part.body.decoded, privacy_url
+    assert_includes mail.html_part.body.decoded, terms_url
+    assert_includes mail.text_part.body.decoded, terms_url
+    assert_includes mail.html_part.body.decoded, 'href="mailto:rich@looplabs.cc"'
+    assert_includes mail.text_part.body.decoded, "Email us: rich@looplabs.cc"
   end
 
   test "seat offer delivers the dashboard action in both parts" do

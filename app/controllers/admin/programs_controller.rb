@@ -36,7 +36,7 @@ class Admin::ProgramsController < Admin::BaseController
   end
 
   def program_params
-    params.require(:program).permit(:name, :starts_on, :ends_on, :capacity, :og_priority, :promotions_paused, :main_facilitator_id)
+    params.require(:program).permit(:name, :starts_on, :ends_on, :capacity, :format_points, :og_priority, :promotions_paused, :main_facilitator_id)
   end
 
   def disconnect_calendar_after_facilitator_handoff

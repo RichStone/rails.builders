@@ -1,16 +1,16 @@
-<% content_for :title, "Rails Builders — The Continuous cohort" %>
+<% content_for :title, "Rails Builders — #{@program.name}" %>
 
 <main>
   <section class="hero">
     <div class="hero-copy">
-      <p class="eyebrow"><span class="live-dot"></span> The Continuous cohort · registrations open</p>
-      <h1>Build in public.<br> <em>Ship with Rails.</em></h1>
-      <p class="hero-lede">A focused group for engineers who build on Rails for their own business. Bi-weekly sessions, momentum, honest feedback, gamification, and fellow devs who notice when you ship.</p>
+      <p class="eyebrow"><span class="live-dot"></span> New continuous cohort · registrations open</p>
+      <h1>Build in public with other <em>Rails.Builders</em></h1>
+      <p class="hero-lede">A focused group for engineers who build on Rails for their own business. Bi-weekly sessions, momentum, honest feedback, gamification, and fellow devs who notice when you ship. AI-pilled.</p>
       <div class="hero-actions">
-        <%= link_to "Claim your place", sign_in_path, class: "button button-primary" %>
+        <%= link_to "Claim your place", sign_in_path, class: "button button-primary ruby-burst-button", data: { controller: "ruby-burst", action: "click->ruby-burst#explode" } %>
         <%= link_to "See how it works", "#how-it-works", class: "button button-quiet" %>
       </div>
-      <p class="microcopy">Email-only sign in · <%= @program.capacity %> seats max 🔥</p>
+      <p class="microcopy">Email-only sign in · <%= pluralize(@program.places_left, "place") %> left 🔥</p>
     </div>
     <div class="hero-art" aria-hidden="true">
       <div class="ruby ruby-one">◆</div><div class="ruby ruby-two">◆</div><div class="ruby ruby-three">◆</div>
@@ -21,8 +21,14 @@
 
   <section class="cohort-strip" data-controller="countdown" data-countdown-start-value="<%= @program.starts_on.iso8601 %>" data-countdown-finish-value="<%= @program.ends_on.iso8601 %>">
     <div>
-      <p class="eyebrow">Next cohort</p>
-      <h2><%= @program.name %> <button class="info-tip" title="Earlier cohorts lasted a few months. Continuous runs from August through December.">i</button></h2>
+      <p class="eyebrow"><%= @program.started? ? "Current cohort" : "Next cohort" %></p>
+      <div class="cohort-name-row">
+        <h2><%= @program.name %></h2>
+        <details class="info-tip">
+          <summary aria-label="About the continuous cohort">i</summary>
+          <p>One continuous group, with a shared finish line and new Builders joining when a place opens.</p>
+        </details>
+      </div>
       <p><%= @program.starts_on.strftime("%d %b") %> — <%= @program.ends_on.strftime("%d %b %Y") %></p>
     </div>
     <div class="countdown" data-countdown-target="display">
@@ -31,11 +37,11 @@
       <div><strong data-countdown-target="minutes">--</strong><span>mins</span></div>
       <div><strong data-countdown-target="seconds">--</strong><span>secs</span></div>
     </div>
-    <p class="countdown-label" data-countdown-target="label">until we begin</p>
+    <p class="countdown-label" data-countdown-target="label"><%= @program.started? ? "until current cohort ends" : "until the new cohort begins" %></p>
   </section>
 
-  <% if @live_session || @upcoming_sessions.any? %>
-    <section class="section public-sessions" data-public-sessions>
+  <% if @live_session || @upcoming_sessions.any? || @facilitators.any? %>
+    <section class="section public-sessions calendar-stage" data-public-sessions>
       <% if @live_session %>
         <div class="live-session-banner">
           <span class="live-signal" aria-hidden="true"></span>
@@ -55,40 +61,85 @@
           <% end %>
         </div>
       <% end %>
+
+      <% if @facilitators.any? %>
+        <div class="calendar-facilitators">
+          <p class="eyebrow">Currently facilitating</p>
+          <% @facilitators.each do |facilitator| %>
+            <div class="facilitator">
+              <div class="portrait">
+                <% if facilitator.avatar.attached? %>
+                  <%= image_tag facilitator.avatar.variant(resize_to_limit: [800, 800], saver: { strip: true }), alt: facilitator.name %>
+                <% else %>
+                  <%= facilitator.name.to_s.first || "R" %>
+                <% end %>
+              </div>
+              <div><h2><%= facilitator.name %></h2><p>Working on <%= link_to facilitator.focus_product&.name || "Loop Labs", facilitator.focus_product&.url || "https://looplabs.cc" %>. Keeping the room moving, the ass-kicking candid, and the red thread visible.</p></div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
     </section>
   <% end %>
 
   <section id="how-it-works" class="section how-it-works">
     <div class="section-heading">
-      <p class="eyebrow">No sprawling community platform</p>
-      <h2>A simple rhythm that helps you ship more.</h2>
+      <p class="eyebrow">Not another sprawling community platform</p>
+      <h2>How to join</h2>
       <p>Bring one product to focus on. Build alongside fellow devs.</p>
     </div>
-    <div class="steps">
-      <article><span>01</span><h3>Join with your email</h3><p>OG builders get first access to the <%= @program.capacity %> seats. Everyone else keeps a place on the waitlist.</p></article>
-      <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Add as many products as you like, then name the one receiving your attention now.</p></article>
-      <article><span>03</span><h3>Build with company</h3><p>Biweekly live sessions and builders who understand the hustle.</p></article>
-      <article><span>04</span><h3>Keep the context</h3><p>Session history and transcripts keep each conversation available for useful next moves.</p></article>
-    </div>
+    <details class="section-reveal join-reveal">
+      <summary class="section-reveal-trigger join-reveal-trigger">
+        <span class="reveal-ruby" aria-hidden="true"><i>◆</i><i>◆</i><i>◆</i></span>
+        <span><strong>Crack open the build path</strong><small>See all four steps</small></span>
+      </summary>
+      <div class="steps">
+        <article><span>01</span><h3>Join with your email</h3><p>OG builders get first access to the <%= @program.capacity %> seats. Everyone else keeps a place on the waitlist.</p></article>
+        <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Add as many products as you like (hopefully ONE 😉).</p></article>
+        <article><span>03</span><h3>Build with company</h3><p>Biweekly live sessions and builders who understand the hustle.</p></article>
+        <article><span>04</span><h3>Keep the context</h3><p>Session history and transcripts keep each conversation available for useful next moves.</p></article>
+      </div>
+    </details>
   </section>
 
   <section class="section benefits">
-    <div class="benefit-statement"><span>◆</span><p>Not another feed to scroll.</p><h2>Rails Builders is pressure in the useful direction.</h2></div>
-    <div class="benefit-list">
-      <article><h3>Small by design</h3><p><%= @program.capacity %> active seats keep the room useful, familiar, and accountable.</p></article>
-      <article><h3>Your product stays yours</h3><p>Keep your profile private, or publish your work on rails.builders when you’re ready.</p></article>
-      <article><h3>Registration never closes</h3><p>Join the queue anytime. When a seat opens, you get 72 hours to make it yours.</p></article>
-    </div>
+    <div class="benefit-statement"><span>◆</span><p>Not another feed to scroll.</p><h2>Group principles</h2></div>
+    <details class="section-reveal principles-reveal">
+      <summary class="section-reveal-trigger principles-reveal-trigger">
+        <span><strong>Open the Builders’ code</strong><small>Five things we protect</small></span>
+        <span class="reveal-builders" aria-hidden="true"><i>R</i><i>B</i><i>◆</i></span>
+      </summary>
+      <div class="benefit-list">
+        <article><h3>Live contact preferred</h3><p>The meat of being an active Rails Builder is the live sessions—this is where most of the action happens. The rest of the time, we want you to focus on building.</p></article>
+        <article><h3>Small by design</h3><p><%= @program.capacity %> active seats keep the room useful, familiar, and accountable.</p></article>
+        <article><h3>Your product stays yours</h3><p>Keep your profile private, or publish your work on rails.builders when you’re ready.</p></article>
+        <article><h3>Registration never closes</h3><p>Join the queue anytime. When a seat opens, you get 72 hours to make it yours.</p></article>
+        <article><h3>Private paid Slack channel</h3><p>Not the central piece, but it’s there when you want to connect with Rich, ask the group a question, or ask Otto Labot—our robotic Lab Bot—anything about previous sessions or changes to the rails.builders app.</p></article>
+      </div>
+    </details>
   </section>
 
-  <section class="section facilitator-section">
-    <p class="eyebrow">Currently facilitating</p>
-    <% @facilitators.each do |facilitator| %>
-      <div class="facilitator">
-        <div class="portrait portrait-rich"><%= facilitator.name.to_s.first || "R" %></div>
-        <div><h2><%= facilitator.name %></h2><p>Working on <%= link_to facilitator.focus_product&.name || "Loop Labs", facilitator.focus_product&.url || "https://looplabs.cc" %>. Keeping the room moving, the ass-kicking candid, and the red thread visible.</p></div>
+  <section class="program-format" data-controller="program-format" data-program-format>
+    <div class="format-heading">
+      <p class="eyebrow">Proven session format in a gamified cohort.</p>
+      <h2>How the <%= @program.name %> works</h2>
+      <p>Press the ruby and follow the train.</p>
+    </div>
+    <div class="format-terminal">
+      <div class="format-launcher">
+        <button type="button" class="format-play" data-program-format-target="play" data-action="program-format#start" aria-label="Play the Program format">
+          <span>◆</span><small>play</small>
+        </button>
+        <span class="format-launch-track" aria-hidden="true"></span>
       </div>
-    <% end %>
+      <ol class="format-points" aria-live="polite">
+        <% @program.format_points_list.each do |point| %>
+          <li hidden data-program-format-target="item"><%= point %></li>
+        <% end %>
+      </ol>
+      <div class="format-progress" hidden data-program-format-target="progress" aria-hidden="true"><span>🚂</span></div>
+      <%= link_to "I love it 🤝", sign_in_path, class: "button format-handshake", hidden: true, data: { program_format_target: "handshake" } %>
+    </div>
   </section>
 
   <section id="builders" class="section builders-section">

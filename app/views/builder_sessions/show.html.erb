@@ -26,10 +26,9 @@
       <h2>Ready when the room is.</h2>
       <p>The Calendar event is the schedule source. Choose the formal timer length before starting.</p>
       <% if session_operator? %>
-        <% scheduled_minutes = ((@builder_session.scheduled_ends_at - @builder_session.scheduled_starts_at) / 60).round %>
         <%= form_with url: start_builder_session_path(@builder_session), class: "start-session-form", data: { turbo_confirm: (Time.current.between?(@builder_session.scheduled_starts_at - 30.minutes, @builder_session.scheduled_starts_at + 30.minutes) ? nil : "This is outside the scheduled start window. Start anyway?") } do |form| %>
           <%= form.label :duration_minutes, "Formal timer (minutes)" %>
-          <%= form.number_field :duration_minutes, value: scheduled_minutes, min: 1, max: 300, required: true %>
+          <%= form.number_field :duration_minutes, value: @builder_session.default_timer_minutes, min: 1, max: 300, required: true %>
           <%= form.submit "Start session", class: "button button-primary" %>
         <% end %>
       <% end %>
@@ -49,6 +48,11 @@
         <p class="live-phase"><%= @builder_session.paused? ? "Paused" : @builder_session.state.humanize %></p>
         <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %>
           <h2><%= @builder_session.current_speaker_attendance.display_name %></h2>
+          <ol class="session-prompts" data-session-prompts>
+            <li>One business challenge</li>
+            <li>One AI-building challenge</li>
+            <li>What will you have done by the next session?</li>
+          </ol>
         <% elsif @builder_session.state == "connection" %>
           <h2>What did you ship—or learn—since we last met?</h2>
         <% elsif @builder_session.state == "closing" %>
