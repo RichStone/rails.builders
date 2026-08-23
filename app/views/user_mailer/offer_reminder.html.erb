@@ -1,1 +1,8 @@
-<h1>24 hours left</h1><p>Your Rails Builders seat is still waiting for you. Sign in to confirm it before the offer expires.</p>
+<% content_for :preheader, "Your Rails Builders Seat Offer expires in 24 hours." %>
+
+<%= render "layouts/heading", eyebrow: "Seat Offer · Action required", title: "24 hours left." %>
+<p style="margin: 0 0 18px; color: #4f3d40; font-size: 17px; line-height: 27px;">Your Rails Builders Seat Offer is still open. Confirm it from your dashboard before it expires. If you decline, Rails Builders can offer the Seat to the next builder.</p>
+
+<%= render "layouts/button", label: "Review your Seat Offer", url: @url %>
+
+<%= render "layouts/note", text: "After the deadline, the Seat moves to the next builder. You won’t rejoin the waitlist automatically." %>

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 077
+
+readonly PROGRAM="rails-builders-capacity-check"
+
+log() {
+  printf '%s: %s\n' "$PROGRAM" "$*"
+}
+
+die() {
+  log "ERROR: $*" >&2
+  exit 1
+}
+
+command -v df >/dev/null 2>&1 || die "required command not found: df"
+
+STORAGE_PATH="${STORAGE_PATH:-/srv/rails-builders/storage}"
+DISK_USAGE_LIMIT_PERCENT="${DISK_USAGE_LIMIT_PERCENT:-65}"
+DISK_USAGE_CHECK_IN_URL="${DISK_USAGE_CHECK_IN_URL:-}"
+
+[[ -d "$STORAGE_PATH" ]] || die "storage directory does not exist: $STORAGE_PATH"
+[[ "$DISK_USAGE_LIMIT_PERCENT" =~ ^[0-9]+$ ]] || die "DISK_USAGE_LIMIT_PERCENT must be an integer"
+((DISK_USAGE_LIMIT_PERCENT >= 1 && DISK_USAGE_LIMIT_PERCENT <= 99)) || \
+  die "DISK_USAGE_LIMIT_PERCENT must be between 1 and 99"
+
+if ! usage_output="$(LC_ALL=C df --output=pcent -- "$STORAGE_PATH")"; then
+  die "could not read filesystem usage for $STORAGE_PATH"
+fi
+usage_line="${usage_output##*$'\n'}"
+usage_value="${usage_line//[[:space:]]/}"
+usage_percent="${usage_value%%%}"
+[[ "$usage_percent" =~ ^[0-9]+$ ]] || die "df returned an invalid usage percentage: $usage_value"
+
+if ((usage_percent >= DISK_USAGE_LIMIT_PERCENT)); then
+  die "storage filesystem is ${usage_percent}% full; limit is ${DISK_USAGE_LIMIT_PERCENT}%"
+fi
+
+log "storage filesystem usage is ${usage_percent}% (limit: ${DISK_USAGE_LIMIT_PERCENT}%)"
+if [[ -n "$DISK_USAGE_CHECK_IN_URL" ]]; then
+  command -v curl >/dev/null 2>&1 || die "required command not found: curl"
+  curl --fail --silent --show-error --max-time 10 --output /dev/null "$DISK_USAGE_CHECK_IN_URL"
+fi
+log "capacity check completed successfully"

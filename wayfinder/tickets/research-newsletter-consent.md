@@ -4,7 +4,7 @@
 - Order: 2
 - Status: closed
 - Assignee: research agent `newsletter_consent`
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: none
 
 ## Question

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check the Rails Builders Restic repository weekly
+
+[Timer]
+OnCalendar=Sun *-*-* 04:00:00
+RandomizedDelaySec=15m
+Persistent=true
+Unit=rails-builders-restic-check.service
+
+[Install]
+WantedBy=timers.target

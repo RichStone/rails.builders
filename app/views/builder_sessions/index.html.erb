@@ -1,0 +1,52 @@
+<% content_for :title, "Sessions — Rails Builders" %>
+
+<main class="sessions-page">
+  <header class="sessions-heading">
+    <p class="eyebrow">Build together</p>
+    <h1>Sessions</h1>
+    <p>The shared rhythm for showing the work, unblocking one another, and keeping momentum.</p>
+    <% if session_operator? %><%= button_to "Sync Google Calendar", sync_calendar_builder_sessions_path, class: "button button-quiet" %><% end %>
+  </header>
+
+  <% if @live_session %>
+    <section class="session-section session-section-live">
+      <p class="eyebrow"><span class="live-dot"></span> Live now</p>
+      <h2><%= link_to @live_session.title, builder_session_path(@live_session), class: "session-feature-link" %></h2>
+    </section>
+  <% end %>
+
+  <section class="session-section">
+    <h2>Upcoming</h2>
+    <% if @upcoming_sessions.any? %>
+      <div class="session-list">
+        <% @upcoming_sessions.each do |builder_session| %>
+          <article class="session-list-item">
+            <div>
+              <time datetime="<%= builder_session.scheduled_starts_at.iso8601 %>"><%= builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime("%a %d %b · %H:%M %Z") %></time>
+              <h3><%= link_to builder_session.title, builder_session_path(builder_session) %></h3>
+            </div>
+            <span><%= ((builder_session.scheduled_ends_at - builder_session.scheduled_starts_at) / 60).round %> min</span>
+          </article>
+        <% end %>
+      </div>
+    <% else %>
+      <p>No upcoming sessions are scheduled.</p>
+    <% end %>
+  </section>
+
+  <section class="session-section">
+    <h2>Past</h2>
+    <% if @past_sessions.any? %>
+      <div class="session-list">
+        <% @past_sessions.each do |builder_session| %>
+          <article class="session-list-item">
+            <div><time datetime="<%= builder_session.scheduled_starts_at.iso8601 %>"><%= builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime("%d %B %Y · %H:%M %Z") %></time><h3><%= link_to builder_session.title, builder_session_path(builder_session) %></h3></div>
+            <span><%= { "cancelled" => "Cancelled", "ready" => "Missed" }.fetch(builder_session.state, builder_session.facilitator_name_snapshot) %></span>
+          </article>
+        <% end %>
+      </div>
+    <% else %>
+      <p>No past sessions yet.</p>
+    <% end %>
+  </section>
+</main>

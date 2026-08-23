@@ -8,6 +8,7 @@ class ProfilesController < ApplicationController
   def update
     current_user.transaction do
       current_user.assign_attributes(user_params)
+      current_user.public_profile_approved = false
       save_focus_product
       current_user.save!
     end
@@ -18,9 +19,12 @@ class ProfilesController < ApplicationController
   end
 
   def destroy
-    current_user.destroy!
-    reset_session
-    redirect_to root_path, notice: "Your Rails Builders account has been deleted."
+    if current_user.delete_account!
+      reset_session
+      redirect_to root_path, notice: "Your Rails Builders account has been deleted."
+    else
+      redirect_to dashboard_path, alert: "The last verified Administrator cannot delete their account."
+    end
   end
 
   private

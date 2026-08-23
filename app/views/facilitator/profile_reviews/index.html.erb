@@ -1,0 +1,22 @@
+<main class="narrow-page">
+  <p class="eyebrow">Facilitator review</p>
+  <h1>Public profiles</h1>
+  <p>Builders listed here asked to appear publicly. Product or profile changes remove prior approval until you review them again.</p>
+
+  <% @builders.each do |builder| %>
+    <section id="builder-<%= builder.id %>" class="product-list">
+      <h2><%= builder.name %></h2>
+      <p><%= builder.email %> · <%= builder.enrollment_status.humanize %></p>
+      <% if builder.testimonial.present? %><blockquote>“<%= builder.testimonial %>”</blockquote><% end %>
+      <ul>
+        <% builder.products.each do |product| %>
+          <li><%= link_to product.name, product.url, target: "_blank", rel: "noopener" %><%= " · Focus product" if product.focus? %></li>
+        <% end %>
+      </ul>
+      <%= button_to builder.public_profile_approved? ? "Remove approval" : "Approve for publication",
+        facilitator_profile_review_path(builder), method: :patch,
+        params: { user: { public_profile_approved: !builder.public_profile_approved? } },
+        class: builder.public_profile_approved? ? "button button-quiet" : "button button-primary" %>
+    </section>
+  <% end %>
+</main>

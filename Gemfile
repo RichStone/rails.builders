@@ -29,6 +29,9 @@ gem "solid_cable"
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
+# Deploy this application as a Docker container.
+gem "kamal", "~> 2.0", require: false
+
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
@@ -37,6 +40,11 @@ gem "image_processing", "~> 1.2"
 
 # Deliver transactional email through Resend
 gem "resend"
+
+# Sync the Program calendar and import structured Google Meet transcripts.
+gem "google-apis-calendar_v3", "~> 0.57"
+gem "google-apis-meet_v2", "~> 0.14"
+gem "googleauth", "~> 1.17"
 
 group :development, :test do
   # Load checked-in development defaults and ignored local overrides.
@@ -56,8 +64,9 @@ group :development, :test do
 end
 
 group :development do
-  # Preview emails in the browser instead of sending them
+  # Preview and browse emails in the browser instead of sending them
   gem "letter_opener"
+  gem "letter_opener_web", "~> 3.0"
 
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"

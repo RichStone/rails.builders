@@ -1,0 +1,13 @@
+Rails Builders product updates for <%= @day.to_fs(:long) %>
+
+<%= pluralize(@products.size, "product was", "products were") %> created or updated. Review any public profiles waiting for approval.
+
+Open facilitator review queue:
+<%= @url %>
+
+<% @products.each do |product| %><%= product.created_at.to_date == @day ? "Created" : "Updated" %>: <%= product.name %>
+Builder: <%= product.user.name.presence || product.user.email %>
+Open product: <%= product.url %>
+<% if product.user.public_profile? %>Review profile: <%= facilitator_profile_reviews_url(anchor: "builder-#{product.user_id}") %><% else %>Profile is private. There’s no review action.<% end %>
+
+<% end %>

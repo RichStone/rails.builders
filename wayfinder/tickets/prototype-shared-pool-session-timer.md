@@ -4,7 +4,7 @@
 - Order: 30
 - Status: closed
 - Assignee: unassigned
-- Parent: [Find the Rails Builders Replacement](../rails-builders-map.md)
+- Parent: [Ship Rails Builders](../rails-builders-map.md)
 - Blocked by: none
 
 ## Question

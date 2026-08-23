@@ -1,5 +1,5 @@
-program = Program.find_or_initialize_by(name: "Continuous")
-program.update!(starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 9)
+program = Program.first_or_initialize
+program.update!(name: "Continuous r-AI-ls.Builders Edition", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 9)
 
 og_emails = Rails.configuration.x.rails_builders.og_emails
 facilitator_email = Rails.configuration.x.rails_builders.facilitator_email
@@ -11,6 +11,7 @@ og_emails.each do |email|
     og: true,
     name: facilitator ? "Rich Steinmetz" : nil,
     public_profile: false,
+    public_profile_approved: false,
     administrator: facilitator,
     facilitator: facilitator
   )
@@ -23,6 +24,10 @@ og_emails.each do |email|
   if facilitator
     product = user.products.find_or_initialize_by(name: "Loop Labs 🧪")
     product.update!(url: "https://looplabs.cc", focus: true)
-    user.update!(public_profile: true)
+    user.update!(public_profile: true, public_profile_approved: true)
   end
+end
+
+if facilitator_email.present? && (main_facilitator = User.find_by(email: facilitator_email))
+  program.update!(main_facilitator: main_facilitator)
 end

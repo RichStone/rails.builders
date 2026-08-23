@@ -1,3 +1,14 @@
-<h1>One more click for Loop Labs</h1>
-<p>You asked to receive the Loop Labs newsletter. Confirm below. This is separate from your Rails Builders registration.</p>
-<p><%= link_to "Confirm newsletter", @url %></p>
+<% content_for :preheader, "Review and confirm your optional Loop Labs newsletter request." %>
+
+<%= render "layouts/heading", eyebrow: "Optional newsletter", title: "One more step for Loop Labs." %>
+<p style="margin: 0 0 18px; color: #4f3d40; font-size: 17px; line-height: 27px;">You asked to receive the Loop Labs newsletter. Open the confirmation page below, then confirm your choice there.</p>
+
+<%= render "layouts/button", label: "Review newsletter request", url: @url %>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fffaf6" style="width: 100%; border: 1px solid #ead8d5; background-color: #fffaf6;">
+  <tr>
+    <td style="padding: 17px 18px; color: #5f4449; font-size: 13px; line-height: 21px;">This is separate from your Rails Builders registration. Ignoring it will not affect your registration or Seat status.</td>
+  </tr>
+</table>
+
+<p style="margin: 22px 0 0; color: #715f62; font-size: 13px; line-height: 21px;">If you didn’t request the newsletter, you can safely ignore this email.</p>

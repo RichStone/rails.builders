@@ -44,6 +44,7 @@ class SessionsController < ApplicationController
       user.increment!(:sign_in_token_version)
     end
     user.complete_verification!
+    reset_session
     session[:user_id] = user.id
     ClickfunnelsNewsletterJob.perform_later(user.id) if user.newsletter_confirmed_at?
     redirect_to dashboard_path, notice: "Email verified. Welcome to Rails Builders."

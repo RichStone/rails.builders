@@ -1,3 +1,8 @@
-<h1>Your Rails Builders link</h1>
-<p>This secure link verifies your email and signs you in. It expires in 30 minutes.</p>
-<p><%= link_to "Verify email and continue", @url %></p>
+<% content_for :preheader, "Verify your email and sign in. This secure link expires in 30 minutes." %>
+
+<%= render "layouts/heading", eyebrow: "Secure sign-in", title: "Your Rails Builders link is ready." %>
+<p style="margin: 0 0 18px; color: #4f3d40; font-size: 17px; line-height: 27px;">Verify your email and sign in with one click. This secure link expires in <strong>30 minutes</strong>.</p>
+
+<%= render "layouts/button", label: "Verify email and sign in", url: @url %>
+
+<%= render "layouts/note", text: "If you didn’t request this link, you can safely ignore this email. Nothing will change." %>

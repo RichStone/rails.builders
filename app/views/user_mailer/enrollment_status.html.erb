@@ -1,7 +1,17 @@
-<% if @status == "offered" %><h1>Your Rails Builders seat is ready</h1><p>Confirm it within 72 hours. Sign in to accept or decline the offer.</p>
-<% elsif @status == "waitlisted" %><h1>You’re on the Rails Builders waitlist</h1><p>Your current position is #<%= @waitlist_position %>.</p><p><%= @user.og? ? "All #{Program.current.capacity} seats are currently reserved." : "Seats are currently in OG Priority; we’ll contact you when the general waitlist opens and your turn arrives." %></p>
-<% elsif @status == "active" %><h1>Your seat is confirmed</h1><p>You’re officially an active Rails Builder.</p>
-<% elsif @status == "declined" %><h1>Your offer was declined</h1><p>You can explicitly join the end of the waitlist again from your dashboard.</p>
-<% elsif @status == "expired" %><h1>Your offer expired</h1><p>The seat has moved to the next builder. You can join the end of the waitlist again.</p>
-<% elsif @status == "withdrawn" %><h1>Your seat is released</h1><p>You can return to the waitlist whenever you want another run.</p>
+<% content_for :preheader, @content.fetch(:preheader) %>
+
+<%= render "layouts/heading", eyebrow: @content.fetch(:eyebrow), title: @content.fetch(:headline) %>
+<p style="margin: 0 0 22px; color: #4f3d40; font-size: 17px; line-height: 27px;"><%= @content.fetch(:description) %></p>
+
+<% if @content.key?(:position) %>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#35040f" style="width: 100%; background-color: #35040f;">
+    <tr>
+      <td style="padding: 20px 22px; color: #dcbac1; font-size: 12px; line-height: 18px; text-transform: uppercase; letter-spacing: 1px;">Current position</td>
+      <td align="right" style="padding: 18px 22px; color: #ffffff; font-size: 30px; line-height: 34px; font-weight: 700;">#<%= @content[:position] %></td>
+    </tr>
+  </table>
+<% elsif @content[:note] %>
+  <%= render "layouts/note", text: @content[:note] %>
 <% end %>
+
+<%= render "layouts/button", label: @content.fetch(:button_label), url: @url %>

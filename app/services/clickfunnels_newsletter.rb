@@ -5,29 +5,43 @@ class ClickfunnelsNewsletter
   class TransientError < StandardError; end
   class PermanentError < StandardError; end
 
-  BASE_URL = "https://humanontheloop.myclickfunnels.com/api/v2"
-  WORKSPACE_ID = "477369"
-  TAG_ID = "448334"
-  TAG_PUBLIC_ID = "jYqAlB"
+  Configuration = Data.define(:enabled, :api_token, :base_url, :workspace_id, :tag_id, :tag_public_id) do
+    def configured?
+      api_token.present? && base_url.present? && workspace_id.present? && tag_id.present?
+    end
+  end
 
-  def initialize(user)
+  def self.configuration
+    settings = Rails.application.config.x.clickfunnels
+    Configuration.new(
+      enabled: settings.enabled,
+      api_token: settings.api_token,
+      base_url: settings.base_url,
+      workspace_id: settings.workspace_id,
+      tag_id: settings.tag_id,
+      tag_public_id: settings.tag_public_id
+    )
+  end
+
+  def initialize(user, configuration: self.class.configuration)
     @user = user
+    @configuration = configuration
   end
 
   def subscribe!
-    contact = post("/workspaces/#{WORKSPACE_ID}/contacts/upsert", contact: contact_attributes)
+    contact = post("/workspaces/#{configuration.workspace_id}/contacts/upsert", contact: contact_attributes)
     contact_id = contact.fetch("id").to_s
     contact_public_id = contact.fetch("public_id")
     result = { contact_id: contact_id, contact_public_id: contact_public_id }
     return result.merge(status: "blocked_suppressed") if suppressed?(contact)
 
-    post("/contacts/#{contact_public_id}/applied_tags", contacts_applied_tag: { tag_id: TAG_ID }) unless tagged?(contact)
+    post("/contacts/#{contact_public_id}/applied_tags", contacts_applied_tag: { tag_id: configuration.tag_id }) unless tagged?(contact)
     result.merge(status: "subscribed")
   end
 
   private
 
-  attr_reader :user
+  attr_reader :configuration, :user
 
   def contact_attributes
     attributes = { email_address: user.email }
@@ -43,14 +57,15 @@ class ClickfunnelsNewsletter
 
   def tagged?(contact)
     Array(contact["tags"]).any? do |tag|
-      tag["id"].to_s == TAG_ID || tag["public_id"] == TAG_PUBLIC_ID
+      tag["id"].to_s == configuration.tag_id.to_s ||
+        (configuration.tag_public_id.present? && tag["public_id"] == configuration.tag_public_id)
     end
   end
 
   def post(path, body)
-    uri = URI("#{BASE_URL}#{path}")
+    uri = URI("#{configuration.base_url}#{path}")
     request = Net::HTTP::Post.new(uri)
-    request["Authorization"] = "Bearer #{ENV.fetch("CLICKFUNNELS_API_TOKEN")}"
+    request["Authorization"] = "Bearer #{configuration.api_token}"
     request["Content-Type"] = "application/json"
     request["User-Agent"] = "RailsBuilders/1.0 (https://rails.builders)"
     request.body = JSON.generate(body)

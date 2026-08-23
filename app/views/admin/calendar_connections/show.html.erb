@@ -1,0 +1,19 @@
+<% content_for :title, "Connect Sessions calendar — Rails Builders" %>
+
+<main class="narrow-page">
+  <%= link_to "← Administration", admin_root_path, class: "back-link" %>
+  <p class="eyebrow">Google Calendar</p>
+  <h1>Choose the Sessions calendar</h1>
+  <p>Only secondary calendars owned by <strong><%= @connection.google_account_email %></strong> appear here. Every timed event during the Program becomes a session; all-day events are ignored.</p>
+
+  <% if @calendars.any? %>
+    <%= form_with url: admin_calendar_connection_path, method: :patch, class: "stacked-form" do |form| %>
+      <%= form.label :calendar_id, "Owned secondary calendar" %>
+      <%= form.select :calendar_id, @calendars.map { |calendar| [calendar.fetch(:name), calendar.fetch(:id)] }, { prompt: "Choose a calendar" }, required: true %>
+      <%= form.submit "Use this calendar", class: "button button-primary" %>
+    <% end %>
+  <% else %>
+    <p class="fine-print">Create a secondary Google Calendar owned by this account, then reload this page.</p>
+    <%= link_to "Check again", admin_calendar_connection_path, class: "button button-quiet" %>
+  <% end %>
+</main>

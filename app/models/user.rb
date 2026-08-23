@@ -1,7 +1,8 @@
 class User < ApplicationRecord
-  ENROLLMENT_STATUSES = %w[unverified waitlisted offered active declined expired withdrawn].freeze
+  ENROLLMENT_STATUSES = %w[unverified waitlisted offered active declined expired withdrawn left_waitlist removed].freeze
   SLACK_STATUSES = %w[manual_pending invited active removed].freeze
-  CLICKFUNNELS_SYNC_STATUSES = %w[not_requested pending missing_configuration subscribed blocked_suppressed failed].freeze
+  SLACK_DESIRED_STATES = %w[absent present].freeze
+  CLICKFUNNELS_SYNC_STATUSES = %w[not_requested pending skipped_local missing_configuration subscribed blocked_suppressed failed].freeze
 
   generates_token_for :email_verification, expires_in: 30.minutes do
     sign_in_token_version
@@ -12,6 +13,10 @@ class User < ApplicationRecord
   end
 
   has_many :products, dependent: :destroy
+  has_many :builder_session_attendances, dependent: :nullify
+  has_many :assigned_builder_sessions, class_name: "BuilderSession", foreign_key: :assigned_facilitator_id, dependent: :nullify
+  has_many :calendar_connections, class_name: "ProgramCalendarConnection", foreign_key: :facilitator_id, dependent: :restrict_with_error
+  has_many :facilitated_programs, class_name: "Program", foreign_key: :main_facilitator_id, dependent: :restrict_with_error
   has_one_attached :avatar
 
   normalizes :email, with: ->(email) { email.strip.downcase }
@@ -22,6 +27,7 @@ class User < ApplicationRecord
   validates :testimonial, length: { maximum: 2_000 }, allow_nil: true
   validates :enrollment_status, inclusion: { in: ENROLLMENT_STATUSES }
   validates :slack_status, inclusion: { in: SLACK_STATUSES }
+  validates :slack_desired_state, inclusion: { in: SLACK_DESIRED_STATES }
   validates :clickfunnels_sync_status, inclusion: { in: CLICKFUNNELS_SYNC_STATUSES }
   validates :waitlist_rank, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :newsletter_requested_ip, length: { maximum: 45 }, allow_nil: true
@@ -30,21 +36,28 @@ class User < ApplicationRecord
   validates :clickfunnels_contact_id, :clickfunnels_contact_public_id, length: { maximum: 100 }, allow_nil: true
   validate :avatar_is_a_safe_image
   validate :public_profile_is_complete
+  validate :preserve_last_verified_administrator, if: :will_save_change_to_administrator?
+  validate :preserve_program_main_facilitator, if: :will_save_change_to_facilitator?
 
+  before_validation :set_slack_desired_state
+  before_validation :clear_public_profile_approval_without_opt_in
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
-  before_destroy { @released_capacity = (active? || offered?) && !facilitator? }
-  after_destroy_commit { Program.current.promote_waitlist! if @released_capacity }
+  before_destroy :prevent_last_verified_administrator_deletion
 
   scope :og, -> { where(og: true) }
   scope :active, -> { where(enrollment_status: "active") }
   scope :offered, -> { where(enrollment_status: "offered") }
   scope :waitlisted, -> { where(enrollment_status: "waitlisted") }
-  scope :publicly_visible, -> { where(public_profile: true) }
+  scope :publicly_visible, -> { where(public_profile: true, public_profile_approved: true) }
 
   def verified? = verified_at.present?
   def active? = enrollment_status == "active"
   def offered? = enrollment_status == "offered"
   def waitlisted? = enrollment_status == "waitlisted"
+  def left_waitlist? = enrollment_status == "left_waitlist"
+  def removed? = enrollment_status == "removed"
+  def publicly_visible? = public_profile? && public_profile_approved?
+  def waitlist_eligible? = verified? && enrollment_status.in?(%w[declined expired withdrawn left_waitlist])
 
   def complete_verification!
     program = Program.current
@@ -102,18 +115,28 @@ class User < ApplicationRecord
   end
 
   def opt_into_waitlist!
-    program = Program.current
-    rejoined = program.with_lock do
-      next false unless reload.enrollment_status.in?(%w[declined expired withdrawn])
+    update_waitlist_participation!(joined: true)
+  end
 
-      join_waitlist!
-      true
+  def update_waitlist_participation!(joined:)
+    program = Program.current
+    changed = program.with_lock do
+      with_lock do
+        if joined
+          next false unless waitlist_eligible?
+
+          join_waitlist!
+        else
+          next false unless waitlisted?
+
+          clear_seat_and_queue!(status: "left_waitlist")
+        end
+        true
+      end
     end
 
-    return false unless rejoined
-
-    program.promote_waitlist! unless program.og_priority?
-    true
+    program.promote_waitlist!(limit: 1) if joined && changed
+    changed
   end
 
   def decline_offer!
@@ -128,14 +151,75 @@ class User < ApplicationRecord
   end
 
   def withdraw_seat!
-    withdrawn = with_lock do
-      next false unless active?
+    update_active_membership!(active: false)
+  end
 
-      update!(enrollment_status: "withdrawn")
-      true
+  def update_active_membership!(active:)
+    return false if active
+
+    Program.current.release_seat! do
+      with_lock do
+        next false unless active?
+
+        update!(enrollment_status: "withdrawn")
+        [ !facilitator?, true ]
+      end
     end
-    Program.current.promote_waitlist! if withdrawn
-    withdrawn
+  end
+
+  def remove_from_program!
+    Program.current.release_seat! do
+      with_lock do
+        next false if removed?
+
+        released_seat = (active? || offered?) && !facilitator?
+        clear_seat_and_queue!(status: "removed")
+        [ released_seat, true ]
+      end
+    end
+  end
+
+  def reinstate_enrollment!
+    Program.current.with_lock do
+      with_lock do
+        next false unless removed?
+
+        clear_seat_and_queue!(status: "left_waitlist")
+        true
+      end
+    end
+  end
+
+  def update_administrator_role!(administrator:)
+    Program.current.with_lock do
+      with_lock do
+        next false if administrator? == administrator
+        next false if !administrator && last_verified_administrator?
+
+        update!(administrator: administrator)
+        true
+      end
+    end
+  end
+
+  def delete_account!
+    Program.current.release_seat! do
+      with_lock do
+        next false if last_verified_administrator?
+
+        released_seat = (active? || offered?) && !facilitator?
+        builder_session_attendances.update_all(user_id: nil, display_name: "Former Builder", updated_at: Time.current)
+        assigned_builder_sessions.update_all(
+          assigned_facilitator_id: nil,
+          facilitator_name_snapshot: "Former Facilitator",
+          updated_at: Time.current
+        )
+        destroy!
+        [ released_seat, true ]
+      end
+    end
+  rescue ActiveRecord::RecordNotFound, ActiveRecord::RecordNotDestroyed
+    false
   end
 
   def join_waitlist!
@@ -159,12 +243,51 @@ class User < ApplicationRecord
 
   private
 
+  def clear_seat_and_queue!(status:)
+    update!(enrollment_status: status, offer_expires_at: nil, waitlist_joined_at: nil, waitlist_rank: nil)
+  end
+
+  def set_slack_desired_state
+    self.slack_desired_state = active? ? "present" : "absent"
+  end
+
+  def clear_public_profile_approval_without_opt_in
+    self.public_profile_approved = false unless public_profile?
+  end
+
+  def last_verified_administrator?
+    administrator_in_database && verified? && User.where(administrator: true).where.not(verified_at: nil).where.not(id: id).none?
+  end
+
+  def preserve_last_verified_administrator
+    return unless administrator_in_database && !administrator? && verified? && last_verified_administrator?
+
+    errors.add(:administrator, "cannot be removed from the last verified administrator")
+  end
+
+  def prevent_last_verified_administrator_deletion
+    return unless last_verified_administrator?
+
+    errors.add(:base, "The last verified administrator cannot be deleted")
+    throw :abort
+  end
+
+  def preserve_program_main_facilitator
+    return unless facilitator_in_database && !facilitator? && facilitated_programs.exists?
+
+    errors.add(:facilitator, "cannot be removed while this person is a Program's main facilitator")
+  end
+
   def deliver_enrollment_notifications
     program = Program.current
-    return if waitlisted? && !program.og_priority? && !program.promotions_paused? && program.seat_available?
+    immediately_promotable = waitlisted? && !program.promotions_paused? && program.seat_available? && (!program.og_priority? || og?)
+    return if immediately_promotable
 
     UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later
     AdministratorMailer.enrollment_status(self, enrollment_status).deliver_later if User.where(administrator: true).exists?
+    User.where(facilitator: true, administrator: false).find_each do |facilitator|
+      FacilitatorMailer.enrollment_status(facilitator, self, enrollment_status).deliver_later
+    end
     UserMailer.offer_reminder(self).deliver_later(wait_until: offer_expires_at - 24.hours) if offered? && offer_expires_at > 24.hours.from_now
   end
 

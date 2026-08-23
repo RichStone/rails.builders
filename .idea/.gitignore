@@ -1,6 +1,8 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+/*.iml
+/*.iml.bak-*
 # Editor-based HTTP Client requests
 /httpRequests/
 # Ignored default folder with query files

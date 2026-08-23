@@ -33,4 +33,19 @@ class ProductTest < ActiveSupport::TestCase
     assert_equal "App", product.name
     assert_equal "https://example.com", product.url
   end
+
+  test "product changes clear facilitator approval" do
+    user = User.create!(email: "builder@example.com", name: "Builder")
+    product = user.products.create!(name: "First", url: "https://first.example", focus: true)
+    user.update!(public_profile: true, public_profile_approved: true)
+
+    product.update!(name: "First, improved")
+
+    assert user.reload.public_profile?
+    assert_not user.public_profile_approved?
+
+    user.update!(public_profile_approved: true)
+    user.products.create!(name: "Second", url: "https://second.example")
+    assert_not user.reload.public_profile_approved?
+  end
 end

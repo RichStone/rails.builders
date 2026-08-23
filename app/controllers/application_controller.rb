@@ -4,8 +4,9 @@ class ApplicationController < ActionController::Base
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
+  after_action :no_store, if: :current_user
 
-  helper_method :current_user
+  helper_method :current_user, :session_member?, :session_operator?
 
   private
 
@@ -21,5 +22,31 @@ class ApplicationController < ActionController::Base
     return if current_user&.administrator?
 
     redirect_to(current_user ? dashboard_path : sign_in_path, alert: "Administrator access is required.")
+  end
+
+  def require_facilitator
+    return if current_user&.facilitator?
+
+    redirect_to(current_user ? dashboard_path : sign_in_path, alert: "Facilitator access is required.")
+  end
+
+  def session_member?
+    current_user&.active? || current_user&.facilitator? || current_user&.administrator?
+  end
+
+  def session_operator?
+    current_user&.facilitator? || current_user&.administrator?
+  end
+
+  def require_session_member
+    return if session_member?
+
+    redirect_to(current_user ? dashboard_path : sign_in_path, alert: "Active Builder access is required.")
+  end
+
+  def require_session_operator
+    return if session_operator?
+
+    redirect_to(current_user ? builder_sessions_path : sign_in_path, alert: "Facilitator access is required.")
   end
 end

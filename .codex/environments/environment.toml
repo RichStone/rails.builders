@@ -1,0 +1,33 @@
+version = 1
+name = "rails-builders"
+
+[setup]
+script = """
+bin/worktree setup
+set -a
+. ./.worktree.env
+set +a
+"""
+
+[cleanup]
+script = "bin/worktree cleanup"
+
+[[actions]]
+name = "Start Rails"
+icon = "run"
+command = "bin/worktree start"
+
+[[actions]]
+name = "Stop Rails"
+icon = "tool"
+command = "bin/worktree stop"
+
+[[actions]]
+name = "Test"
+icon = "test"
+command = "bin/rails test"
+
+[[actions]]
+name = "Worktree info"
+icon = "tool"
+command = "bin/worktree info"
