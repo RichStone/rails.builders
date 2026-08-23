@@ -164,6 +164,16 @@ jobs:
           KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
           KAMAL_SSH_KNOWN_HOSTS: ${{ secrets.KAMAL_SSH_KNOWN_HOSTS }}
         run: |
+          for name in KAMAL_HOST KAMAL_BUILD_ARCH KAMAL_PROXY_SSL KAMAL_REGISTRY_USERNAME KAMAL_SSH_PRIVATE_KEY KAMAL_SSH_KNOWN_HOSTS; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::$name is not configured"
+              exit 1
+            fi
+          done
+          if [[ "$KAMAL_PROXY_SSL" != "true" ]]; then
+            echo "::error::KAMAL_PROXY_SSL must be true"
+            exit 1
+          fi
           install -d -m 700 ~/.ssh
           install -m 600 /dev/null ~/.ssh/id_ed25519
           printf '%s\n' "$KAMAL_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
@@ -182,6 +192,12 @@ jobs:
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
         run: |
+          for name in KAMAL_REGISTRY_PASSWORD RAILS_MASTER_KEY RAILS_BUILDERS_OG_EMAILS RAILS_BUILDERS_FACILITATOR_EMAIL RESEND_API_KEY HONEYBADGER_API_KEY GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::$name is not configured"
+              exit 1
+            fi
+          done
           git fetch origin main --depth=1
           current_main=$(git rev-parse origin/main)
           if [[ "$GITHUB_SHA" != "$current_main" ]]; then
