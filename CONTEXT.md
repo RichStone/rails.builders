@@ -73,7 +73,7 @@ The one Product a Rails Builder identifies as their main focus right now. The pu
 _Avoid_: Primary account, only product
 
 **Anonymous Builder Card**:
-A public placeholder representing one OG Builder without revealing their identity or app. Each card has its own decorative visual treatment and can become a Public Builder Profile when its OG Builder opts in.
+A public placeholder representing a homepage-listed Builder whose Public Builder Profile is private or awaiting approval, without revealing their identity or app. Each card has a stable, server-generated nerd alias and its own decorative visual treatment, and can become a Public Builder Profile when its Builder opts in.
 _Avoid_: Fake profile, stock person
 
 **Facilitator**:

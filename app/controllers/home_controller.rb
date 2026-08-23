@@ -3,7 +3,7 @@ class HomeController < ApplicationController
     @program = Program.current
     @facilitators = User.where(facilitator: true).publicly_visible
     @active_builders = User.active
-    @waitlisted_builders = User.waitlisted.publicly_visible
+    @waitlisted_builders = User.waitlisted
     @og_builders = User.og.where.not(enrollment_status: "active").where.not(id: @waitlisted_builders.select(:id))
     sessions = @program.builder_sessions
     @live_session = sessions.active.first

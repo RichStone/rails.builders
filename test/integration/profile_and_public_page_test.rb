@@ -20,6 +20,10 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select "#active-builders"
     assert_select "#og-builders"
     assert_select ".builder-card", minimum: 2
+    assert_select "#active-builders .builder-card.private-card h4", count: 1 do |headings|
+      assert_match(/\A\S+ \S+ \S+\z/, headings.first.text.strip)
+      assert_not_equal "Builder in stealth", headings.first.text.strip
+    end
     assert_includes response.body, "Public Builder"
     assert_not_includes response.body, "builder@example.com"
     assert_includes response.headers.fetch("Content-Security-Policy"), "default-src 'self'"
@@ -120,18 +124,30 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "https://rails.builders/admin/calendar_connection?from=www", response.location
   end
 
-  test "the public page lists only published waitlisted builders in their own group" do
+  test "the public page lists waitlisted builders anonymously until their profiles are approved" do
     published_builder = User.create!(email: "waiting-public@example.com", name: "Waiting Builder", og: true,
       verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
     published_builder.products.create!(name: "Queue App", url: "https://queue.example", focus: true)
     published_builder.update!(public_profile: true)
-    User.create!(email: "waiting-private@example.com", name: "Hidden Builder", og: true,
+    User.create!(email: "waiting-private@example.com", name: "Hidden Builder",
       verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 2)
 
     get root_path
 
-    assert_select "#waitlisted-builders .builder-card", count: 0
+    assert_select "#waitlisted-builders" do
+      assert_select ".builder-card.private-card", count: 2
+      assert_select ".private-label", text: "Waitlisted Builder · profile private", count: 2
+    end
+    anonymous_aliases = css_select("#waitlisted-builders .builder-card.private-card h4").map { |heading| heading.text.strip }.sort
+    assert_equal 2, anonymous_aliases.size
+    assert_not_includes anonymous_aliases, "Builder in stealth"
+    anonymous_aliases.each { |name| assert_match(/\A\S+ \S+ \S+\z/, name) }
     assert_not_includes response.body, "Waiting Builder"
+    assert_not_includes response.body, "Hidden Builder"
+
+    get root_path
+    refreshed_aliases = css_select("#waitlisted-builders .builder-card.private-card h4").map { |heading| heading.text.strip }.sort
+    assert_equal anonymous_aliases, refreshed_aliases
 
     sign_in_as(published_builder)
     get dashboard_path
@@ -141,8 +157,10 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get root_path
     assert_select "#waitlisted-builders" do
       assert_select "h3", text: "Waitlisted Builders"
-      assert_select ".builder-card", count: 1
+      assert_select ".builder-card", count: 2
+      assert_select ".builder-card.private-card", count: 1
       assert_select "h4", text: "Waiting Builder"
+      assert_select "h4", text: "Builder in stealth", count: 0
     end
     assert_select "#og-builders h4", text: "Waiting Builder", count: 0
     assert_not_includes response.body, "Hidden Builder"
