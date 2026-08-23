@@ -5,7 +5,7 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
   end
 
-  test "a new email verifies into the waitlist without newsletter consent" do
+  test "a new email verifies without entering the waitlist before the readiness check" do
     assert_emails 1 do
       post sign_in_path, params: { email: "new@example.com" }
     end
@@ -24,10 +24,12 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     post verify_email_path, params: { token: token }
 
     assert_redirected_to dashboard_path
-    assert_equal "waitlisted", user.reload.enrollment_status
+    assert_equal "inactive", user.reload.enrollment_status
     follow_redirect!
     assert_equal "no-store", response.headers["Cache-Control"]
-    assert_select "h1", /You’re on the waitlist/
+    assert_select "h1", /Your account is ready/
+    assert_select "input[name='readiness[]']", count: 6
+    assert_select "[data-waitlist-readiness] [data-readiness-checklist-target='activation'][hidden]"
     assert_select "a", "Sign out"
 
     post verify_email_path, params: { token: token }
@@ -101,7 +103,9 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_equal "offered", user.reload.enrollment_status
     follow_redirect!
     assert_select "h1", /Your seat is ready/
-    assert_select "form[action='#{accept_offer_path}']"
+    assert_select "input[name='readiness[]']", count: 6
+    assert_select "[data-readiness-checklist-target='activation'][hidden]"
+    assert_select "form", text: /Accept Seat Offer/, count: 0
   end
 
   test "general admission sends one offer outcome rather than a transient waitlist email" do
@@ -114,6 +118,7 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
       token = user.reload.generate_token_for(:email_verification)
       get verify_email_path(token: token)
       post verify_email_path, params: { token: token }
+      patch waitlist_path, params: { joined: "1", readiness: %w[0 1 2 3 4 5] }
     end
 
     assert user.reload.offered?

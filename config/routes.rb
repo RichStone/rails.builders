@@ -36,12 +36,10 @@ Rails.application.routes.draw do
   resources :products, only: %i[create update destroy] do
     patch :focus, on: :member
   end
-  post "offer/accept", to: "enrollments#accept", as: :accept_offer
   post "offer/decline", to: "enrollments#decline", as: :decline_offer
   patch "membership", to: "enrollments#membership", as: :membership
   post "seat/withdraw", to: "enrollments#withdraw", as: :withdraw_seat
   patch "waitlist", to: "enrollments#waitlist", as: :waitlist
-  post "waitlist/join", to: "enrollments#join", as: :join_waitlist
   get "newsletter/confirm", to: "newsletter_subscriptions#show", as: :confirm_newsletter
   post "newsletter/confirm", to: "newsletter_subscriptions#create"
   get "privacy", to: "home#privacy"

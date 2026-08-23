@@ -17,6 +17,12 @@ class UserMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.decoded, url
     assert_includes mail.html_part.body.decoded, "If you didn’t request this link"
     assert_includes mail.text_part.body.decoded, "If you didn’t request this link"
+    assert_includes mail.html_part.body.decoded, "mark yourself as an Active Builder"
+    assert_includes mail.text_part.body.decoded, "mark yourself as an Active Builder"
+    assert_includes mail.html_part.body.decoded, "join the waitlist"
+    assert_includes mail.text_part.body.decoded, "join the waitlist"
+    assert_match(/your turn is not confirmed/i, mail.html_part.body.decoded)
+    assert_match(/your turn is not confirmed/i, mail.text_part.body.decoded)
     assert_includes mail.html_part.body.decoded, home_url
     assert_includes mail.text_part.body.decoded, home_url
     assert_includes mail.html_part.body.decoded, privacy_url
@@ -25,6 +31,15 @@ class UserMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.decoded, terms_url
     assert_includes mail.html_part.body.decoded, 'href="mailto:rich@looplabs.cc"'
     assert_includes mail.text_part.body.decoded, "Email us: rich@looplabs.cc"
+  end
+
+  test "verification does not repeat the readiness warning for an Active Builder" do
+    user = User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active")
+
+    mail = UserMailer.verification(user, "verification-token")
+
+    assert_no_match(/your turn is not confirmed/i, mail.html_part.body.decoded)
+    assert_no_match(/your turn is not confirmed/i, mail.text_part.body.decoded)
   end
 
   test "seat offer delivers the dashboard action in both parts" do
@@ -37,6 +52,8 @@ class UserMailerTest < ActionMailer::TestCase
     assert_equal "A Rails Builders seat is yours to confirm", mail.subject
     assert_match(/confirm your Seat within 72 hours/i, mail.html_part.body.decoded)
     assert_match(/confirm your Seat within 72 hours/i, mail.text_part.body.decoded)
+    assert_includes mail.html_part.body.decoded, "complete the readiness checklist"
+    assert_includes mail.text_part.body.decoded, "complete the readiness checklist"
     assert_includes mail.html_part.body.decoded, url
     assert_includes mail.text_part.body.decoded, url
   end
@@ -98,6 +115,18 @@ class UserMailerTest < ActionMailer::TestCase
 
     assert_includes mail.html_part.body.decoded, "Seats are currently in OG Priority"
     assert_includes mail.text_part.body.decoded, "Seats are currently in OG Priority"
+  end
+
+  test "inactive outcome explains the readiness-gated waitlist opt-in" do
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "inactive")
+
+    mail = UserMailer.enrollment_status(user)
+
+    assert_equal "Your Rails Builders account is ready", mail.subject
+    assert_includes mail.html_part.body.decoded, "complete the readiness checklist"
+    assert_includes mail.text_part.body.decoded, "complete the readiness checklist"
+    assert_includes mail.html_part.body.decoded, "not on the waitlist yet"
+    assert_includes mail.text_part.body.decoded, "not on the waitlist yet"
   end
 
   test "confirmed outcome names Active Builder status in both parts" do

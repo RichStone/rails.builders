@@ -2,6 +2,7 @@ class UserMailer < ApplicationMailer
   def verification(user, token)
     @user = user
     @url = verify_email_url(token: token)
+    @show_readiness_callout = user.enrollment_status.in?(%w[unverified offered])
     mail(to: user.email, subject: "Your Rails Builders sign-in link")
   end
 
@@ -32,15 +33,24 @@ class UserMailer < ApplicationMailer
 
   def enrollment_content
     case @status
+    when "inactive"
+      {
+        subject: "Your Rails Builders account is ready",
+        preheader: "Complete the readiness check when you’re ready to join the waitlist.",
+        eyebrow: "Readiness check",
+        headline: "Choose your next step.",
+        description: "Open your dashboard and complete the readiness checklist before joining the waitlist. You’re not on the waitlist yet; your place in the queue begins only when you explicitly join.",
+        button_label: "Open your dashboard"
+      }
     when "offered"
       {
         subject: "A Rails Builders seat is yours to confirm",
         preheader: "A Seat is held for you for 72 hours. Confirm or decline it now.",
         eyebrow: "Seat Offer · Action required",
         headline: "A Seat is yours.",
-        description: "Confirm your Seat within 72 hours. Rails Builders is holding your place until then. Open your dashboard to accept the Seat Offer. If you decline, Rails Builders can offer it to the next builder.",
+        description: "Confirm your Seat within 72 hours. Rails Builders is holding your place until then. Open your dashboard, complete the readiness checklist, and mark yourself as an Active Builder. If you decline, Rails Builders can offer it to the next builder.",
         button_label: "Review your Seat Offer",
-        note: "Your profile can stay private. You only need to decide whether to take the Seat."
+        note: "Your turn is not confirmed until you mark yourself as an Active Builder. Your profile can stay private."
       }
     when "waitlisted"
       {

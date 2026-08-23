@@ -142,6 +142,25 @@
     </div>
   </section>
 
+  <section id="readiness" class="readiness-section">
+    <div class="readiness-heading">
+      <p class="eyebrow">A quick reality check before you board</p>
+      <h2>Am I ready to join?</h2>
+      <p>If the direction feels right, but you are missing some of these, you still have time to get them in until the start of the sessions, just get your spot then!</p>
+    </div>
+    <details class="readiness-reveal">
+      <summary aria-label="Open the readiness checklist"><span aria-hidden="true">?</span></summary>
+      <div class="readiness-card" data-controller="readiness-checklist">
+        <%= render "shared/readiness_points", program: @program %>
+        <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
+        <div class="readiness-unlock" hidden data-readiness-checklist-target="unlock">
+          <p><strong>That’s the whole signal.</strong> You’re ready to build with the group.</p>
+          <%= link_to "Bring me in 🤝", sign_in_path, class: "button button-primary" %>
+        </div>
+      </div>
+    </details>
+  </section>
+
   <section id="builders" class="section builders-section">
     <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails Builders.</h2><p>Profiles appear only when a builder chooses to publish and a facilitator approves. The gleaming rubies are OGs who haven’t stepped into the spotlight yet.</p></div>
 

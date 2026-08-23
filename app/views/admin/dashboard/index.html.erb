@@ -13,6 +13,7 @@
       <label class="check-row"><%= form.check_box :og_priority %><span>OG Priority</span></label>
       <label class="check-row"><%= form.check_box :promotions_paused %><span>Pause promotion</span></label>
       <div class="format-points-field"><%= form.label :format_points, "Session format points (one per line)" %><%= form.text_area :format_points, rows: 10 %></div>
+      <div class="format-points-field"><%= form.label :readiness_points, "Builder readiness points (one per line)" %><%= form.text_area :readiness_points, rows: 7 %></div>
       <%= form.submit "Update program", class: "button button-primary" %>
     <% end %>
     <div class="button-row"><%= button_to "Promote waitlist", promote_admin_program_path(@program) %><%= button_to "Expire old offers", expire_offers_admin_program_path(@program) %></div>

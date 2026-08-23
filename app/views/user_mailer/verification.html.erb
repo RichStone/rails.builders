@@ -3,6 +3,18 @@
 <%= render "layouts/heading", eyebrow: "Secure sign-in", title: "Your Rails Builders link is ready." %>
 <p style="margin: 0 0 18px; color: #4f3d40; font-size: 17px; line-height: 27px;">Verify your email and sign in with one click. This secure link expires in <strong>30 minutes</strong>.</p>
 
+<% if @show_readiness_callout %>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#35040f" style="width: 100%; margin: 26px 0; border: 3px solid #ff6c62; border-radius: 18px; background-color: #35040f;">
+    <tr>
+      <td width="72" align="center" style="padding: 22px 0 22px 18px; color: #ff6c62; font-size: 54px; line-height: 54px; font-weight: 700;">?</td>
+      <td style="padding: 22px 22px 22px 16px; color: #ffffff;">
+        <p style="margin: 0 0 6px; color: #ff9b92; font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;">One more move after sign-in</p>
+        <p style="margin: 0; color: #ffffff; font-size: 16px; line-height: 24px; font-weight: 700;">After sign-in, complete the readiness checklist before you join the waitlist or mark yourself as an Active Builder. Until then, you are not on the waitlist and your turn is not confirmed.</p>
+      </td>
+    </tr>
+  </table>
+<% end %>
+
 <%= render "layouts/button", label: "Verify email and sign in", url: @url %>
 
 <%= render "layouts/note", text: "If you didn’t request this link, you can safely ignore this email. Nothing will change." %>

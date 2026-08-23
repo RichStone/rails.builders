@@ -13,7 +13,7 @@ class UserEnrollmentNotificationsTest < ActiveJob::TestCase
     )
   end
 
-  test "waitlist, Seat Offer, and Active Builder transitions email every facilitator once" do
+  test "inactive, waitlist, Seat Offer, and Active Builder transitions email every facilitator once" do
     facilitator = User.create!(email: "facilitator@example.com", facilitator: true)
     dual_role = User.create!(email: "dual-role@example.com", facilitator: true, administrator: true)
     administrator = User.create!(email: "administrator@example.com", administrator: true)
@@ -23,6 +23,7 @@ class UserEnrollmentNotificationsTest < ActiveJob::TestCase
 
     perform_enqueued_jobs do
       builder.complete_verification!
+      builder.opt_into_waitlist!(readiness: %w[0 1 2 3 4 5])
       builder.issue_offer!
       builder.accept_offer!
     end
@@ -31,11 +32,12 @@ class UserEnrollmentNotificationsTest < ActiveJob::TestCase
     recipient_counts = operational_mail.flat_map(&:to).tally
     facilitator_mail = operational_mail.select { |mail| mail.to == [ facilitator.email ] }
 
-    assert_equal 3, recipient_counts[facilitator.email]
-    assert_equal 3, recipient_counts[dual_role.email]
-    assert_equal 3, recipient_counts[administrator.email]
+    assert_equal 4, recipient_counts[facilitator.email]
+    assert_equal 4, recipient_counts[dual_role.email]
+    assert_equal 4, recipient_counts[administrator.email]
     assert_equal [
       "Rails Builders: builder@example.com is now Active",
+      "Rails Builders: builder@example.com is now Inactive",
       "Rails Builders: builder@example.com is now Offered",
       "Rails Builders: builder@example.com is now Waitlisted"
     ], facilitator_mail.map(&:subject).sort

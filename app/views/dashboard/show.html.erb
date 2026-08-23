@@ -3,15 +3,52 @@
     <% if current_user.offered? %><h1>Your seat is ready.</h1><p>Confirm by <%= current_user.offer_expires_at.to_fs(:long) %>. Your profile can wait.</p>
     <% elsif current_user.active? %><h1>You’re an active builder.</h1><p>Your seat in <%= @program.name %> is confirmed.</p>
     <% elsif current_user.waitlisted? %><h1>You’re on the waitlist.</h1><p>Your current position is <strong>#<%= current_user.waitlist_position %></strong>. We’ll email you when a seat opens.</p>
+    <% elsif current_user.inactive? %><h1>Your account is ready.</h1><p>Complete the readiness check below when you’re ready to join the waitlist.</p>
     <% elsif current_user.left_waitlist? %><h1>You left the waitlist.</h1><p>You can join the end of the queue again whenever the timing is right.</p>
     <% elsif current_user.removed? %><h1>Your enrollment was removed.</h1><p>An Administrator can restore your eligibility without granting a Seat.</p>
     <% elsif current_user.enrollment_status.in?(%w[declined expired withdrawn]) %><h1>Your seat is open.</h1><p>You’re not currently active or waiting. Join again whenever the timing is right.</p>
     <% else %><h1>Welcome back.</h1><p>Your Rails Builders account is ready.</p><% end %>
   </div><span class="status-pill"><%= current_user.enrollment_status.humanize %></span></div>
 
-  <% if current_user.offered? %><div class="action-panel"><h2>Make it official</h2><p>A pending offer counts toward the <%= @program.capacity %> seats for 72 hours.</p><div class="button-row"><%= button_to "Accept Seat Offer", accept_offer_path, class: "button button-primary" %><%= button_to "Decline", decline_offer_path, class: "button button-quiet" %></div></div><% end %>
-  <div class="action-panel"><h2>Your membership</h2><p>Slack access is currently managed manually by the administrator.</p><%= form_with url: membership_path, method: :patch do %><%= hidden_field_tag :active, "0" %><label class="check-row"><%= check_box_tag :active, "1", current_user.active?, disabled: !current_user.active? %><span><strong>Active membership</strong><small><%= current_user.active? ? "Turn this off to withdraw and release your Seat." : "Membership turns on only when you accept a Seat Offer." %></small></span></label><%= submit_tag "Update membership", class: "button button-quiet", data: { turbo_confirm: "Withdraw and release your active Seat?" } if current_user.active? %><% end %></div>
-  <% if current_user.waitlisted? || current_user.waitlist_eligible? %><div class="action-panel"><h2>Waitlist</h2><p>You’ll join at the end of the current waitlist.</p><%= form_with url: waitlist_path, method: :patch do %><%= hidden_field_tag :joined, "0" %><label class="check-row"><%= check_box_tag :joined, "1", current_user.waitlisted? %><span><strong>Join the waitlist</strong><small>Turn this off to leave the queue without changing your account.</small></span></label><%= submit_tag "Update waitlist", class: "button button-quiet" %><% end %></div><% end %>
+  <% if current_user.offered? %><div class="action-panel"><h2>Your turn is open</h2><p>Your pending offer holds one of the <%= @program.capacity %> seats for 72 hours. Complete the readiness check below to claim it.</p><%= button_to "Decline this turn", decline_offer_path, class: "button button-quiet" %></div><% end %>
+  <div class="action-panel membership-panel">
+    <h2>Your membership</h2>
+    <% if current_user.offered? || current_user.active? %>
+      <%= form_with url: membership_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: current_user.offered? } do %>
+        <div class="membership-activation" <%= "hidden" if current_user.offered? %> data-readiness-checklist-target="activation">
+          <%= hidden_field_tag :active, "0" %>
+          <label class="check-row"><%= check_box_tag :active, "1", current_user.active?, data: { readiness_checklist_target: "choice", action: "change->readiness-checklist#toggleChoice" } %><span><strong>I’m an Active Builder</strong><small>I’m joining the live sessions consistently and building alongside the guys.</small></span></label>
+          <%= submit_tag current_user.active? ? "Update membership" : "Confirm Active Builder", class: "button button-primary", disabled: current_user.offered?, data: { readiness_checklist_target: "submit", turbo_confirm: ("Withdraw and release your active Seat?" if current_user.active?) } %>
+        </div>
+        <div class="membership-readiness">
+          <h3><%= current_user.active? ? "Keep the readiness promise" : "First, check your readiness" %></h3>
+          <p><%= current_user.active? ? "These are the shared ingredients behind the live sessions." : "Your Active Builder checkbox unlocks when every answer is yes." %></p>
+          <%= render "shared/readiness_points", program: @program, checkbox_name: "readiness[]" %>
+          <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
+        </div>
+      <% end %>
+    <% else %>
+      <p>Active Builder status becomes available when you receive a Seat Offer.</p>
+    <% end %>
+  </div>
+  <% if current_user.waitlisted? || current_user.waitlist_eligible? %>
+    <div class="action-panel waitlist-panel" data-waitlist-readiness>
+      <h2>Waitlist</h2>
+      <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: !current_user.waitlisted? } do %>
+        <div class="membership-activation" <%= "hidden" unless current_user.waitlisted? %> data-readiness-checklist-target="activation">
+          <%= hidden_field_tag :joined, "0" %>
+          <label class="check-row"><%= check_box_tag :joined, "1", current_user.waitlisted?, data: { readiness_checklist_target: "choice", action: "change->readiness-checklist#toggleChoice" } %><span><strong>Join the waitlist</strong><small><%= current_user.waitlisted? ? "Turn this off to leave the queue without changing your account." : "I’m ready for a Seat Offer when my turn comes." %></small></span></label>
+          <%= submit_tag current_user.waitlisted? ? "Update waitlist" : "Join the waitlist", class: "button button-primary", disabled: !current_user.waitlisted?, data: { readiness_checklist_target: "submit" } %>
+        </div>
+        <div class="membership-readiness">
+          <h3><%= current_user.waitlisted? ? "Keep the readiness promise" : "First, check your readiness" %></h3>
+          <p><%= current_user.waitlisted? ? "These are the shared ingredients behind the live sessions." : "Your Join waitlist checkbox unlocks when every answer is yes." %></p>
+          <%= render "shared/readiness_points", program: @program, checkbox_name: "readiness[]" %>
+          <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 
   <div class="dashboard-grid"><section><h2>Your public profile</h2><p><%= profile_visibility_description(current_user) %></p><%= link_to "Edit profile and products", edit_profile_path, class: "button button-quiet" %></section><section><h2><%= @program.name %></h2><p><%= @program.starts_on.to_fs(:long) %> — <%= @program.ends_on.to_fs(:long) %></p><p><%= @program.capacity %> seats · <%= @program.occupied_seats %> reserved</p></section></div>
   <% if current_user.facilitator? %><div class="action-panel"><h2>Profile publication</h2><p>Review builders who have asked to appear publicly.</p><%= link_to "Review profiles", facilitator_profile_reviews_path, class: "button button-quiet" %></div><% end %>

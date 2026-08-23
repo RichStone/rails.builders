@@ -24,6 +24,20 @@ class ProgramTest < ActiveSupport::TestCase
     assert_equal 9, @program.format_points_list.size
   end
 
+  test "the readiness checklist is stored as an ordered list on the Program" do
+    assert_equal "You have the ONE product you would hack on with us.", @program.readiness_points_list.first
+    assert_equal "You have a checkout (so it's purchaseable).", @program.readiness_points_list.last
+    assert_equal 6, @program.readiness_points_list.size
+  end
+
+  test "the readiness confirmation requires every current Program point" do
+    @program.update!(readiness_points: "One product\nOne checkout")
+
+    assert @program.readiness_confirmed?(%w[0 1])
+    assert_not @program.readiness_confirmed?(%w[0])
+    assert_not @program.readiness_confirmed?(%w[0 1 2])
+  end
+
   test "paused promotions leave capacity open until resumed" do
     builder = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
     @program.update!(promotions_paused: true)

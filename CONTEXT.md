@@ -24,6 +24,10 @@ _Avoid_: Waitlist position, account
 A time-limited invitation to take a Seat. A recipient has three days to confirm before the app automatically offers the capacity to someone else.
 _Avoid_: Seat, waitlist notification
 
+**Readiness Check**:
+The Program-owned checklist a verified person confirms before either the “Join the waitlist” or “I’m an Active Builder” control appears. Completing the checklist is an explicit readiness statement, not an automated audit of the person’s product, offer, AI use, Rails use, funnel, or checkout.
+_Avoid_: Application review, eligibility test
+
 **OG Priority**:
 The initial admission phase in which available Seat Offers go only to verified OG Builders. An Administrator ends OG Priority by opening remaining capacity to the ordered waitlist.
 _Avoid_: Permanent eligibility rule
@@ -33,7 +37,7 @@ A Rails Builder who has confirmed a Seat in Continuous. Active Builder status co
 _Avoid_: OG Builder, Registrant, Facilitator
 
 **Inactive Builder**:
-A verified person with no Seat Offer, Seat, or Waitlist Entry after voluntarily leaving, declining an offer, or allowing an offer to expire. An Inactive Builder may opt into the waitlist again.
+A verified person with no Seat Offer, Seat, or Waitlist Entry, including a new Registrant who has not completed the Readiness Check and explicitly joined the waitlist. An Inactive Builder may opt into the waitlist.
 _Avoid_: Non-active Builder, former member
 
 **Removed Builder**:
@@ -45,7 +49,7 @@ A verified Registrant who has neither a Seat nor a pending Seat Offer. Waitlist 
 _Avoid_: Member, Seat
 
 **Waitlist Opt-In**:
-The explicit action by which someone whose Seat Offer expired or was declined, or who withdrew from a Seat, joins the end of the waitlist again.
+The explicit action by which an Inactive Builder completes the Readiness Check and joins the end of the waitlist.
 _Avoid_: Automatic re-enrollment
 
 **Waitlist Opt-Out**:

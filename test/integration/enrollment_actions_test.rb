@@ -5,18 +5,40 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10, og_priority: false)
   end
 
-  test "builder can accept, withdraw, and explicitly rejoin" do
+  test "offered builder can mark themselves active only after confirming every readiness point" do
+    user = User.create!(email: "ready@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 2.days.from_now)
+    sign_in_as(user)
+
+    get dashboard_path
+    assert_select "[data-readiness-checklist-target='activation'][hidden]"
+    assert_select "input[name='readiness[]']", count: 6
+    assert_select "label", text: /I’m an Active Builder/
+    assert_select "form", text: /Accept Seat Offer/, count: 0
+
+    patch membership_path, params: { active: "1" }
+    assert_redirected_to dashboard_path
+    assert user.reload.offered?
+
+    patch membership_path, params: { active: "1", readiness: %w[0 1 2 3 4 5] }
+    assert_redirected_to dashboard_path
+    assert user.reload.active?
+  end
+
+  test "builder can confirm readiness, withdraw, and explicitly rejoin" do
     user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     sign_in_as(user)
 
-    post accept_offer_path
+    patch membership_path, params: { active: "1", readiness: %w[0 1 2 3 4 5] }
     assert user.reload.active?
 
     post withdraw_seat_path
     assert_equal "withdrawn", user.reload.enrollment_status
 
-    post join_waitlist_path
+    patch waitlist_path, params: { joined: "1", readiness: %w[0 1 2 3 4 5] }
     assert user.reload.offered?, "open capacity should immediately offer the newly joined builder"
+    assert_redirected_to dashboard_path
+    follow_redirect!
+    assert_select ".flash", text: /Your turn is open/
   end
 
   test "builder can decline without being silently re-added" do
@@ -34,7 +56,8 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     sign_in_as(user)
 
     get dashboard_path
-    assert_select "label", text: /Active membership/
+    assert_select "label", text: /I’m an Active Builder/
+    assert_select "label", text: /joining the live sessions consistently/
     assert_select "input[name='active'][checked]"
 
     patch membership_path, params: { active: "0" }
@@ -46,7 +69,7 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     assert_equal "withdrawn", user.reload.enrollment_status
 
     get dashboard_path
-    assert_select "input[name='active'][disabled]:not([checked])"
+    assert_select "input[name='active']", count: 0
   end
 
   test "eligible builder can switch waitlist participation on and off" do
@@ -56,10 +79,14 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     sign_in_as(user)
 
     get dashboard_path
-    assert_select "label", text: /Join the waitlist/
-    assert_select "input[name='joined']:not([checked])"
+    assert_select "[data-waitlist-readiness] [data-readiness-checklist-target='activation'][hidden]"
+    assert_select "input[name='readiness[]']", count: 6
 
     patch waitlist_path, params: { joined: "1" }
+    assert_redirected_to dashboard_path
+    assert_equal "withdrawn", user.reload.enrollment_status
+
+    patch waitlist_path, params: { joined: "1", readiness: %w[0 1 2 3 4 5] }
     assert_redirected_to dashboard_path
     assert user.reload.waitlisted?
 
@@ -90,7 +117,8 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
 
     user.update!(enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     get dashboard_path
-    assert_select "form[action='#{accept_offer_path}']", text: /Accept/
+    assert_select "form[action='#{membership_path}'] [data-readiness-checklist-target='activation'][hidden]"
+    assert_select "form", text: /Accept Seat Offer/, count: 0
     assert_select "form[action='#{decline_offer_path}']", text: /Decline/
   end
 

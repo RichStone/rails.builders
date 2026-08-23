@@ -62,6 +62,15 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_equal [ "🚂 First stop", "🤝 Last stop" ], @program.reload.format_points_list
   end
 
+  test "admin can edit the ordered Program readiness points" do
+    sign_in_as(@admin)
+
+    patch admin_program_path(@program), params: { program: { readiness_points: "One product\nOne checkout" } }
+
+    assert_redirected_to admin_root_path
+    assert_equal [ "One product", "One checkout" ], @program.reload.readiness_points_list
+  end
+
   test "admin groups Builders into OG and waitlist sections" do
     User.create!(email: "og@example.com", og: true)
     sign_in_as(@admin)

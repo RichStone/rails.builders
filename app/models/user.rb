@@ -1,5 +1,5 @@
 class User < ApplicationRecord
-  ENROLLMENT_STATUSES = %w[unverified waitlisted offered active declined expired withdrawn left_waitlist removed].freeze
+  ENROLLMENT_STATUSES = %w[unverified inactive waitlisted offered active declined expired withdrawn left_waitlist removed].freeze
   SLACK_STATUSES = %w[manual_pending invited active removed].freeze
   SLACK_DESIRED_STATES = %w[absent present].freeze
   CLICKFUNNELS_SYNC_STATUSES = %w[not_requested pending skipped_local missing_configuration subscribed blocked_suppressed failed].freeze
@@ -54,14 +54,14 @@ class User < ApplicationRecord
   def active? = enrollment_status == "active"
   def offered? = enrollment_status == "offered"
   def waitlisted? = enrollment_status == "waitlisted"
+  def inactive? = enrollment_status == "inactive"
   def left_waitlist? = enrollment_status == "left_waitlist"
   def removed? = enrollment_status == "removed"
   def publicly_visible? = public_profile? && public_profile_approved?
-  def waitlist_eligible? = verified? && enrollment_status.in?(%w[declined expired withdrawn left_waitlist])
+  def waitlist_eligible? = verified? && enrollment_status.in?(%w[inactive declined expired withdrawn left_waitlist])
 
   def complete_verification!
     program = Program.current
-    promotion_needed = false
 
     program.with_lock do
       update!(verified_at: Time.current) unless verified?
@@ -70,13 +70,11 @@ class User < ApplicationRecord
         if og? && program.og_priority? && program.seat_available?
           issue_offer!
         else
-          join_waitlist!
-          promotion_needed = !program.og_priority?
+          clear_seat_and_queue!(status: "inactive")
         end
       end
     end
 
-    program.promote_waitlist! if promotion_needed
     self
   end
 
@@ -114,15 +112,17 @@ class User < ApplicationRecord
     false
   end
 
-  def opt_into_waitlist!
-    update_waitlist_participation!(joined: true)
+  def opt_into_waitlist!(readiness: [])
+    update_waitlist_participation!(joined: true, readiness:)
   end
 
-  def update_waitlist_participation!(joined:)
+  def update_waitlist_participation!(joined:, readiness: [])
     program = Program.current
     changed = program.with_lock do
       with_lock do
         if joined
+          next false if waitlisted?
+          next false unless program.readiness_confirmed?(readiness)
           next false unless waitlist_eligible?
 
           join_waitlist!
@@ -154,8 +154,12 @@ class User < ApplicationRecord
     update_active_membership!(active: false)
   end
 
-  def update_active_membership!(active:)
-    return false if active
+  def update_active_membership!(active:, readiness: [])
+    if active
+      return false unless offered? && Program.current.readiness_confirmed?(readiness)
+
+      return accept_offer!
+    end
 
     Program.current.release_seat! do
       with_lock do

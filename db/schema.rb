@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_23_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_23_140000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -157,6 +157,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_23_120000) do
     t.string "name", null: false
     t.boolean "og_priority", default: true, null: false
     t.boolean "promotions_paused", default: false, null: false
+    t.text "readiness_points", default: "You have the ONE product you would hack on with us.\nYou have a concrete offer you can put into one sentence for that product.\nYou use AI heavily to build it and are excited to share how you do it.\nYou use Rails to support your product in one way or another.\nYou have a funnel for that product.\nYou have a checkout (so it's purchaseable).", null: false
     t.date "starts_on", null: false
     t.datetime "updated_at", null: false
     t.index ["main_facilitator_id"], name: "index_programs_on_main_facilitator_id"

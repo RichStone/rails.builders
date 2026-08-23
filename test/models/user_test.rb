@@ -1,6 +1,8 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
+  READINESS_CONFIRMATION = %w[0 1 2 3 4 5].freeze
+
   setup do
     @program = Program.create!(
       name: "Continuous",
@@ -22,27 +24,31 @@ class UserTest < ActiveSupport::TestCase
     assert_equal 1, @program.reload.occupied_seats
   end
 
-  test "opening the waitlist offers the first registered non-OG" do
+  test "opening general admission does not enroll inactive registrations" do
     first = User.create!(email: "first@example.com")
     second = User.create!(email: "second@example.com")
     travel_to(Time.zone.local(2026, 8, 9, 10)) { first.complete_verification! }
     travel_to(Time.zone.local(2026, 8, 9, 11)) { second.complete_verification! }
 
-    assert_equal [ first, second ], @program.ordered_waitlist.to_a
+    assert_equal "inactive", first.reload.enrollment_status
+    assert_equal "inactive", second.reload.enrollment_status
+    assert_empty @program.ordered_waitlist
 
     @program.open_waitlist!
 
-    assert_equal "offered", first.reload.enrollment_status
-    assert_equal "offered", second.reload.enrollment_status
+    assert first.reload.inactive?
+    assert second.reload.inactive?
     assert_not @program.reload.og_priority?
   end
 
-  test "a non-OG registering after the general waitlist opens is offered free capacity" do
+  test "a non-OG registering after general admission opens needs readiness before receiving capacity" do
     @program.update!(og_priority: false)
     user = User.create!(email: "new@example.com")
 
     user.complete_verification!
 
+    assert user.reload.inactive?
+    assert user.opt_into_waitlist!(readiness: READINESS_CONFIRMATION)
     assert user.reload.offered?
   end
 
@@ -73,14 +79,15 @@ class UserTest < ActiveSupport::TestCase
     second = User.create!(email: "second@example.com")
     first.complete_verification!
     second.complete_verification!
-    @program.promote_waitlist!
+    first.opt_into_waitlist!(readiness: READINESS_CONFIRMATION)
+    second.opt_into_waitlist!(readiness: READINESS_CONFIRMATION)
 
     travel_to(73.hours.from_now) { first.expire_offer! }
 
     assert_equal "expired", first.reload.enrollment_status
     assert_equal "offered", second.reload.enrollment_status
 
-    first.opt_into_waitlist!
+    first.opt_into_waitlist!(readiness: READINESS_CONFIRMATION)
 
     assert first.reload.waitlisted?
     assert_equal 1, first.waitlist_position
@@ -131,13 +138,13 @@ class UserTest < ActiveSupport::TestCase
     user = User.create!(email: "returning@example.com", verified_at: Time.current, enrollment_status: "withdrawn")
 
     travel_to(Time.zone.local(2026, 8, 22, 12)) do
-      assert user.update_waitlist_participation!(joined: true)
+      assert user.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION)
       assert user.reload.waitlisted?
       assert_equal 5, user.waitlist_rank
       assert_equal Time.current, user.waitlist_joined_at
       joined_at = user.waitlist_joined_at
 
-      assert_not user.update_waitlist_participation!(joined: true), "repeated switch-on must not move the entry"
+      assert_not user.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION), "repeated switch-on must not move the entry"
       assert_equal joined_at, user.reload.waitlist_joined_at
     end
 
@@ -155,10 +162,10 @@ class UserTest < ActiveSupport::TestCase
     regular = User.create!(email: "regular@example.com", verified_at: Time.current, enrollment_status: "withdrawn")
     og = User.create!(email: "og@example.com", verified_at: Time.current, enrollment_status: "withdrawn", og: true)
 
-    assert regular.update_waitlist_participation!(joined: true)
+    assert regular.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION)
     assert regular.reload.waitlisted?
 
-    assert og.update_waitlist_participation!(joined: true)
+    assert og.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION)
     assert og.reload.offered?
     assert regular.reload.waitlisted?
     assert_equal 1, @program.reload.occupied_seats
@@ -169,7 +176,7 @@ class UserTest < ActiveSupport::TestCase
     first = User.create!(email: "first@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: 1.hour.ago, waitlist_rank: 1)
     joining = User.create!(email: "joining@example.com", verified_at: Time.current, enrollment_status: "left_waitlist")
 
-    assert joining.update_waitlist_participation!(joined: true)
+    assert joining.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION)
 
     assert first.reload.offered?
     assert joining.reload.waitlisted?
@@ -188,7 +195,7 @@ class UserTest < ActiveSupport::TestCase
     assert first.reload.offered?
     assert second.reload.waitlisted?
     assert_not user.remove_from_program!, "repeated removal must be harmless"
-    assert_not user.update_waitlist_participation!(joined: true), "removed builders cannot re-enter"
+    assert_not user.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION), "removed builders cannot re-enter"
 
     assert user.reinstate_enrollment!
     assert_equal "left_waitlist", user.reload.enrollment_status

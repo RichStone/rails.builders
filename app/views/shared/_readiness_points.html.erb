@@ -1,0 +1,12 @@
+<ul class="readiness-list">
+  <% program.readiness_points_list.each_with_index do |point, index| %>
+    <li class="readiness-item" data-readiness-checklist-row>
+      <label>
+        <%= tag.input type: "checkbox", name: local_assigns[:checkbox_name], value: index, data: { readiness_checklist_target: "checkbox", action: "change->readiness-checklist#toggle" } %>
+        <span class="readiness-checkbox" aria-hidden="true">◆</span>
+        <span><%= point %></span>
+      </label>
+    </li>
+  <% end %>
+</ul>
+<p class="readiness-smallprint">If you are missing any of that, give Rich a ping and he’ll be happy to set you up.</p>

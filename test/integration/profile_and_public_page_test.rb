@@ -51,6 +51,20 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the public page puts the Program-owned readiness checklist after the session format" do
+    @program.update!(readiness_points: "Bring one product\nBring one checkout")
+
+    get root_path
+
+    assert_select ".program-format + #readiness.readiness-section" do
+      assert_select "h2", text: "Am I ready to join?"
+      assert_select "details:not([open]) > summary", text: "?"
+      assert_select "input[data-readiness-checklist-target='checkbox']", count: 2
+      assert_select ".readiness-smallprint", text: /give Rich a ping/
+      assert_select "[data-readiness-checklist-target='unlock'][hidden] a[href='#{sign_in_path}']", text: "Bring me in 🤝"
+    end
+  end
+
   test "the public page keeps joining steps and group principles behind reveal controls" do
     get root_path
 

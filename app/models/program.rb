@@ -3,9 +3,9 @@ class Program < ApplicationRecord
   has_one :calendar_connection, class_name: "ProgramCalendarConnection", dependent: :destroy
   has_many :builder_sessions, dependent: :restrict_with_error
 
-  normalizes :name, :format_points, with: ->(value) { value.strip }
+  normalizes :name, :format_points, :readiness_points, with: ->(value) { value.strip }
 
-  validates :name, :starts_on, :ends_on, :format_points, presence: true
+  validates :name, :starts_on, :ends_on, :format_points, :readiness_points, presence: true
   validates :name, length: { maximum: 100 }
   validates :capacity, numericality: { only_integer: true, greater_than: 0 }
   validate :ends_on_or_after_starts_on
@@ -25,6 +25,15 @@ class Program < ApplicationRecord
 
   def format_points_list
     format_points.lines(chomp: true).filter_map { |point| point.strip.presence }
+  end
+
+  def readiness_points_list
+    readiness_points.lines(chomp: true).filter_map { |point| point.strip.presence }
+  end
+
+  def readiness_confirmed?(confirmed_points)
+    confirmed = Array(confirmed_points).map(&:to_s).uniq.sort
+    confirmed == readiness_points_list.each_index.map(&:to_s).sort
   end
 
   def ordered_waitlist
