@@ -26,6 +26,7 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
     assert_equal "waitlisted", user.reload.enrollment_status
     follow_redirect!
+    assert_equal "no-store", response.headers["Cache-Control"]
     assert_select "h1", /You’re on the waitlist/
     assert_select "a", "Sign out"
 
@@ -42,6 +43,25 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     post sign_in_path, params: { email: " TARGET@example.com " }
 
     assert_response :too_many_requests
+  end
+
+  test "a successful sign-in rejects the pre-authentication CSRF token" do
+    previous_forgery_protection = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = true
+    user = User.create!(email: "returning@example.com")
+    verification_token = user.generate_token_for(:email_verification)
+
+    get sign_in_path
+    pre_authentication_token = html_document.at_css("meta[name='csrf-token']")["content"]
+    post verify_email_path,
+      params: { token: verification_token },
+      headers: { "X-CSRF-Token" => pre_authentication_token }
+    assert_redirected_to dashboard_path
+
+    delete sign_out_path, headers: { "X-CSRF-Token" => pre_authentication_token }
+    assert_response :unprocessable_content
+  ensure
+    ActionController::Base.allow_forgery_protection = previous_forgery_protection
   end
 
   test "newsletter consent sends a separate confirmation and does not subscribe immediately" do

@@ -3,7 +3,6 @@ class BuilderSessionsController < ApplicationController
   before_action :require_session_operator, only: %i[sync_calendar start pause resume advance next_speaker finish attendance speaker_order end_time]
   before_action :set_builder_session, only: %i[show join start pause resume advance next_speaker finish attendance speaker_order end_time heartbeat]
   before_action :queue_stale_calendar_sync, only: :index
-  after_action :no_store
 
   def index
     sessions = Program.current.builder_sessions
