@@ -61,6 +61,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       assert_select "details:not([open]) > summary", text: "?"
       assert_select "input[data-readiness-checklist-target='checkbox']", count: 2
       assert_select ".readiness-smallprint", text: /give Rich a ping/
+      assert_select "[data-readiness-checklist-target='unlock'][hidden]", text: /That’s all you need!/
       assert_select "[data-readiness-checklist-target='unlock'][hidden] a[href='#{sign_in_path}']", text: "Bring me in 🤝"
     end
   end
@@ -75,6 +76,8 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".benefits details.section-reveal:not([open])" do
       assert_select "summary", text: /Open the Builders’ code/
       assert_select ".benefit-list article", count: 5
+      assert_select "h3", text: "Private Slack channel"
+      assert_select "h3", text: /paid Slack/, count: 0
     end
   end
 
@@ -320,6 +323,9 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get "/terms"
     assert_response :success
     assert_select "h1", text: "Terms of participation"
+    assert_select "h2", text: "Optional Slack access"
+    assert_select "p", text: /included for Active Builders at no cost/
+    assert_not_includes response.body, "paid Slack"
   end
 
   private
