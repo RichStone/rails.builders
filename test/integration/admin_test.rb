@@ -17,7 +17,7 @@ class AdminTest < ActionDispatch::IntegrationTest
     sign_in_as(@admin)
     get admin_root_path
     assert_response :success
-    assert_select "tr", text: /Registrant/
+    assert_select ".admin-builder-card", text: /Registrant/
     assert_not_includes response.body, "false, false"
 
     patch admin_program_path(@program), params: { program: { og_priority: "0", capacity: 10 } }
@@ -39,6 +39,26 @@ class AdminTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_root_path
     assert_equal @builder, @program.reload.main_facilitator
+  end
+
+  test "admin can edit the ordered Program format points" do
+    sign_in_as(@admin)
+
+    patch admin_program_path(@program), params: { program: { format_points: "🚂 First stop\n🤝 Last stop" } }
+
+    assert_redirected_to admin_root_path
+    assert_equal [ "🚂 First stop", "🤝 Last stop" ], @program.reload.format_points_list
+  end
+
+  test "admin groups Builders into OG and waitlist sections" do
+    User.create!(email: "og@example.com", og: true)
+    sign_in_as(@admin)
+
+    get admin_root_path
+
+    assert_select "h2", text: "Builders"
+    assert_select "[data-builder-group='og'] .admin-builder-card", text: /og@example.com/
+    assert_select "[data-builder-group='waitlist'] .admin-builder-card", text: /builder@example.com/
   end
 
   test "changing the main facilitator disconnects the old Calendar but keeps the schedule until reconnection" do

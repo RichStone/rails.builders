@@ -45,6 +45,7 @@ Rails.application.routes.draw do
   get "newsletter/confirm", to: "newsletter_subscriptions#show", as: :confirm_newsletter
   post "newsletter/confirm", to: "newsletter_subscriptions#create"
   get "privacy", to: "home#privacy"
+  get "terms", to: "home#terms"
 
   namespace :admin do
     root "dashboard#index"

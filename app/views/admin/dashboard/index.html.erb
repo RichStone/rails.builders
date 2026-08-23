@@ -1,5 +1,24 @@
-<main class="admin-page"><p class="eyebrow">Control room</p><h1>Rails Builders administration</h1>
-  <section class="admin-program"><h2><%= @program.name %></h2><%= form_with model: [:admin, @program], class: "inline-form" do |form| %><%= form.label :name %><%= form.text_field :name, maxlength: 100 %><%= form.label :starts_on %><%= form.date_field :starts_on %><%= form.label :ends_on %><%= form.date_field :ends_on %><%= form.label :capacity %><%= form.number_field :capacity, min: 1 %><%= form.label :main_facilitator_id, "Main facilitator" %><%= form.collection_select :main_facilitator_id, User.where(facilitator: true).order(:name, :email), :id, ->(user) { user.name.presence || user.email }, include_blank: "Not assigned" %><label class="check-row"><%= form.check_box :og_priority %><span>OG Priority</span></label><label class="check-row"><%= form.check_box :promotions_paused %><span>Pause promotion</span></label><%= form.submit "Update program", class: "button button-primary" %><% end %><div class="button-row"><%= button_to "Promote waitlist", promote_admin_program_path(@program) %><%= button_to "Expire old offers", expire_offers_admin_program_path(@program) %></div><p><%= @program.occupied_seats %>/<%= @program.capacity %> seats reserved</p></section>
+<main class="admin-page">
+  <p class="eyebrow">Control room</p>
+  <h1>Rails Builders administration</h1>
+
+  <section class="admin-program">
+    <h2><%= @program.name %></h2>
+    <%= form_with model: [:admin, @program], class: "inline-form" do |form| %>
+      <%= form.label :name %><%= form.text_field :name, maxlength: 100 %>
+      <%= form.label :starts_on %><%= form.date_field :starts_on %>
+      <%= form.label :ends_on %><%= form.date_field :ends_on %>
+      <%= form.label :capacity %><%= form.number_field :capacity, min: 1 %>
+      <%= form.label :main_facilitator_id, "Main facilitator" %><%= form.collection_select :main_facilitator_id, User.where(facilitator: true).order(:name, :email), :id, ->(user) { user.name.presence || user.email }, include_blank: "Not assigned" %>
+      <label class="check-row"><%= form.check_box :og_priority %><span>OG Priority</span></label>
+      <label class="check-row"><%= form.check_box :promotions_paused %><span>Pause promotion</span></label>
+      <div class="format-points-field"><%= form.label :format_points, "Session format points (one per line)" %><%= form.text_area :format_points, rows: 10 %></div>
+      <%= form.submit "Update program", class: "button button-primary" %>
+    <% end %>
+    <div class="button-row"><%= button_to "Promote waitlist", promote_admin_program_path(@program) %><%= button_to "Expire old offers", expire_offers_admin_program_path(@program) %></div>
+    <p><%= @program.occupied_seats %>/<%= @program.capacity %> seats reserved</p>
+  </section>
+
   <section class="calendar-connection">
     <p class="eyebrow">Sessions source of truth</p>
     <h2>Google Calendar</h2>
@@ -13,5 +32,30 @@
       <div class="button-row"><%= button_to(@calendar_connection ? "Reconnect Google Calendar" : "Connect Google Calendar", admin_calendar_connection_path, class: "button button-primary") %></div>
     <% end %>
   </section>
-  <section><div class="group-title"><h2>People</h2><span><%= @users.count %> total</span></div><div class="table-wrap"><table><thead><tr><th>Person</th><th>Type</th><th>Status</th><th>Queue</th><th>Slack</th><th>Newsletter</th><th></th></tr></thead><tbody><% @users.each do |user| %><tr><td><strong><%= user.name.presence || "Private builder" %></strong><small><%= user.email %></small></td><td><%= user_role_labels(user).join(", ") %></td><td><span class="status-pill"><%= user.enrollment_status.humanize %></span></td><td><%= user.waitlist_position %></td><td><%= user.slack_status.humanize %></td><td><%= user.clickfunnels_sync_status.humanize %></td><td><%= link_to "Manage", edit_admin_user_path(user) %></td></tr><% end %></tbody></table></div></section>
+
+  <section class="admin-builders">
+    <div class="group-title"><h2>Builders</h2><span><%= @users.count %> total</span></div>
+    <% [ ["og", "OG Builders", @og_builders], ["waitlist", "Waitlist Builders", @waitlist_builders] ].each do |key, title, builders| %>
+      <div class="admin-builder-group" data-builder-group="<%= key %>">
+        <div class="group-title"><h3><%= title %></h3><span><%= builders.count %></span></div>
+        <div class="admin-builder-grid">
+          <% builders.each do |user| %>
+            <article class="admin-builder-card">
+              <header>
+                <div><h4><%= user.name.presence || "Private builder" %></h4><small><%= user.email %></small></div>
+                <span class="status-pill"><%= user.enrollment_status.humanize %></span>
+              </header>
+              <dl>
+                <div><dt>Type</dt><dd><%= user_role_labels(user).join(", ") %></dd></div>
+                <div><dt>Queue</dt><dd><%= user.waitlist_position || "—" %></dd></div>
+                <div><dt>Slack</dt><dd><%= user.slack_status.humanize %></dd></div>
+                <div><dt>Newsletter</dt><dd><%= user.clickfunnels_sync_status.humanize %></dd></div>
+              </dl>
+              <%= link_to "Manage builder →", edit_admin_user_path(user) %>
+            </article>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </section>
 </main>

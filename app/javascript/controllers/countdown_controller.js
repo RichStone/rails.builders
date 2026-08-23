@@ -21,6 +21,6 @@ export default class extends Controller {
     this.hoursTarget.textContent = Math.floor(remaining / 3600000 % 24).toString().padStart(2, "0")
     this.minutesTarget.textContent = Math.floor(remaining / 60000 % 60).toString().padStart(2, "0")
     this.secondsTarget.textContent = Math.floor(remaining / 1000 % 60).toString().padStart(2, "0")
-    this.labelTarget.textContent = now < start ? "until we begin" : now < finish ? "until the finish line" : "the cohort has finished"
+    this.labelTarget.textContent = now < start ? "until the new cohort begins" : now < finish ? "until current cohort ends" : "the cohort has ended"
   }
 }
