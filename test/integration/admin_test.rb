@@ -173,6 +173,23 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_not @builder.reload.public_profile_approved?
   end
 
+  test "admin edits existing products separately from adding a product" do
+    product = @builder.products.create!(name: "Queue App", url: "https://queue.example", focus: true)
+    sign_in_as(@admin)
+
+    get edit_admin_user_path(@builder)
+
+    assert_select "section.admin-products" do
+      assert_select "h2", text: "Products"
+      assert_select "form[action='#{admin_user_product_path(@builder, product)}']", count: 1
+      assert_select "form[action='#{admin_user_products_path(@builder)}']", count: 0
+    end
+    assert_select "section.admin-add-product" do
+      assert_select "h2", text: "Add product"
+      assert_select "form[action='#{admin_user_products_path(@builder)}']", count: 1
+    end
+  end
+
   test "admin uses named removal and reinstatement actions instead of raw status editing" do
     @program.update!(capacity: 1, og_priority: false)
     @builder.update!(enrollment_status: "active", slack_desired_state: "present", waitlist_rank: nil, waitlist_joined_at: nil)

@@ -16,7 +16,7 @@
 
   <section class="product-list"><h2>Administrator access</h2><p>Administrator and Facilitator are independent roles.</p><% if @user.administrator? %><%= button_to "Remove Administrator role", revoke_administrator_admin_user_path(@user), class: "text-danger", data: { turbo_confirm: "Remove this Administrator role?" } %><% else %><%= button_to "Grant Administrator role", grant_administrator_admin_user_path(@user), class: "button button-quiet", data: { turbo_confirm: "Grant Administrator access to this Builder?" } %><% end %></section>
 
-  <section class="product-list"><h2>Products</h2>
+  <section class="product-list admin-products"><h2>Products</h2>
     <% @user.products.each do |product| %>
       <%= form_with model: [:admin, @user, product], class: "stacked-form compact-product-form" do |form| %>
         <%= form.label :name %><%= form.text_field :name, maxlength: 120 %><%= form.label :url %><%= form.url_field :url, maxlength: 2048 %>
@@ -24,8 +24,9 @@
         <div class="button-row"><%= form.submit "Save product", class: "button button-quiet" %><%= link_to "Delete", admin_user_product_path(@user, product), class: "text-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this product?" } %></div>
       <% end %>
     <% end %>
-    <h3>Add product</h3><%= form_with model: [:admin, @user, Product.new], class: "stacked-form" do |form| %><%= form.label :name %><%= form.text_field :name, maxlength: 120 %><%= form.label :url %><%= form.url_field :url, maxlength: 2048, placeholder: "https://" %><label class="check-row"><%= form.check_box :focus %><span>Focus product</span></label><%= form.submit "Add product", class: "button button-quiet" %><% end %>
   </section>
+
+  <section class="product-list admin-add-product"><h2>Add product</h2><%= form_with model: [:admin, @user, Product.new], class: "stacked-form" do |form| %><%= form.label :name %><%= form.text_field :name, maxlength: 120 %><%= form.label :url %><%= form.url_field :url, maxlength: 2048, placeholder: "https://" %><label class="check-row"><%= form.check_box :focus %><span>Focus product</span></label><%= form.submit "Add product", class: "button button-quiet" %><% end %></section>
 
   <section class="product-list"><h2>Newsletter sync</h2><p>Status: <strong><%= @user.clickfunnels_sync_status.humanize %></strong></p><% if @user.newsletter_confirmed_at? %><%= button_to "Retry newsletter sync", retry_newsletter_admin_user_path(@user), class: "button button-quiet" %><% else %><p>The builder has not confirmed the optional newsletter.</p><% end %></section>
 

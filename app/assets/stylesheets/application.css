@@ -39,7 +39,7 @@ button, input, textarea, select { font: inherit; }
 :where(a,button,input,textarea,select,summary):focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
 .button-primary { color: white; background: var(--ruby); box-shadow: 0 12px 28px rgba(212, 20, 61, .24); }
 .button-primary:hover { background: #bd0f35; box-shadow: 0 15px 34px rgba(212, 20, 61, .32); }
-.button-quiet, input.button-quiet { border-color: var(--line); background: rgba(255,255,255,.65); }
+.button-quiet, input.button-quiet { border-color: var(--line); color: var(--ink); background: rgba(255,255,255,.65); }
 .button-light { color: var(--ruby-dark); background: white; }
 .button-small { min-height: 38px; padding: 0 17px; color: white; background: var(--ruby); }
 .button-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
