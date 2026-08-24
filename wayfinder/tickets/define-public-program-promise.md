@@ -9,4 +9,4 @@
 
 ## Question
 
-What exact, supportable promise should How It Works make about externally delivered biweekly live sessions, Slack access, personalized session summaries, periodic trend analysis, nine seats, OG Priority, the waitlist, and ongoing registration without implying that this app operates the sessions?
+What exact, supportable promise should How It Works make about externally delivered weekly live sessions, Slack access, personalized session summaries, periodic trend analysis, nine seats, OG Priority, the waitlist, and ongoing registration without implying that this app operates the sessions?

@@ -1,9 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title><%= content_for(:title) || "Rails Builders — Build in public, ship with Rails" %></title>
+    <% page_title = content_for(:title) || "Rails Builders — Build in public, ship with Rails" %>
+    <% page_description = content_for(:description) || "A focused Rails builders group for people who want to ship useful products together." %>
+    <title><%= page_title %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="description" content="A focused Rails builders group for people who want to ship useful products together.">
+    <meta name="description" content="<%= page_description %>">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<%= page_title %>">
+    <meta property="og:description" content="<%= page_description %>">
+    <meta property="og:image" content="<%= image_url("rails-builders-social.png") %>">
+    <meta property="og:image:width" content="1730">
+    <meta property="og:image:height" content="909">
+    <meta property="og:image:alt" content="Ruby code for shipping an idea to a product, floating over a red ruby-inspired orb">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= page_title %>">
+    <meta name="twitter:description" content="<%= page_description %>">
+    <meta name="twitter:image" content="<%= image_url("rails-builders-social.png") %>">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= turbo_exempts_page_from_cache_tag if current_user %>

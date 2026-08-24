@@ -30,6 +30,25 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "no-referrer", response.headers["Referrer-Policy"]
   end
 
+  test "the public page describes the weekly group and emits social metadata" do
+    get root_path
+
+    title = "Rails Builders Group — Continuous r-AI-ls.Builders Edition"
+    description = "A focused group of Builders who love ship useful products on Rails."
+
+    assert_select "title", text: title
+    assert_select "meta[name='description'][content=?]", description
+    assert_select "meta[property='og:title'][content=?]", title
+    assert_select "meta[property='og:description'][content=?]", description
+    assert_select "meta[property='og:image'][content*='rails-builders-social']"
+    assert_select "meta[name='twitter:card'][content='summary_large_image']"
+    assert_select "meta[name='twitter:image'][content*='rails-builders-social']"
+    assert_select ".hero-lede", text: /Weekly sessions/
+    assert_select ".steps article:nth-child(3)", text: /learn from each other/
+    assert_select ".steps article:nth-child(4)", text: /Session history, Slack chat and transcripts/
+    assert_no_match(/bi-?weekly/i, response.body)
+  end
+
   test "the site serves its red ruby favicon" do
     get root_path
 
