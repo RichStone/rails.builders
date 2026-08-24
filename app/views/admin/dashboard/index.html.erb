@@ -42,9 +42,9 @@
 
   <section class="admin-builders">
     <div class="group-title"><h2>Builders</h2><span><%= @users.count %> total</span></div>
-    <% [ ["og", "OG Builders", @og_builders], ["waitlist", "Waitlist Builders", @waitlist_builders] ].each do |key, title, builders| %>
-      <div class="admin-builder-group" data-builder-group="<%= key %>">
-        <div class="group-title"><h3><%= title %></h3><span><%= builders.count %></span></div>
+    <% @builder_groups.each do |status, builders| %>
+      <div class="admin-builder-group" data-builder-group="<%= status %>">
+        <div class="group-title"><h3><%= status.humanize %></h3><span><%= builders.count %></span></div>
         <div class="admin-builder-grid">
           <% builders.each do |user| %>
             <article class="admin-builder-card">

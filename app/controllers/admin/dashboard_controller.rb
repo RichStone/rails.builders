@@ -5,7 +5,9 @@ class Admin::DashboardController < Admin::BaseController
     @program = Program.current
     @calendar_connection = @program.calendar_connection
     @users = User.order(:waitlist_rank, :created_at)
-    @og_builders = @users.where(og: true)
-    @waitlist_builders = @users.where(og: false)
+    builders_by_status = @users.group_by(&:enrollment_status)
+    @builder_groups = User::ENROLLMENT_STATUSES.filter_map do |status|
+      [ status, builders_by_status[status] ] if builders_by_status.key?(status)
+    end
   end
 end

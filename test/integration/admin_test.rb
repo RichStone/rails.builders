@@ -85,15 +85,30 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_equal [ "One product", "One checkout" ], @program.reload.readiness_points_list
   end
 
-  test "admin groups Builders into OG and waitlist sections" do
-    User.create!(email: "og@example.com", og: true)
+  test "admin groups Builders by enrollment status" do
+    offered = User.create!(email: "offered@example.com", verified_at: Time.current, og: true,
+      enrollment_status: "offered", offer_expires_at: 72.hours.from_now)
+    active = User.create!(email: "active@example.com", verified_at: Time.current, og: true, enrollment_status: "active")
     sign_in_as(@admin)
 
     get admin_root_path
 
     assert_select "h2", text: "Builders"
-    assert_select "[data-builder-group='og'] .admin-builder-card", text: /og@example.com/
-    assert_select "[data-builder-group='waitlist'] .admin-builder-card", text: /builder@example.com/
+    assert_select "[data-builder-group='waitlisted']" do
+      assert_select "h3", text: "Waitlisted"
+      assert_select ".admin-builder-card", text: /builder@example.com/
+    end
+    assert_select "[data-builder-group='offered']" do
+      assert_select "h3", text: "Offered"
+      assert_select ".admin-builder-card", text: /#{offered.email}.*TypeOG/m
+    end
+    assert_select "[data-builder-group='active']" do
+      assert_select "h3", text: "Active"
+      assert_select ".admin-builder-card", text: /#{active.email}/
+    end
+    assert_select "[data-builder-group='removed']", count: 0
+    assert_select ".admin-builder-card", count: User.count
+    assert_select "[data-builder-group='og']", count: 0
   end
 
   test "changing the main facilitator disconnects the old Calendar but keeps the schedule until reconnection" do
