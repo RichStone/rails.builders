@@ -57,6 +57,24 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_equal "invited", @builder.slack_status
   end
 
+  test "admin edits existing products and adds products in separate tiles" do
+    product = @builder.products.create!(name: "Queue App", url: "https://queue.example", focus: true)
+    sign_in_as(@admin)
+
+    get edit_admin_user_path(@builder)
+
+    assert_select "section[data-admin-products]" do
+      assert_select "h2", text: "Products"
+      assert_select "form[action='#{admin_user_product_path(@builder, product)}']", count: 1
+      assert_select "form[action='#{admin_user_products_path(@builder)}']", count: 0
+    end
+    assert_select "section[data-admin-add-product]" do
+      assert_select "h2", text: "Add product"
+      assert_select "form[action='#{admin_user_products_path(@builder)}']", count: 1
+      assert_select "form[action='#{admin_user_product_path(@builder, product)}']", count: 0
+    end
+  end
+
   test "admin assigns the Program main facilitator from facilitator-role users" do
     @builder.update!(facilitator: true)
     sign_in_as(@admin)

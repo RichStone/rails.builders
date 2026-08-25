@@ -154,6 +154,31 @@ class User < ApplicationRecord
     update_active_membership!(active: false)
   end
 
+  def promotable_to_active?
+    program = Program.current
+    verified? && !active? && !removed? && (offered? || facilitator? || program.seat_available?)
+  end
+
+  def promote_to_active!
+    program = Program.current
+    program.with_lock do
+      with_lock do
+        unless promotable_to_active?
+          errors.add(:base, "This Builder cannot be promoted while unverified, removed, already active, or no Seat is available")
+          next false
+        end
+
+        update!(
+          enrollment_status: "active",
+          offer_expires_at: nil,
+          waitlist_joined_at: nil,
+          waitlist_rank: nil
+        )
+        true
+      end
+    end
+  end
+
   def update_active_membership!(active:, readiness: [])
     if active
       return false unless offered? && Program.current.readiness_confirmed?(readiness)

@@ -43,7 +43,11 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
   end
 
   test "the homepage shows an upcoming session without private session data" do
-    @builder_session.update!(title: "Product teardown · meet.google.com/abc-defg-hij")
+    @builder_session.update!(
+      title: "Product teardown · meet.google.com/abc-defg-hij",
+      scheduled_starts_at: 1.day.from_now,
+      scheduled_ends_at: 1.day.from_now + 1.hour
+    )
 
     get root_path
 

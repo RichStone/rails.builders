@@ -1,0 +1,12 @@
+<main class="narrow-page">
+  <p class="eyebrow">Builder management</p>
+  <h1>Builders</h1>
+  <p>Administrators and Facilitators can inspect enrollment and promote a verified Builder directly to Active Builder.</p>
+
+  <% @builders.each do |builder| %>
+    <section class="product-list">
+      <h2><%= link_to builder.name.presence || "Private builder", builder_path(builder) %></h2>
+      <p><%= builder.email %> · <%= builder.enrollment_status.humanize %></p>
+    </section>
+  <% end %>
+</main>

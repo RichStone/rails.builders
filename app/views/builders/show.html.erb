@@ -1,0 +1,22 @@
+<main class="narrow-page">
+  <p class="eyebrow">Builder management</p>
+  <h1><%= @builder.name.presence || "Private builder" %></h1>
+  <p><%= @builder.email %></p>
+  <p><%= link_to "← All Builders", builders_path %><% if current_user.administrator? %> · <%= link_to "Edit full Administrator record", edit_admin_user_path(@builder) %><% end %></p>
+
+  <section class="product-list">
+    <h2>Enrollment</h2>
+    <p>Status: <strong><%= @builder.enrollment_status.humanize %></strong></p>
+    <% if @builder.promotable_to_active? %>
+      <%= button_to "Promote to Active Builder", promote_builder_path(@builder), class: "button button-primary", data: { turbo_confirm: "Promote this Builder directly to Active Builder?" } %>
+    <% elsif @builder.active? %>
+      <p>This Builder is active.</p>
+    <% elsif @builder.removed? %>
+      <p>Reinstate this Builder before promoting them.</p>
+    <% elsif !@builder.verified? %>
+      <p>This registration must be verified before promotion.</p>
+    <% else %>
+      <p>No Seat is available.</p>
+    <% end %>
+  </section>
+</main>

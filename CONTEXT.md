@@ -77,7 +77,7 @@ A public placeholder representing a homepage-listed Builder whose Public Builder
 _Avoid_: Fake profile, stock person
 
 **Facilitator**:
-An Administrator-designated user who appears publicly as leading the Rails Builders Group. Rich Steinmetz is the initial Facilitator.
+An Administrator-designated user who appears publicly as leading the Rails Builders Group, operates sessions, reviews Public Builder Profiles, and may promote a verified eligible person directly to Active Builder. Rich Steinmetz is the initial Facilitator.
 _Avoid_: Administrator
 
 **Administrator**:
