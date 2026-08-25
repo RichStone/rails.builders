@@ -4,6 +4,7 @@
     <%= form.label :avatar, "Bio or company picture" %><%= form.file_field :avatar, accept: "image/png,image/jpeg,image/webp" %>
     <%= form.label :testimonial %><%= form.text_area :testimonial, rows: 4, maxlength: 2000 %>
     <p>Enrollment: <strong><%= @user.enrollment_status.humanize %></strong></p>
+    <label class="check-row"><%= form.check_box :active, checked: @user.active? %><span>Active Builder</span></label>
     <%= form.label :waitlist_rank %><%= form.number_field :waitlist_rank, min: 1 %>
     <%= form.label :slack_status %><%= form.select :slack_status, %w[manual_pending invited active removed] %>
     <p>Desired Slack membership: <strong><%= @user.slack_desired_state.humanize %></strong> <small>This is a local desired state; no external Slack call is made here.</small></p>

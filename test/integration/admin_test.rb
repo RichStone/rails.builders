@@ -112,9 +112,11 @@ class AdminTest < ActionDispatch::IntegrationTest
     get admin_root_path
 
     assert_select "h2", text: "Builders"
+    assert_equal %w[active waitlisted], css_select(".admin-builder-group").first(2).map { |group| group["data-builder-group"] }
     assert_select "[data-builder-group='waitlisted']" do
       assert_select "h3", text: "Waitlisted"
       assert_select ".admin-builder-card", text: /builder@example.com/
+      assert_select "a[href='#{edit_admin_user_path(@builder)}']", text: /Manage builder/
     end
     assert_select "[data-builder-group='offered']" do
       assert_select "h3", text: "Offered"
@@ -204,6 +206,37 @@ class AdminTest < ActionDispatch::IntegrationTest
     patch admin_user_path(@builder), params: { user: { testimonial: "Updated by an administrator" } }
 
     assert_not @builder.reload.public_profile_approved?
+  end
+
+  test "admin promotes a builder with the Active Builder checkbox" do
+    sign_in_as(@admin)
+
+    get edit_admin_user_path(@builder)
+    assert_select "input[type='checkbox'][name='user[active]']:not([checked])"
+
+    patch admin_user_path(@builder), params: { user: { active: "1" } }
+
+    assert_redirected_to admin_root_path
+    assert @builder.reload.active?
+    assert_nil @builder.waitlist_rank
+    assert_nil @builder.waitlist_joined_at
+
+    get edit_admin_user_path(@builder)
+    assert_select "input[type='checkbox'][name='user[active]'][checked]"
+  end
+
+  test "admin deactivates a builder by unchecking the Active Builder checkbox" do
+    @program.update!(capacity: 1, og_priority: false)
+    @builder.update!(enrollment_status: "active", slack_desired_state: "present", waitlist_rank: nil, waitlist_joined_at: nil)
+    waiting = User.create!(email: "waiting@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_rank: 1, waitlist_joined_at: Time.current)
+    sign_in_as(@admin)
+
+    patch admin_user_path(@builder), params: { user: { active: "0" } }
+
+    assert_redirected_to admin_root_path
+    assert_equal "withdrawn", @builder.reload.enrollment_status
+    assert_equal "absent", @builder.slack_desired_state
+    assert waiting.reload.offered?
   end
 
   test "admin uses named removal and reinstatement actions instead of raw status editing" do

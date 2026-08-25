@@ -6,10 +6,19 @@ class Admin::UsersController < Admin::BaseController
   def update
     program = Program.current
     attributes = user_params
+    active = ActiveModel::Type::Boolean.new.cast(params.require(:user)[:active]) if params.require(:user).key?(:active)
+    updated = false
     program.with_lock do
       @user.public_profile_approved = false if (attributes.keys & %w[name testimonial avatar public_profile]).any?
       @user.update!(attributes)
+      membership_updated = active.nil? || active == @user.active? ||
+        (active ? @user.promote_to_active! : @user.update_active_membership!(active: false))
+      raise ActiveRecord::Rollback unless membership_updated
+
+      updated = true
     end
+    return render :edit, status: :unprocessable_entity unless updated
+
     program.promote_waitlist! unless program.og_priority?
     redirect_to admin_root_path, notice: "Builder updated."
   end
@@ -62,6 +71,6 @@ class Admin::UsersController < Admin::BaseController
   end
 
   def user_params
-    params.require(:user).permit(:email, :name, :testimonial, :avatar, :public_profile, :og, :facilitator, :waitlist_rank, :slack_status)
+    params.require(:user).permit(:email, :name, :testimonial, :avatar, :public_profile, :og, :facilitator, :active, :waitlist_rank, :slack_status).except(:active)
   end
 end

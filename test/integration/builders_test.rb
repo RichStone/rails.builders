@@ -23,9 +23,6 @@ class BuildersTest < ActionDispatch::IntegrationTest
   test "an Administrator promotes a specific Builder to active from the Builder page" do
     sign_in_as(@admin)
 
-    get admin_root_path
-    assert_select "a[href='#{builder_path(@builder)}']", text: /Manage builder/
-
     get builder_path(@builder)
     assert_select "form[action='#{promote_builder_path(@builder)}']", text: "Promote to Active Builder"
 

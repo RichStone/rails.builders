@@ -58,7 +58,7 @@
                 <div><dt>Slack</dt><dd><%= user.slack_status.humanize %></dd></div>
                 <div><dt>Newsletter</dt><dd><%= user.clickfunnels_sync_status.humanize %></dd></div>
               </dl>
-              <%= link_to "Manage builder →", builder_path(user) %>
+              <%= link_to "Manage builder →", edit_admin_user_path(user) %>
             </article>
           <% end %>
         </div>
