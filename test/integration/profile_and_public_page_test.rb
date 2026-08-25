@@ -70,6 +70,8 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".hero .microcopy", text: /9 places left/
     assert_select ".cohort-strip .eyebrow", text: "Current cohort"
     assert_select ".cohort-strip h2", text: /Continuous r-AI-ls.Builders Edition/
+    assert_select ".countdown[aria-hidden='true'] strong[data-value='--']", count: 4
+    assert_select ".sr-only[data-countdown-target='accessible']", text: "Cohort countdown loading"
   end
 
   test "the public page reveals the Program-owned session format" do

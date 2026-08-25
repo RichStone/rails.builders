@@ -32,12 +32,13 @@
       </div>
       <p><%= @program.starts_on.strftime("%d %b") %> — <%= @program.ends_on.strftime("%d %b %Y") %></p>
     </div>
-    <div class="countdown" data-countdown-target="display">
-      <div><strong data-countdown-target="days">--</strong><span>days</span></div>
-      <div><strong data-countdown-target="hours">--</strong><span>hours</span></div>
-      <div><strong data-countdown-target="minutes">--</strong><span>mins</span></div>
-      <div><strong data-countdown-target="seconds">--</strong><span>secs</span></div>
+    <div class="countdown" aria-hidden="true">
+      <div><strong data-countdown-target="days" data-value="--">--</strong><span>days</span></div>
+      <div><strong data-countdown-target="hours" data-value="--">--</strong><span>hours</span></div>
+      <div><strong data-countdown-target="minutes" data-value="--">--</strong><span>mins</span></div>
+      <div><strong data-countdown-target="seconds" data-value="--">--</strong><span>secs</span></div>
     </div>
+    <p class="sr-only" data-countdown-target="accessible">Cohort countdown loading</p>
     <p class="countdown-label" data-countdown-target="label"><%= @program.started? ? "until current cohort ends" : "until the new cohort begins" %></p>
   </section>
 
