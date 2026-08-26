@@ -153,7 +153,13 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".dashboard-page > .dashboard-next-steps:nth-child(2)" do
       assert_select "li", text: /You’re an Active Builder/
       assert_select "a[href='#{edit_profile_path}']", text: /Make your profile public/
+      assert_select ".next-step-marker", count: 2
+      assert_select "li.is-complete", count: 1
+      assert_select "li:not(.is-complete)", count: 1
+      assert_select ".sr-only", text: "Completed", count: 1
+      assert_select ".sr-only", text: "Not completed", count: 1
     end
+    assert_no_match(/👉/, response.body)
     assert_select ".dashboard-head", text: /Your seat in Continuous r-AI-ls.Builders Edition is confirmed/
   end
 
@@ -225,6 +231,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     sign_in_as(published_builder)
     get dashboard_path
     assert_includes response.body, "Waiting for facilitator approval."
+    assert_select ".dashboard-next-steps li.is-complete", count: 2
 
     published_builder.update!(public_profile_approved: true)
     get root_path

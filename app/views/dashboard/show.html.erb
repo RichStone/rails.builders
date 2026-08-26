@@ -21,10 +21,12 @@
   </section>
 
   <section class="action-panel dashboard-next-steps">
+    <% enrollment_step_complete = current_user.active? || current_user.waitlisted? %>
+    <% profile_step_complete = current_user.public_profile? %>
     <p class="eyebrow">Your path</p>
     <h2>Next steps</h2>
     <ol>
-      <li><span>1</span><div>
+      <li class="<%= "is-complete" if enrollment_step_complete %>"><span class="next-step-marker" aria-hidden="true"></span><span class="sr-only"><%= enrollment_step_complete ? "Completed" : "Not completed" %></span><div>
         <% if current_user.offered? %>
           <%= link_to "Become an Active Builder", "#membership" %><small>Confirm the readiness promise to take your seat.</small>
         <% elsif current_user.active? %>
@@ -37,7 +39,7 @@
           <strong>Enrollment is currently unavailable</strong>
         <% end %>
       </div></li>
-      <li><span>2</span><div><%= link_to(current_user.public_profile? ? "Manage your public profile on rails.builders 👉" : "Make your profile public on rails.builders (if you want to) 👉", edit_profile_path) %><small><%= profile_visibility_description(current_user) %></small></div></li>
+      <li class="<%= "is-complete" if profile_step_complete %>"><span class="next-step-marker" aria-hidden="true"></span><span class="sr-only"><%= profile_step_complete ? "Completed" : "Not completed" %></span><div><%= link_to(current_user.public_profile? ? "Manage your public profile on rails.builders" : "Make your profile public on rails.builders (if you want to)", edit_profile_path) %><small><%= profile_visibility_description(current_user) %></small></div></li>
     </ol>
   </section>
 
