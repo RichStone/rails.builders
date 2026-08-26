@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   ENROLLMENT_STATUSES = %w[unverified inactive waitlisted offered active declined expired withdrawn left_waitlist removed].freeze
+  WAITLIST_ELIGIBLE_STATUSES = %w[inactive declined expired withdrawn left_waitlist].freeze
   SLACK_STATUSES = %w[manual_pending invited active removed].freeze
   SLACK_DESIRED_STATES = %w[absent present].freeze
   CLICKFUNNELS_SYNC_STATUSES = %w[not_requested pending skipped_local missing_configuration subscribed blocked_suppressed failed].freeze
@@ -58,7 +59,7 @@ class User < ApplicationRecord
   def left_waitlist? = enrollment_status == "left_waitlist"
   def removed? = enrollment_status == "removed"
   def publicly_visible? = public_profile? && public_profile_approved?
-  def waitlist_eligible? = verified? && enrollment_status.in?(%w[inactive declined expired withdrawn left_waitlist])
+  def waitlist_eligible? = verified? && enrollment_status.in?(WAITLIST_ELIGIBLE_STATUSES)
 
   def complete_verification!
     program = Program.current

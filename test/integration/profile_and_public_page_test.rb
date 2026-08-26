@@ -249,6 +249,27 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Published on the homepage."
   end
 
+  test "the public page lists inactive builders as still undecided" do
+    %w[inactive declined expired withdrawn left_waitlist].each do |status|
+      User.create!(email: "#{status}@example.com", verified_at: Time.current, enrollment_status: status, og: true)
+    end
+    %w[offered removed].each do |status|
+      User.create!(email: "#{status}@example.com", verified_at: Time.current, enrollment_status: status)
+    end
+    User.create!(email: "unverified@example.com", enrollment_status: "inactive")
+
+    get root_path
+
+    assert_select "#waitlisted-builders + #inactive-builders" do
+      assert_select "h3", text: "Still undecided"
+      assert_select ".group-title span", text: "5 still deciding"
+      assert_select ".builder-card", count: 5
+      assert_select ".private-label", text: "Still undecided · profile private", count: 5
+    end
+    assert_select "#og-builders .builder-card", count: 0
+    assert_not_includes response.body, "inactive@example.com"
+  end
+
   test "public profile text is escaped rather than treated as markup" do
     @user.update!(name: "<script>alert('x')</script>")
     @user.products.create!(name: "<strong>Unsafe</strong>", url: "https://example.com", focus: true)

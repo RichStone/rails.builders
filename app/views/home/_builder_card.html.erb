@@ -14,6 +14,6 @@
       <% if builder.testimonial.present? %><blockquote>“<%= builder.testimonial %>”</blockquote><% end %>
     </div>
   <% else %>
-    <div class="builder-copy"><p class="private-label"><%= builder.waitlisted? ? "Waitlisted Builder" : "OG" %> · profile private</p><h4><%= anonymous_builder_name(builder) %></h4><p class="shine-copy">Waiting for their reveal.</p></div>
+    <div class="builder-copy"><p class="private-label"><%= local_assigns[:private_label] || (builder.waitlisted? ? "Waitlisted Builder" : "OG") %> · profile private</p><h4><%= anonymous_builder_name(builder) %></h4><p class="shine-copy">Waiting for their reveal.</p></div>
   <% end %>
 </article>

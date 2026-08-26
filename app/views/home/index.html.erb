@@ -180,6 +180,13 @@
       </div>
     </div>
 
+    <div id="inactive-builders" class="builder-group">
+      <div class="group-title"><h3>Still undecided</h3><span><%= @inactive_builders.size %> still deciding</span></div>
+      <div class="builder-grid">
+        <% @inactive_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index, private_label: "Still undecided" %><% end %>
+      </div>
+    </div>
+
     <div id="og-builders" class="builder-group">
       <div class="group-title"><h3>The OGs</h3><span>They started the spark</span></div>
       <div class="builder-grid">
