@@ -169,6 +169,40 @@ class GoogleCalendarSyncTest < ActiveSupport::TestCase
     assert_equal zone.parse("2026-12-18").beginning_of_day, client.ends_at
   end
 
+  test "initializes exact Program boundaries from Calendar events on the boundary dates" do
+    zone = ActiveSupport::TimeZone["Europe/Madrid"]
+    starts_at = zone.parse("2026-08-20 18:00")
+    ends_at = zone.parse("2026-12-17 19:30")
+    events = [
+      event_hash(id: "first", title: "Opening session").merge(starts_at:, ends_at: starts_at + 1.hour),
+      event_hash(id: "last", title: "Closing session").merge(starts_at: ends_at - 1.hour, ends_at:)
+    ]
+
+    GoogleCalendarSync.new(connection: @connection, client: FakeClient.new(events)).call
+
+    assert_equal starts_at, @program.reload.starts_at
+    assert_equal ends_at, @program.ends_at
+    assert_equal "Europe/Madrid", @program.schedule_time_zone
+  end
+
+  test "does not overwrite exact Program boundaries after they have been set" do
+    zone = ActiveSupport::TimeZone["Europe/Madrid"]
+    chosen_start = zone.parse("2026-08-20 17:45")
+    chosen_end = zone.parse("2026-12-17 21:00")
+    @program.update!(starts_at: chosen_start, ends_at: chosen_end, schedule_time_zone: zone.name)
+    calendar_start = zone.parse("2026-08-20 18:00")
+    calendar_end = zone.parse("2026-12-17 19:30")
+    events = [
+      event_hash(id: "first", title: "Opening session").merge(starts_at: calendar_start, ends_at: calendar_start + 1.hour),
+      event_hash(id: "last", title: "Closing session").merge(starts_at: calendar_end - 1.hour, ends_at: calendar_end)
+    ]
+
+    GoogleCalendarSync.new(connection: @connection, client: FakeClient.new(events)).call
+
+    assert_equal chosen_start, @program.reload.starts_at
+    assert_equal chosen_end, @program.ends_at
+  end
+
   test "cancels ready sessions left outside shortened Program dates" do
     outside_program = @program.builder_sessions.create!(
       assigned_facilitator: @facilitator,

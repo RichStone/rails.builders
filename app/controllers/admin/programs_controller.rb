@@ -36,7 +36,23 @@ class Admin::ProgramsController < Admin::BaseController
   end
 
   def program_params
-    params.require(:program).permit(:name, :starts_on, :ends_on, :capacity, :format_points, :readiness_points, :og_priority, :promotions_paused, :main_facilitator_id)
+    attributes = params.require(:program).permit(:name, :starts_on, :starts_at_time, :ends_on, :ends_at_time, :capacity, :format_points, :readiness_points, :og_priority, :promotions_paused, :main_facilitator_id)
+    assign_boundary_time(attributes, :starts_at)
+    assign_boundary_time(attributes, :ends_at)
+    attributes
+  end
+
+  def assign_boundary_time(attributes, timestamp)
+    time_key = "#{timestamp}_time"
+    return unless attributes.key?(time_key)
+
+    time = attributes.delete(time_key)
+    attributes[timestamp] = if time.present?
+      date_attribute = timestamp == :starts_at ? :starts_on : :ends_on
+      date = attributes[date_attribute].presence || @program.public_send(date_attribute)
+      @program.schedule_zone.parse("#{date} #{time}")
+    end
+    attributes[:schedule_time_zone] = @program.schedule_zone.name
   end
 
   def disconnect_calendar_after_facilitator_handoff

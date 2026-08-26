@@ -27,6 +27,7 @@ class GoogleCalendarSync
         seen_event_ids << event[:id]
         reconcile_event!(event)
       end
+      initialize_program_boundaries!(events)
       cancel_missing_upcoming_sessions!(seen_event_ids)
       locked_connection.update!(status: "connected", last_synced_at: sync_started_at, last_error_code: nil)
     end
@@ -98,6 +99,29 @@ class GoogleCalendarSync
     scope = program.builder_sessions.where(state: %w[ready cancelled])
     scope = scope.where.not(google_event_id: seen_event_ids) if seen_event_ids.any?
     scope.update_all(state: "cancelled", updated_at: Time.current)
+  end
+
+  def initialize_program_boundaries!(events)
+    locked_program = Program.lock.find(program.id)
+    return if locked_program.starts_at && locked_program.ends_at
+
+    timed_events = events.reject { |event| event[:all_day] || event[:status] == "cancelled" }
+    zone_name = locked_program.schedule_time_zone.presence || connection.google_calendar_time_zone.presence || timed_events.filter_map { |event| event[:time_zone] }.first
+    zone = (ActiveSupport::TimeZone[zone_name] if zone_name.present?) || Time.zone
+    attributes = {}
+    unless locked_program.starts_at
+      attributes[:starts_at] = timed_events.filter_map { |event| event[:starts_at] }
+        .select { |time| time.in_time_zone(zone).to_date == locked_program.starts_on }.min
+    end
+    unless locked_program.ends_at
+      attributes[:ends_at] = timed_events.filter_map { |event| event[:ends_at] }
+        .select { |time| time.in_time_zone(zone).to_date == locked_program.ends_on }.max
+    end
+    attributes.compact!
+    return if attributes.empty?
+
+    attributes[:schedule_time_zone] = zone.name
+    locked_program.update!(attributes)
   end
 
   def calendar_range

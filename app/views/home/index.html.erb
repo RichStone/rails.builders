@@ -20,7 +20,7 @@
     </div>
   </section>
 
-  <section class="cohort-strip" data-controller="countdown" data-countdown-start-value="<%= @program.starts_on.iso8601 %>" data-countdown-finish-value="<%= @program.ends_on.iso8601 %>">
+  <section class="cohort-strip" data-controller="countdown" data-countdown-start-value="<%= @program.countdown_starts_at.iso8601 %>" data-countdown-finish-value="<%= @program.countdown_ends_at.iso8601 %>">
     <div>
       <p class="eyebrow"><%= @program.started? ? "Current cohort" : "Next cohort" %></p>
       <div class="cohort-name-row">

@@ -13,8 +13,8 @@ export default class extends Controller {
 
   tick() {
     const now = new Date()
-    const start = new Date(`${this.startValue}T00:00:00`)
-    const finish = new Date(`${this.finishValue}T23:59:59`)
+    const start = new Date(this.startValue)
+    const finish = new Date(this.finishValue)
     const target = now < start ? start : finish
     const remaining = Math.max(0, target - now)
     const days = Math.floor(remaining / 86400000).toString().padStart(2, "0")

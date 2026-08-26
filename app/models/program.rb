@@ -7,6 +7,7 @@ class Program < ApplicationRecord
 
   validates :name, :starts_on, :ends_on, :format_points, :readiness_points, presence: true
   validates :name, length: { maximum: 100 }
+  validates :schedule_time_zone, length: { maximum: 100 }, allow_nil: true
   validates :capacity, numericality: { only_integer: true, greater_than: 0 }
   validate :ends_on_or_after_starts_on
   validate :main_facilitator_has_role
@@ -20,8 +21,18 @@ class Program < ApplicationRecord
   end
 
   def places_left = [ capacity - occupied_seats, 0 ].max
-  def started? = starts_on <= Date.current
+  def started? = countdown_starts_at <= Time.current
   def seat_available? = occupied_seats < capacity
+
+  def countdown_starts_at = starts_at || starts_on.beginning_of_day
+  def countdown_ends_at = ends_at || ends_on.end_of_day
+  def starts_at_time = starts_at&.in_time_zone(schedule_zone)&.strftime("%H:%M")
+  def ends_at_time = ends_at&.in_time_zone(schedule_zone)&.strftime("%H:%M")
+
+  def schedule_zone
+    zone_name = schedule_time_zone.presence || calendar_connection&.google_calendar_time_zone
+    (ActiveSupport::TimeZone[zone_name] if zone_name.present?) || Time.zone
+  end
 
   def format_points_list
     format_points.lines(chomp: true).filter_map { |point| point.strip.presence }

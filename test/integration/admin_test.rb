@@ -103,6 +103,35 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_equal [ "One product", "One checkout" ], @program.reload.readiness_points_list
   end
 
+  test "admin can edit exact Program boundary times" do
+    zone = ActiveSupport::TimeZone["Europe/Madrid"]
+    @program.update!(
+      starts_at: zone.parse("2026-08-20 18:00"),
+      ends_at: zone.parse("2026-12-17 19:30"),
+      schedule_time_zone: zone.name
+    )
+    sign_in_as(@admin)
+
+    get admin_root_path
+
+    assert_select "input[name='program[starts_at_time]'][type='time'][value='18:00'][aria-label='Start time']"
+    assert_select "input[name='program[ends_at_time]'][type='time'][value='19:30'][aria-label='End time']"
+    assert_select ".program-time-zone", text: "Europe/Madrid"
+
+    patch admin_program_path(@program), params: {
+      program: {
+        starts_on: "2026-08-21",
+        starts_at_time: "17:15",
+        ends_on: "2026-12-18",
+        ends_at_time: "20:45"
+      }
+    }
+
+    assert_redirected_to admin_root_path
+    assert_equal zone.parse("2026-08-21 17:15"), @program.reload.starts_at
+    assert_equal zone.parse("2026-12-18 20:45"), @program.ends_at
+  end
+
   test "admin groups Builders by enrollment status" do
     offered = User.create!(email: "offered@example.com", verified_at: Time.current, og: true,
       enrollment_status: "offered", offer_expires_at: 72.hours.from_now)

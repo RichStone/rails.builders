@@ -6,8 +6,9 @@
     <h2><%= @program.name %></h2>
     <%= form_with model: [:admin, @program], class: "inline-form" do |form| %>
       <%= form.label :name %><%= form.text_field :name, maxlength: 100 %>
-      <%= form.label :starts_on %><%= form.date_field :starts_on %>
-      <%= form.label :ends_on %><%= form.date_field :ends_on %>
+      <div class="program-boundary-fields"><%= form.label :starts_on %><%= form.date_field :starts_on %><span aria-hidden="true">at</span><%= form.time_field :starts_at_time, value: @program.starts_at_time, aria: { label: "Start time" } %></div>
+      <div class="program-boundary-fields"><%= form.label :ends_on %><%= form.date_field :ends_on %><span aria-hidden="true">at</span><%= form.time_field :ends_at_time, value: @program.ends_at_time, aria: { label: "End time" } %></div>
+      <span class="program-time-zone"><%= @program.schedule_zone.name %></span>
       <%= form.label :capacity %><%= form.number_field :capacity, min: 1 %>
       <%= form.label :main_facilitator_id, "Main facilitator" %><%= form.collection_select :main_facilitator_id, User.where(facilitator: true).order(:name, :email), :id, ->(user) { user.name.presence || user.email }, include_blank: "Not assigned" %>
       <label class="check-row"><%= form.check_box :og_priority %><span>OG Priority</span></label>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_23_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_120000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -151,6 +151,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_23_140000) do
   create_table "programs", force: :cascade do |t|
     t.integer "capacity", default: 9, null: false
     t.datetime "created_at", null: false
+    t.datetime "ends_at"
     t.date "ends_on", null: false
     t.text "format_points", default: "🚂 Forever free & community-led\n💪 Weekly live sessions. OBLIGATORY: Missing 3 sessions in a row opens a spot for the waitlist ☠️\n🎯 ~1 hour: everyone takes a random turn to share one business challenge, one AI-building thing, and one thing they want to achieve by the next session\n🛋️ (optional) ~30m just for a fun hangout to go deeper on anything or talk current events\n🏃‍♂️ Learn from others during the sessions & execute until the next one.\n⛑️ Get support or your ass kicked — whatever you need most right now\n💌 (optional) Personalized session summary email\n📈 (optional) Monthly trend analysis email of your Builder journey\n💬 (optional) Get support or message other Builders in Slack", null: false
     t.integer "main_facilitator_id"
@@ -158,6 +159,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_23_140000) do
     t.boolean "og_priority", default: true, null: false
     t.boolean "promotions_paused", default: false, null: false
     t.text "readiness_points", default: "You have the ONE product you would hack on with us.\nYou have a concrete offer you can put into one sentence for that product.\nYou use AI heavily to build it and are excited to share how you do it.\nYou use Rails to support your product in one way or another.\nYou have a funnel for that product.\nYou have a checkout (so it's purchaseable).", null: false
+    t.string "schedule_time_zone"
+    t.datetime "starts_at"
     t.date "starts_on", null: false
     t.datetime "updated_at", null: false
     t.index ["main_facilitator_id"], name: "index_programs_on_main_facilitator_id"

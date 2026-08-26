@@ -74,6 +74,21 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".sr-only[data-countdown-target='accessible']", text: "Cohort countdown loading"
   end
 
+  test "the public countdown uses the exact Program boundary times" do
+    zone = ActiveSupport::TimeZone["Europe/Madrid"]
+    starts_at = zone.parse("2026-08-20 18:00")
+    ends_at = zone.parse("2026-12-17 19:30")
+    @program.update!(starts_at:, ends_at:, schedule_time_zone: zone.name)
+
+    travel_to zone.parse("2026-08-20 17:59") do
+      get root_path
+    end
+
+    @program.reload
+    assert_select ".cohort-strip[data-countdown-start-value='#{@program.starts_at.iso8601}'][data-countdown-finish-value='#{@program.ends_at.iso8601}']"
+    assert_select ".cohort-strip .eyebrow", text: "Next cohort"
+  end
+
   test "the public page reveals the Program-owned session format" do
     @program.update!(name: "Continuous r-AI-ls.Builders Edition", format_points: "🚂 First stop\n💬 Last stop")
 
