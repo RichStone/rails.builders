@@ -67,7 +67,7 @@
 
     <% if session_operator? %>
       <section class="session-controls" data-session-controls>
-        <%= button_to(@builder_session.paused? ? "Resume" : "Pause", @builder_session.paused? ? resume_builder_session_path(@builder_session) : pause_builder_session_path(@builder_session), class: "button button-quiet") %>
+        <%= button_to(@builder_session.paused? ? "Resume" : "Pause", @builder_session.paused? ? resume_builder_session_path(@builder_session) : pause_builder_session_path(@builder_session), class: "button button-quiet", form: { data: { turbo: false } }) %>
         <% if @builder_session.state == "builder_updates" %><%= button_to "Speaker complete", next_speaker_builder_session_path(@builder_session), class: "button button-primary" %><% end %>
         <% unless @builder_session.state == "hangout" %>
           <% advance_label = { "connection" => "Start builder updates", "builder_updates" => "Start closing", "closing" => "Start hangout" }.fetch(@builder_session.state) %>

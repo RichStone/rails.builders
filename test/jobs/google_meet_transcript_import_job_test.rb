@@ -54,6 +54,7 @@ class GoogleMeetTranscriptImportJobTest < ActiveJob::TestCase
     )
     travel_to(Time.zone.parse("2026-08-24 18:00")) { @builder_session.start!(facilitator: @facilitator) }
     travel_to(Time.zone.parse("2026-08-24 19:00")) { @builder_session.finish! }
+    travel_to Time.zone.parse("2026-08-24 19:05")
     @transcript = @builder_session.reload.transcript
   end
 
