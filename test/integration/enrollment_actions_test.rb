@@ -14,6 +14,12 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     assert_select "input[name='readiness[]']", count: 6
     assert_select "label", text: /I’m an Active Builder/
     assert_select "form", text: /Accept Seat Offer/, count: 0
+    assert_select "form[data-controller~='membership-toggle']" do
+      assert_select "dialog", text: /Ready to become an Active Builder\?/
+      assert_select "dialog", text: /actually showing up and building stuff/
+      assert_select "button", text: "I’m ready — let’s build"
+      assert_select "input[type='submit']", text: /Confirm Active Builder/, count: 0
+    end
 
     patch membership_path, params: { active: "1" }
     assert_redirected_to dashboard_path
@@ -59,6 +65,11 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     assert_select "label", text: /I’m an Active Builder/
     assert_select "label", text: /joining the live sessions consistently/
     assert_select "input[name='active'][checked]"
+    assert_select "dialog", text: /Hang up your hard hat\?/
+    assert_select "dialog", text: /return to civilian life.*great exit instead/
+    assert_select "button", text: "Keep me building"
+    assert_select "button", text: "Leave Active Builders"
+    assert_select "input[type='submit']", text: /Update membership/, count: 0
 
     patch membership_path, params: { active: "0" }
     assert_redirected_to dashboard_path
@@ -94,6 +105,11 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
 
     get dashboard_path
     assert_select "input[name='joined'][checked]"
+    assert_select "dialog", text: /Give up your spot\?/
+    assert_select "dialog", text: /lose position #1.*but I was here before/
+    assert_select "button", text: "Keep my spot"
+    assert_select "button", text: "Leave the waitlist"
+    assert_select "input[type='submit']", text: /Update waitlist/, count: 0
 
     patch waitlist_path, params: { joined: "0" }
     assert_equal "left_waitlist", user.reload.enrollment_status

@@ -1,0 +1,7 @@
+<dialog class="confirmation-dialog" aria-labelledby="<%= id %>-title" data-membership-toggle-target="dialog" data-action="cancel->membership-toggle#cancel">
+  <div class="confirmation-card"><span class="confirmation-ruby" aria-hidden="true"><span>◆</span></span>
+    <h3 id="<%= id %>-title"><%= title %></h3>
+    <p><%= description %></p>
+    <div class="confirmation-actions"><button type="button" class="button button-quiet" data-action="membership-toggle#cancel"><%= cancel_label %></button><button type="button" class="button button-primary" data-action="membership-toggle#accept"><%= confirm_label %></button></div>
+  </div>
+</dialog>

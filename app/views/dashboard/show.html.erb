@@ -58,12 +58,12 @@
   <div class="action-panel membership-panel" id="membership">
     <h2>Your membership</h2>
     <% if current_user.offered? || current_user.active? %>
-      <%= form_with url: membership_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: current_user.offered? } do %>
+      <%= form_with url: membership_path, method: :patch, data: { controller: "readiness-checklist membership-toggle", readiness_checklist_gated_value: current_user.offered? } do %>
         <div class="membership-activation" <%= "hidden" if current_user.offered? %> data-readiness-checklist-target="activation">
           <%= hidden_field_tag :active, "0" %>
-          <label class="check-row"><%= check_box_tag :active, "1", current_user.active?, data: { readiness_checklist_target: "choice", action: "change->readiness-checklist#toggleChoice" } %><span><strong>I’m an Active Builder</strong><small>I’m joining the live sessions consistently and building alongside the guys.</small></span></label>
-          <%= submit_tag current_user.active? ? "Update membership" : "Confirm Active Builder", class: "button button-primary", disabled: current_user.offered?, data: { readiness_checklist_target: "submit", turbo_confirm: ("Withdraw and release your active Seat?" if current_user.active?) } %>
+          <label class="check-row membership-switch"><%= check_box_tag :active, "1", current_user.active?, role: "switch", data: { readiness_checklist_target: "choice", membership_toggle_target: "choice", action: "change->readiness-checklist#toggleChoice change->membership-toggle#confirm" } %><span class="membership-switch-control" aria-hidden="true"></span><span><strong>I’m an Active Builder</strong><small>I’m joining the live sessions consistently and building alongside the guys.</small></span></label>
         </div>
+        <%= render "toggle_confirmation", id: "membership-confirm", title: current_user.active? ? "Hang up your hard hat?" : "Ready to become an Active Builder?", description: current_user.active? ? "You’ll leave Active Builders and return to civilian life. Your half-finished side projects may miss you—we hope it’s because you made a great exit instead." : "Plot twist: this switch comes with actually showing up and building stuff.", cancel_label: current_user.active? ? "Keep me building" : "Not yet", confirm_label: current_user.active? ? "Leave Active Builders" : "I’m ready — let’s build" %>
         <div class="membership-readiness">
           <h3><%= current_user.active? ? "Keep the readiness promise" : "First, check your readiness" %></h3>
           <p><%= current_user.active? ? "These are the shared ingredients behind the live sessions." : "Your Active Builder checkbox unlocks when every answer is yes." %></p>
@@ -78,12 +78,12 @@
   <% if current_user.waitlisted? || current_user.waitlist_eligible? %>
     <div class="action-panel waitlist-panel" id="waitlist" data-waitlist-readiness>
       <h2>Waitlist</h2>
-      <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: !current_user.waitlisted?, readiness_checklist_choice_controls_checkboxes_value: true } do %>
+      <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist membership-toggle", readiness_checklist_gated_value: !current_user.waitlisted?, readiness_checklist_choice_controls_checkboxes_value: true } do %>
         <div class="membership-activation" <%= "hidden" unless current_user.waitlisted? %> data-readiness-checklist-target="activation">
           <%= hidden_field_tag :joined, "0" %>
-          <label class="check-row"><%= check_box_tag :joined, "1", current_user.waitlisted?, data: { readiness_checklist_target: "choice", action: "change->readiness-checklist#toggleChoice" } %><span><strong>Join the waitlist</strong><small><%= current_user.waitlisted? ? "Turn this off to leave the queue without changing your account." : "I’m ready for a Seat Offer when my turn comes." %></small></span></label>
-          <%= submit_tag current_user.waitlisted? ? "Update waitlist" : "Join the waitlist", class: "button button-primary", disabled: !current_user.waitlisted?, data: { readiness_checklist_target: "submit" } %>
+          <label class="check-row membership-switch"><%= check_box_tag :joined, "1", current_user.waitlisted?, role: "switch", data: { readiness_checklist_target: "choice", membership_toggle_target: "choice", action: "change->readiness-checklist#toggleChoice change->membership-toggle#confirm" } %><span class="membership-switch-control" aria-hidden="true"></span><span><strong>Join the waitlist</strong><small><%= current_user.waitlisted? ? "Turn this off to leave the queue without changing your account." : "I’m ready for a Seat Offer when my turn comes." %></small></span></label>
         </div>
+        <%= render "toggle_confirmation", id: "waitlist-confirm", title: current_user.waitlisted? ? "Give up your spot?" : "Ready to join the waitlist?", description: current_user.waitlisted? ? "You’ll lose position ##{current_user.waitlist_position} in the waitlist. The queue is unlikely to respect “but I was here before.”" : "Plot twist: this switch means you’re ready for a Seat Offer when your turn comes.", cancel_label: current_user.waitlisted? ? "Keep my spot" : "Not yet", confirm_label: current_user.waitlisted? ? "Leave the waitlist" : "Put me on the list" %>
         <div class="membership-readiness">
           <h3><%= current_user.waitlisted? ? "Keep the readiness promise" : "The readiness checklist" %></h3>
           <p><%= current_user.waitlisted? ? "These are the shared ingredients behind the live sessions." : "These are the shared ingredients behind the live sessions. If the direction feels right, but you are missing some of these, you still have time to get them in until the start of the sessions, just get your spot then! Tick them off to join the waitlist." %></p>

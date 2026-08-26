@@ -22,7 +22,8 @@ class RegistrationTest < ApplicationSystemTestCase
       all(".readiness-item label").each(&:click)
       assert_text "Join the waitlist"
       find(".membership-activation label").click
-      click_button "Join the waitlist"
+      assert_text "Ready to join the waitlist?"
+      click_button "Put me on the list"
     end
 
     assert_text "You’re on the waitlist."
@@ -32,8 +33,9 @@ class RegistrationTest < ApplicationSystemTestCase
 
       find(".membership-activation label").click
       assert_no_selector "input[name='readiness[]']:checked", visible: :all
-
-      find(".membership-activation label").click
+      assert_text "You’ll lose position #1 in the waitlist."
+      click_button "Keep my spot"
+      assert_selector "input[name='joined']:checked", visible: :all
       assert_selector "input[name='readiness[]']:checked", count: 6, visible: :all
     end
     assert_link "Profile"
@@ -60,7 +62,8 @@ class RegistrationTest < ApplicationSystemTestCase
       all(".readiness-item label").each(&:click)
       assert_text "I’m an Active Builder"
       find(".membership-activation label").click
-      click_button "Confirm Active Builder"
+      assert_text "Ready to become an Active Builder?"
+      click_button "I’m ready — let’s build"
     end
 
     assert_text "You’re an active builder."
@@ -68,5 +71,31 @@ class RegistrationTest < ApplicationSystemTestCase
     within(".membership-panel") do
       assert_no_selector "input[name='readiness[]']:checked", visible: :all
     end
+  end
+
+  test "active builder can reconsider before releasing their Seat" do
+    user = User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active")
+    sign_in_as(user)
+
+    within(".membership-panel") do
+      find(".membership-activation label").click
+      assert_text "Hang up your hard hat?"
+      assert_text "Your half-finished side projects may miss you—we hope it’s because you made a great exit instead."
+      click_button "Keep me building"
+      assert_selector "input[name='active']:checked", visible: :all
+
+      find(".membership-activation label").click
+      click_button "Leave Active Builders"
+    end
+
+    assert_text "You released your seat."
+    assert_equal "withdrawn", user.reload.enrollment_status
+  end
+
+  private
+
+  def sign_in_as(user)
+    visit verify_email_path(token: user.generate_token_for(:email_verification))
+    assert_current_path dashboard_path
   end
 end
