@@ -15,7 +15,6 @@ class RegistrationTest < ApplicationSystemTestCase
 
     user = User.find_by!(email: "browser@example.com")
     visit verify_email_path(token: user.generate_token_for(:email_verification))
-    click_button "Sign in"
 
     assert_text "Your account is ready."
     within("[data-waitlist-readiness]") do
@@ -55,7 +54,6 @@ class RegistrationTest < ApplicationSystemTestCase
   test "offered builder unlocks Active Builder status with the readiness checklist" do
     user = User.create!(email: "og-ready@example.com", og: true)
     visit verify_email_path(token: user.generate_token_for(:email_verification))
-    click_button "Sign in"
 
     within(".membership-panel") do
       assert_no_text "I’m an Active Builder"

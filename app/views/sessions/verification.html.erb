@@ -2,5 +2,5 @@
   <p class="eyebrow">Secure sign-in</p>
   <h1>Continue to Rails Builders.</h1>
   <p>This confirms that you want to sign in with the email link you requested.</p>
-  <%= button_to "Sign in", verify_email_path, params: { token: @token }, class: "button button-primary" %>
+  <%= button_to "Sign in", verify_email_path, params: { token: @token }, class: "button button-primary", form: { data: { controller: "auto-submit" } } %>
 </main>

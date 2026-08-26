@@ -72,6 +72,5 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
 
   def sign_in_as(user)
     visit verify_email_path(token: user.reload.generate_token_for(:email_verification))
-    click_button "Sign in"
   end
 end

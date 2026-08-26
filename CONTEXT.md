@@ -57,7 +57,7 @@ The explicit action by which a Waitlist Entry leaves the queue without deleting 
 _Avoid_: Account deletion, Seat withdrawal
 
 **Continuous**:
-The Rails Builders edition with a start line on 20 August and a finish line on 17 December 2026. Reaching the finish line does not by itself end Active Builder status.
+The Rails Builders edition with a start line on 3 September and a finish line on 17 December 2026. Reaching the finish line does not by itself end Active Builder status.
 _Avoid_: Membership status
 
 **Public Builder Profile**:

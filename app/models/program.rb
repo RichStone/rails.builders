@@ -13,7 +13,7 @@ class Program < ApplicationRecord
   validate :main_facilitator_has_role
 
   def self.current
-    first || create!(name: "Continuous r-AI-ls.Builders Edition", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 9)
+    first || create!(name: "Continuous r-AI-ls.Builders Edition", starts_on: Date.new(2026, 9, 3), ends_on: Date.new(2026, 12, 17), capacity: 9)
   end
 
   def occupied_seats

@@ -1,8 +1,50 @@
 <main class="dashboard-page">
+  <section class="cohort-strip dashboard-program" data-controller="countdown" data-countdown-start-value="<%= @program.countdown_starts_at.iso8601 %>" data-countdown-finish-value="<%= @program.countdown_ends_at.iso8601 %>">
+    <div>
+      <p class="eyebrow"><%= @program.started? ? "Current program" : "Next program" %></p>
+      <h1><%= @program.name %></h1>
+      <p class="program-dates"><%= @program.starts_on.strftime("%B %d, %Y") %> — <%= @program.ends_on.strftime("%B %d, %Y") %></p>
+      <p class="program-seats"><%= @program.capacity %> seats · <%= @program.occupied_seats %> reserved</p>
+      <% if current_user.waitlisted? %>
+        <% position = current_user.waitlist_position %>
+        <p class="queue-position"><strong>#<%= position %></strong><span>Your current position is <b>#<%= position %></b>. We’ll email you when a seat opens.</span></p>
+      <% end %>
+    </div>
+    <div class="countdown dashboard-countdown" aria-hidden="true">
+      <div><strong data-countdown-target="days" data-value="--">--</strong><span>days</span></div>
+      <div><strong data-countdown-target="hours" data-value="--">--</strong><span>hours</span></div>
+      <div><strong data-countdown-target="minutes" data-value="--">--</strong><span>mins</span></div>
+      <div><strong data-countdown-target="seconds" data-value="--">--</strong><span>secs</span></div>
+    </div>
+    <p class="sr-only" data-countdown-target="accessible">Program countdown loading</p>
+    <p class="countdown-label" data-countdown-target="label"><%= @program.started? ? "until current program ends" : "until the program begins" %></p>
+  </section>
+
+  <section class="action-panel dashboard-next-steps">
+    <p class="eyebrow">Your path</p>
+    <h2>Next steps</h2>
+    <ol>
+      <li><span>1</span><div>
+        <% if current_user.offered? %>
+          <%= link_to "Become an Active Builder", "#membership" %><small>Confirm the readiness promise to take your seat.</small>
+        <% elsif current_user.active? %>
+          <strong>You’re an Active Builder</strong><small>Your seat is confirmed.</small>
+        <% elsif current_user.waitlisted? %>
+          <strong>You’re on the waitlist</strong><small>Your queue position is shown above.</small>
+        <% elsif current_user.waitlist_eligible? %>
+          <%= link_to "Get on the waitlist", "#waitlist" %><small>Complete the readiness promise when you’re ready.</small>
+        <% else %>
+          <strong>Enrollment is currently unavailable</strong>
+        <% end %>
+      </div></li>
+      <li><span>2</span><div><%= link_to(current_user.public_profile? ? "Manage your public profile on rails.builders 👉" : "Make your profile public on rails.builders (if you want to) 👉", edit_profile_path) %><small><%= profile_visibility_description(current_user) %></small></div></li>
+    </ol>
+  </section>
+
   <div class="dashboard-head"><div><p class="eyebrow">Rails Builders</p>
     <% if current_user.offered? %><h1>Your seat is ready.</h1><p>Confirm by <%= current_user.offer_expires_at.to_fs(:long) %>. Your profile can wait.</p>
     <% elsif current_user.active? %><h1>You’re an active builder.</h1><p>Your seat in <%= @program.name %> is confirmed.</p>
-    <% elsif current_user.waitlisted? %><h1>You’re on the waitlist.</h1><p>Your current position is <strong>#<%= current_user.waitlist_position %></strong>. We’ll email you when a seat opens.</p>
+    <% elsif current_user.waitlisted? %><h1>You’re on the waitlist.</h1><p>You’re in the queue for <%= @program.name %>.</p>
     <% elsif current_user.inactive? %><h1>Your account is ready.</h1><p>Complete the readiness check below when you’re ready to join the waitlist.</p>
     <% elsif current_user.left_waitlist? %><h1>You left the waitlist.</h1><p>You can join the end of the queue again whenever the timing is right.</p>
     <% elsif current_user.removed? %><h1>Your enrollment was removed.</h1><p>An Administrator can restore your eligibility without granting a Seat.</p>
@@ -11,7 +53,7 @@
   </div><span class="status-pill"><%= current_user.enrollment_status.humanize %></span></div>
 
   <% if current_user.offered? %><div class="action-panel"><h2>Your turn is open</h2><p>Your pending offer holds one of the <%= @program.capacity %> seats for 72 hours. Complete the readiness check below to claim it.</p><%= button_to "Decline this turn", decline_offer_path, class: "button button-quiet" %></div><% end %>
-  <div class="action-panel membership-panel">
+  <div class="action-panel membership-panel" id="membership">
     <h2>Your membership</h2>
     <% if current_user.offered? || current_user.active? %>
       <%= form_with url: membership_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: current_user.offered? } do %>
@@ -32,7 +74,7 @@
     <% end %>
   </div>
   <% if current_user.waitlisted? || current_user.waitlist_eligible? %>
-    <div class="action-panel waitlist-panel" data-waitlist-readiness>
+    <div class="action-panel waitlist-panel" id="waitlist" data-waitlist-readiness>
       <h2>Waitlist</h2>
       <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist", readiness_checklist_gated_value: !current_user.waitlisted?, readiness_checklist_choice_controls_checkboxes_value: true } do %>
         <div class="membership-activation" <%= "hidden" unless current_user.waitlisted? %> data-readiness-checklist-target="activation">
@@ -49,7 +91,5 @@
       <% end %>
     </div>
   <% end %>
-
-  <div class="dashboard-grid"><section><h2>Your public profile</h2><p><%= profile_visibility_description(current_user) %></p><%= link_to "Edit profile and products", edit_profile_path, class: "button button-quiet" %></section><section><h2><%= @program.name %></h2><p><%= @program.starts_on.to_fs(:long) %> — <%= @program.ends_on.to_fs(:long) %></p><p><%= @program.capacity %> seats · <%= @program.occupied_seats %> reserved</p></section></div>
   <% if current_user.facilitator? %><div class="action-panel"><h2>Profile publication</h2><p>Review builders who have asked to appear publicly.</p><%= link_to "Review profiles", facilitator_profile_reviews_path, class: "button button-quiet" %></div><% end %>
 </main>

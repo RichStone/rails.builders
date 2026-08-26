@@ -1,5 +1,5 @@
 program = Program.first_or_initialize
-program.update!(name: "Continuous r-AI-ls.Builders Edition", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 9)
+program.update!(name: "Continuous r-AI-ls.Builders Edition", starts_on: Date.new(2026, 9, 3), ends_on: Date.new(2026, 12, 17), capacity: 9)
 
 og_emails = Rails.configuration.x.rails_builders.og_emails
 facilitator_email = Rails.configuration.x.rails_builders.facilitator_email

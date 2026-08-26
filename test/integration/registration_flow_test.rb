@@ -28,6 +28,10 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_select "h1", /Your account is ready/
+    assert_select ".dashboard-next-steps" do
+      assert_select "li", text: /Get on the waitlist/
+      assert_select "a[href='#{edit_profile_path}']", text: /Make your profile public/
+    end
     assert_select "input[name='readiness[]']", count: 6
     assert_select "[data-waitlist-readiness] [data-readiness-checklist-target='activation'][hidden]"
     assert_select "a", "Sign out"
@@ -103,6 +107,7 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_equal "offered", user.reload.enrollment_status
     follow_redirect!
     assert_select "h1", /Your seat is ready/
+    assert_select ".dashboard-next-steps li", text: /Become an Active Builder/
     assert_select "input[name='readiness[]']", count: 6
     assert_select "[data-readiness-checklist-target='activation'][hidden]"
     assert_select "form", text: /Accept Seat Offer/, count: 0

@@ -132,14 +132,40 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the dashboard displays the Program name everywhere" do
-    @program.update!(name: "Continuous r-AI-ls.Builders Edition")
+  test "the dashboard leads with the live Program and next steps" do
+    starts_at = Time.zone.parse("2026-09-03 18:00")
+    ends_at = Time.zone.parse("2026-12-17 19:30")
+    @program.update!(name: "Continuous r-AI-ls.Builders Edition", starts_on: Date.new(2026, 9, 3), starts_at:, ends_at:, capacity: 9)
+    6.times do |index|
+      User.create!(email: "reserved-#{index}@example.com", verified_at: Time.current, enrollment_status: "active")
+    end
     sign_in_as(@user)
 
     get dashboard_path
 
+    assert_select ".dashboard-page > .dashboard-program:first-child" do
+      assert_select "h1", text: "Continuous r-AI-ls.Builders Edition"
+      assert_select ".program-dates", text: "September 03, 2026 — December 17, 2026"
+      assert_select ".program-seats", text: "9 seats · 7 reserved"
+      assert_select ".dashboard-countdown strong[data-value='--']", count: 4
+    end
+    assert_select ".dashboard-program[data-countdown-start-value='#{starts_at.iso8601}'][data-countdown-finish-value='#{ends_at.iso8601}']"
+    assert_select ".dashboard-page > .dashboard-next-steps:nth-child(2)" do
+      assert_select "li", text: /You’re an Active Builder/
+      assert_select "a[href='#{edit_profile_path}']", text: /Make your profile public/
+    end
     assert_select ".dashboard-head", text: /Your seat in Continuous r-AI-ls.Builders Edition is confirmed/
-    assert_select ".dashboard-grid h2", text: "Continuous r-AI-ls.Builders Edition"
+  end
+
+  test "the dashboard rolls waitlist position into the Program" do
+    @user.update!(enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
+    sign_in_as(@user)
+
+    get dashboard_path
+
+    assert_select ".dashboard-program .queue-position", text: /Your current position is #1\. We’ll email you when a seat opens\./
+    assert_select ".dashboard-head .queue-position", count: 0
+    assert_select ".dashboard-next-steps li", text: /You’re on the waitlist/
   end
 
   test "a first visit receives a nonempty CSP nonce shared by every script" do
