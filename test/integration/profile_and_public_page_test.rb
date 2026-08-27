@@ -252,6 +252,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   test "builder groups explain themselves with clickable icons" do
     get root_path
 
+    assert_select "#builders[data-controller~='viewport-nudge']"
     assert_select ".builders-section .group-title > span", count: 0
     [
       [ "active", "Active Builders", "⚡", "1 building now" ],
@@ -261,7 +262,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     ].each do |id, title, icon, tooltip|
       assert_select "##{id}-builders .group-title" do
         assert_select "h3", text: title
-        assert_select "details.info-tip:not([open]) summary[aria-label='About #{title}']", text: icon
+        assert_select "details.info-tip:not([open])[data-viewport-nudge-target='item'] summary[aria-label='About #{title}']", text: icon
         assert_select "details.info-tip p", text: tooltip
       end
     end
