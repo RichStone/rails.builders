@@ -46,7 +46,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     @builder_session.update!(
       title: "Product teardown · meet.google.com/abc-defg-hij",
       scheduled_starts_at: 1.day.from_now,
-      scheduled_ends_at: 1.day.from_now + 1.hour
+      scheduled_ends_at: 1.day.from_now + 90.minutes
     )
 
     get root_path
@@ -54,6 +54,8 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "[data-public-sessions]", text: /Product teardown/
     assert_select "[data-public-sessions]", text: /Facilitated by Rails Builders/
+    assert_select "[data-public-sessions]", text: /60-minute core session/
+    assert_select "[data-public-sessions]", text: /90 minutes/, count: 0
     assert_not_includes response.body, "Main Facilitator"
     assert_not_includes response.body, "abc-defg-hij"
     assert_not_includes response.body, "private-code"
@@ -76,11 +78,15 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
   end
 
   test "active Builders can see private session details" do
+    starts_at = 1.day.from_now
+    @builder_session.update!(scheduled_starts_at: starts_at, scheduled_ends_at: starts_at + 90.minutes)
     sign_in_as(@builder)
 
     get builder_sessions_path
     assert_response :success
     assert_select "a", text: "Product teardown"
+    assert_select ".session-list-item > span", text: "60 min core"
+    assert_select ".session-list-item > span", text: "90 min", count: 0
 
     get builder_session_path(@builder_session)
     assert_response :success
@@ -111,6 +117,23 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_select "a", text: /Join Google Meet/, count: 0
     get join_builder_session_path(@builder_session)
     assert_redirected_to builder_session_path(@builder_session)
+  end
+
+  test "the completed-session summary reports core time without the optional hangout" do
+    started_at = Time.zone.parse("2026-08-24 18:00")
+    @builder_session.update!(
+      state: "completed",
+      started_at:,
+      hangout_started_at: started_at + 60.minutes,
+      ended_at: started_at + 90.minutes,
+      facilitator_name_snapshot: @facilitator.name
+    )
+    sign_in_as(@builder)
+
+    get builder_session_path(@builder_session)
+
+    assert_select ".session-complete-panel", text: /60-minute core session/
+    assert_select ".session-complete-panel", text: /90 minutes/, count: 0
   end
 
   test "a missed ready session appears in Past instead of Upcoming" do
@@ -177,6 +200,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
 
     get builder_session_path(@builder_session)
 
+    assert_select "label[for='duration_minutes']", text: "Core session timer (minutes)"
     assert_select "input[name='duration_minutes'][value='60']"
 
     post start_builder_session_path(@builder_session)

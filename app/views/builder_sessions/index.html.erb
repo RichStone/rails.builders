@@ -25,7 +25,7 @@
               <time datetime="<%= builder_session.scheduled_starts_at.iso8601 %>"><%= builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime("%a %d %b · %H:%M %Z") %></time>
               <h3><%= link_to builder_session.title, builder_session_path(builder_session) %></h3>
             </div>
-            <span><%= ((builder_session.scheduled_ends_at - builder_session.scheduled_starts_at) / 60).round %> min</span>
+            <span><%= builder_session.core_duration_minutes %> min core</span>
           </article>
         <% end %>
       </div>

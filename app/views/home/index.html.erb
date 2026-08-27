@@ -58,7 +58,7 @@
               <time datetime="<%= builder_session.scheduled_starts_at.iso8601 %>"><%= builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime("%a %d %b · %H:%M %Z") %></time>
               <h3><%= public_session_title(builder_session) %></h3>
               <p>Facilitated by <%= public_session_facilitator_name(builder_session) %></p>
-              <span><%= ((builder_session.scheduled_ends_at - builder_session.scheduled_starts_at) / 60).round %> minutes</span>
+              <span><%= builder_session.core_duration_minutes %>-minute core session</span>
             </article>
           <% end %>
         </div>

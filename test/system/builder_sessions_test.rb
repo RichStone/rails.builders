@@ -48,7 +48,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     sign_in_as(@facilitator)
     click_link "Sessions"
     click_link "Browser session"
-    fill_in "Formal timer (minutes)", with: "30"
+    fill_in "Core session timer (minutes)", with: "30"
     click_button "Start session"
 
     assert_text "What did you ship—or learn—since we last met?"

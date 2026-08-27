@@ -24,10 +24,10 @@
   <% elsif @builder_session.state == "ready" %>
     <section class="session-ready-panel">
       <h2>Ready when the room is.</h2>
-      <p>The Calendar event is the schedule source. Choose the formal timer length before starting.</p>
+      <p>The Calendar event is the schedule source. Choose the core session timer length before starting.</p>
       <% if session_operator? %>
         <%= form_with url: start_builder_session_path(@builder_session), class: "start-session-form", data: { turbo_confirm: (Time.current.between?(@builder_session.scheduled_starts_at - 30.minutes, @builder_session.scheduled_starts_at + 30.minutes) ? nil : "This is outside the scheduled start window. Start anyway?") } do |form| %>
-          <%= form.label :duration_minutes, "Formal timer (minutes)" %>
+          <%= form.label :duration_minutes, "Core session timer (minutes)" %>
           <%= form.number_field :duration_minutes, value: @builder_session.default_timer_minutes, min: 1, max: 300, required: true %>
           <%= form.submit "Start session", class: "button button-primary" %>
         <% end %>
@@ -129,8 +129,8 @@
       <p class="eyebrow">Session complete</p>
       <h2><%= @builder_session.facilitator_name_snapshot %> kept the room moving.</h2>
       <% attendee_count = @builder_session.attendances.where(status: "present").count %>
-      <% duration_minutes = ((@builder_session.ended_at - @builder_session.started_at) / 60).floor %>
-      <p><%= pluralize(attendee_count, "attendee") %> · <%= duration_minutes < 1 ? "under 1 minute" : pluralize(duration_minutes, "minute") %></p>
+      <% core_duration_minutes = @builder_session.core_duration_minutes %>
+      <p><%= pluralize(attendee_count, "attendee") %> · <%= core_duration_minutes < 1 ? "under 1 minute of core session" : "#{core_duration_minutes}-minute core session" %></p>
       <% if session_operator? && @builder_session.finish_reason == "automatic" %>
         <%= form_with url: end_time_builder_session_path(@builder_session), method: :patch, class: "start-session-form" do |form| %>
           <% zone = ActiveSupport::TimeZone[@builder_session.time_zone] %>

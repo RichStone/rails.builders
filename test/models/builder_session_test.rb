@@ -63,12 +63,14 @@ class BuilderSessionTest < ActiveSupport::TestCase
     end
   end
 
-  test "the default formal timer is two thirds of the scheduled meeting" do
+  test "the default core timer excludes the optional 30-minute hangout" do
+    assert_equal 30, @builder_session.default_timer_minutes
+
     @builder_session.update!(scheduled_ends_at: @builder_session.scheduled_starts_at + 90.minutes)
+    assert_equal 60, @builder_session.default_timer_minutes
 
     @builder_session.start!(facilitator: @facilitator)
 
-    assert_equal 60, @builder_session.default_timer_minutes
     assert_equal 60.minutes.to_i, @builder_session.timer_duration_seconds
   end
 

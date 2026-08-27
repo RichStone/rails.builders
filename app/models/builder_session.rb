@@ -40,7 +40,14 @@ class BuilderSession < ApplicationRecord
 
   def connection_duration_seconds = timer_duration_seconds / 6
   def closing_duration_seconds = [ timer_duration_seconds / 30, 1 ].max
-  def default_timer_minutes = ((scheduled_ends_at - scheduled_starts_at) / 90).round.clamp(1, 300)
+  def default_timer_minutes = ((scheduled_ends_at - scheduled_starts_at - 30.minutes) / 60).round.clamp(1, 300)
+
+  def core_duration_minutes
+    core_ends_at = hangout_started_at || ended_at
+    return default_timer_minutes unless started_at && core_ends_at
+
+    ((core_ends_at - started_at) / 60).floor
+  end
 
   def mark_present!(user, at: Time.current)
     with_lock do
