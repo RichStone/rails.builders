@@ -249,7 +249,25 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Published on the homepage."
   end
 
-  test "the public page lists inactive builders as still undecided" do
+  test "builder groups explain themselves with clickable icons" do
+    get root_path
+
+    assert_select ".builders-section .group-title > span", count: 0
+    [
+      [ "active", "Active Builders", "⚡", "1 building now" ],
+      [ "waitlisted", "Waitlisted Builders", "⏳", "Signed up, non-OG - opening up soon" ],
+      [ "inactive", "Still prepping for the Build", "🛠️", "Signed up, but not yet ready to commit to the Build" ],
+      [ "og", "The OGs", "🔥", "They started the Build back in 2025" ]
+    ].each do |id, title, icon, tooltip|
+      assert_select "##{id}-builders .group-title" do
+        assert_select "h3", text: title
+        assert_select "details.info-tip:not([open]) summary[aria-label='About #{title}']", text: icon
+        assert_select "details.info-tip p", text: tooltip
+      end
+    end
+  end
+
+  test "the public page lists inactive builders as still prepping" do
     %w[inactive declined expired withdrawn left_waitlist].each do |status|
       User.create!(email: "#{status}@example.com", verified_at: Time.current, enrollment_status: status, og: true)
     end
@@ -261,10 +279,9 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_select "#waitlisted-builders + #inactive-builders" do
-      assert_select "h3", text: "Still undecided"
-      assert_select ".group-title span", text: "5 still deciding"
+      assert_select "h3", text: "Still prepping for the Build"
       assert_select ".builder-card", count: 5
-      assert_select ".private-label", text: "Still undecided · profile private", count: 5
+      assert_select ".private-label", text: "Still prepping for the Build · profile private", count: 5
     end
     assert_select "#og-builders .builder-card", count: 0
     assert_not_includes response.body, "inactive@example.com"

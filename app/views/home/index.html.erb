@@ -167,28 +167,28 @@
     <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails Builders.</h2><p>Profiles appear only when a builder chooses to publish and a facilitator approves. The gleaming rubies are OGs who haven’t stepped into the spotlight yet.</p></div>
 
     <div id="active-builders" class="builder-group">
-      <div class="group-title"><h3>Active Builders</h3><span><%= @active_builders.size %> building now</span></div>
+      <%= render "builder_group_title", title: "Active Builders", icon: "⚡", tooltip: "#{@active_builders.size} building now" %>
       <div class="builder-grid">
         <% @active_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
       </div>
     </div>
 
     <div id="waitlisted-builders" class="builder-group">
-      <div class="group-title"><h3>Waitlisted Builders</h3><span><%= @waitlisted_builders.size %> waiting for a seat</span></div>
+      <%= render "builder_group_title", title: "Waitlisted Builders", icon: "⏳", tooltip: "Signed up, non-OG - opening up soon" %>
       <div class="builder-grid">
         <% @waitlisted_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
       </div>
     </div>
 
     <div id="inactive-builders" class="builder-group">
-      <div class="group-title"><h3>Still undecided</h3><span><%= @inactive_builders.size %> still deciding</span></div>
+      <%= render "builder_group_title", title: "Still prepping for the Build", icon: "🛠️", tooltip: "Signed up, but not yet ready to commit to the Build" %>
       <div class="builder-grid">
-        <% @inactive_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index, private_label: "Still undecided" %><% end %>
+        <% @inactive_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index, private_label: "Still prepping for the Build" %><% end %>
       </div>
     </div>
 
     <div id="og-builders" class="builder-group">
-      <div class="group-title"><h3>The OGs</h3><span>They started the spark</span></div>
+      <%= render "builder_group_title", title: "The OGs", icon: "🔥", tooltip: "They started the Build back in 2025" %>
       <div class="builder-grid">
         <% @og_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
       </div>
