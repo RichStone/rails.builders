@@ -15,6 +15,19 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
+    assert_select ".site-header .brand" do
+      assert_select ".brand-name", text: "Rails.Builders"
+      assert_select ".brand-est", text: "--- Est. 2025 ---"
+    end
+    assert_select ".site-header nav" do
+      assert_select "a[href='#{root_path(anchor: "how-it-works")}']", text: "How To"
+      assert_select ".nav-divider", text: "·"
+      assert_select "a[href='#{root_path(anchor: "builders")}']", text: "Current Builders"
+    end
+    assert_select ".site-footer .footer-brand" do
+      assert_select ".brand-name", text: "Rails.Builders"
+      assert_select ".brand-est", text: "--- Est. 2025 ---"
+    end
     assert_select "h1", /Build in public with other Rails.Builders/
     assert_select "#how-it-works"
     assert_select "#active-builders"

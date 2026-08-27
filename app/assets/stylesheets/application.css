@@ -21,11 +21,16 @@ p { margin: 0 0 1em; }
 button, input, textarea, select { font: inherit; }
 
 .site-header { position: relative; z-index: 10; max-width: 1240px; height: 82px; margin: auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; }
-.brand { display: flex; gap: 9px; align-items: center; font: 700 18px "Space Grotesk", sans-serif; text-decoration: none; }
+.brand,.footer-brand { display: flex; gap: 9px; align-items: center; }
+.brand { font-family: "Space Grotesk", sans-serif; text-decoration: none; }
+.brand-lockup { display: grid; gap: 4px; }
+.brand-name { font-size: 18px; font-weight: 700; line-height: 1; }
+.brand-est { color: var(--muted); font: 700 8px/1 "DM Sans", sans-serif; letter-spacing: .13em; white-space: nowrap; }
 .brand-gem { color: var(--ruby); transform: rotate(45deg); display: inline-block; font-size: 14px; }
-.site-header nav { display: flex; align-items: center; gap: 28px; font-weight: 600; font-size: 14px; }
+.site-header nav { display: flex; align-items: center; gap: 20px; font-weight: 600; font-size: 14px; }
 .site-header nav a { text-decoration: none; }
 .site-header nav a:not(.button):hover { color: var(--ruby); }
+.nav-divider { margin: 0 -10px; color: #c8b8bb; }
 .site-footer { max-width: 1240px; margin: auto; padding: 30px 28px 48px; border-top: 1px solid var(--line); display: flex; gap: 28px; justify-content: space-between; color: var(--muted); font-size: 14px; }
 .site-footer > span:first-child { color: var(--ink); font-weight: 700; }
 .github-link { display: inline-flex; gap: 5px; align-items: center; }.github-link svg { width: 17px; height: 17px; flex: 0 0 auto; }
