@@ -1,12 +1,50 @@
-# Privacy-friendly analytics for Rails Builders
+# Analytics options for Rails Builders
 
 - Researched: 2026-08-29
 - Scope: page views, selected clicks, and conversion measurement across the public homepage, email sign-in flow, and signed-in Rails application
-- Priorities: data minimization and EU/GDPR posture, zero or low cost, minimal client/runtime weight, useful conversion reporting, and low operational burden
+- Decision lenses: capability-first follow-up plus the original privacy-first comparison
 - Evidence: first-party product documentation, source repositories, and regulator guidance only
 - This is product and technical research, not legal advice.
 
-## Recommendation
+## Capability-first recommendation
+
+Choose **PostHog Cloud** if Rails Builders should have one analytics product across both the public website and the signed-in application. It combines a ready-made web traffic dashboard with product funnels, retention, paths, autocapture, session replay, heatmaps, feature flags, experiments, surveys, and error tracking. The free tier currently includes one million analytics events, 5,000 session recordings, one project, unlimited team members, and one year of data retention. Usage stops at the free limit unless billing is enabled ([web analytics](https://posthog.com/web-analytics), [pricing](https://posthog.com/pricing)).
+
+Choose **Google Analytics 4** instead when the main question is acquisition: which search query, referral, campaign, or ad produced registrations? GA4 is free, any event can become a key event, Funnel Exploration supports ordered open or closed funnels, and the integrations with Google Ads and Search Console are its decisive advantage. Standard properties can also export raw event data to BigQuery ([GA4 overview](https://marketingplatform.google.com/about/analytics/), [key events](https://support.google.com/analytics/answer/9267568), [funnels](https://support.google.com/analytics/answer/9327974), [Search Console](https://support.google.com/analytics/answer/10737381), [BigQuery export](https://support.google.com/analytics/answer/9823238)).
+
+GA4 can track the signed-in application, but it is a marketing analytics product first. It has no native heatmaps, session replay, surveys, feature flags, or experimentation, and behavioral product questions generally take more report configuration than PostHog. The standard tier also limits event-level exploration data retention to 14 months and may sample explorations above 10 million events per query, although Rails Builders is unlikely to approach that volume ([data retention](https://support.google.com/analytics/answer/7667196), [property limits](https://support.google.com/analytics/answer/12229528)).
+
+For maximum capability while both free tiers fit, **GA4 plus PostHog** is the strongest combination: Google supplies acquisition attribution while PostHog supplies the product analysis and qualitative tooling. It also duplicates page views, conversion events, identities, and dashboards, and the products will not produce identical user or session totals. Do not start with both unless acquisition and product analytics are already equally important.
+
+The cheaper qualitative companion to GA4 is **Microsoft Clarity**: GA4 handles traffic sources, key events, funnels, and attribution; Clarity adds unlimited-traffic heatmaps, session recordings, and frustration signals. Clarity is explicitly free forever and integrates with GA4 ([Clarity](https://clarity.microsoft.com/), [GA integration](https://clarity.microsoft.com/blog/give-google-analytics-a-boost-with-clarity/)). The cost is still two client tags, two datasets, and more configuration. It is not the lightweight default.
+
+### Capability-first shortlist
+
+| Product | Best at | Current free entry point | Main tradeoff for Rails Builders |
+|---|---|---:|---|
+| **PostHog** | Best one-tool website + product stack | 1M events, 5K recordings, one project, one-year retention | Broader and heavier than a simple counter; acquisition integrations trail Google |
+| **GA4** | Acquisition, channel attribution, SEO, and Google Ads | Free standard property | Less pleasant for product analysis; no replay, heatmaps, flags, or experiments |
+| **Mixpanel** | Polished funnels, retention, flows, and cohorts | 1M events, 10K replays, 10 flags, experiments for 1K monthly evaluated users | Free plan allows only five saved reports per seat; replay retention is 30 days ([pricing](https://mixpanel.com/pricing/)) |
+| **Amplitude** | Broad enterprise-style analytics and experimentation | 2M events, session replay, flags, experiments, surveys, unlimited seats | More platform than this project needs; free plan has ten saved charts per organization and one year of data access ([pricing](https://amplitude.com/pricing)) |
+| **Heap** | Retrospective autocapture with minimal up-front event design | 10K monthly sessions, core charts, six months of history | Autocapture creates a noisier data model; less compelling than PostHog once explicit conversion events are required ([pricing](https://www.heap.io/pricing)) |
+| **Clarity** | Free visual diagnosis | Unlimited-traffic recordings and heatmaps | A companion to an analytics system, not the primary source for product funnels and attribution |
+
+Mixpanel and Amplitude are excellent products, but neither has a decisive advantage for this small Rails application. PostHog offers the clearest path from the initial measurement needs into replay, experiments, feature flags, surveys, and engineering diagnostics without adding another vendor. Heap is most attractive when retroactive no-code discovery is the overriding requirement, which is not the case here because registration and enrollment conversions must still be emitted after successful Rails state changes.
+
+### Capability-first implementation choice
+
+Do not install multiple full analytics suites initially. Pick the question that matters most:
+
+- Choose **PostHog** for “Where do visitors or members get stuck, and which product behaviors predict registration or enrollment?”
+- Choose **GA4** for “Which acquisition channel or campaign produces verified registrations and enrolled members?”
+- Choose **GA4 + PostHog** only when both acquisition and product analytics are immediately important enough to justify duplicate tracking.
+- Choose **GA4 + Clarity** when acquisition plus free visual replay is sufficient.
+
+For the stated scope across homepage, sign-in, and app pages, **PostHog is the overall recommendation**. If Rails Builders begins buying Google Ads or prioritizes SEO acquisition, prefer GA4 or add it later on public pages only.
+
+Removing privacy from the ranking does not remove applicable legal or security obligations. In every product, retain the allowlisted event and normalized-route design below, and never send verification tokens, newsletter tokens, email addresses, private page titles, or record IDs.
+
+## Privacy-first recommendation
 
 Start with **Umami Cloud Hobby**, provided the account can be contractually or operationally pinned to its EU service region. It is the best match for the complete requirement: a sub-2 KB, cookieless tracker; automatic page views; explicit click/form events; and ordered funnels built from page views and events. The hosted Hobby plan is free for low-traffic sites, while the self-hosted software is open source ([Umami introduction](https://docs.umami.is/docs), [cloud FAQ](https://docs.umami.is/docs/cloud/faq), [events](https://docs.umami.is/docs/track-events), [funnels](https://docs.umami.is/docs/funnel)).
 
@@ -86,7 +124,7 @@ The current privacy notice says, “The site does not add advertising cookies or
 
 Cookieless analytics does not automatically remove every privacy obligation. CNIL's regulator guidance says audience-measurement consent exemptions are conditional: users must be informed and able to object, measurement must be limited to the publisher's own audience/A-B testing, data must not be cross-matched, scope must remain within one publisher, IP data must be truncated, and tracer lifetime must be limited. National implementation can vary ([CNIL audience measurement guidance](https://www.cnil.fr/fr/node/677)).
 
-## Bottom line
+## Privacy-first bottom line
 
 - Choose **Umami Cloud Hobby** for the requested page views + clicks + real funnel reporting, after confirming the EU region/DPA.
 - Choose **GoatCounter** if “free and maximally minimal” beats ordered funnel attribution.
