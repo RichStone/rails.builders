@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 077
+
+readonly PROGRAM="rails-builders-monitoring-install"
+readonly HB_VERSION="0.10.1"
+
+die() {
+  printf '%s: ERROR: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+((EUID == 0)) || die "run as root"
+
+for command_name in curl install mktemp sha256sum systemctl tar uname; do
+  command -v "$command_name" >/dev/null 2>&1 || die "required command not found: $command_name"
+done
+
+case "$(uname -m)" in
+  x86_64)
+    archive="cli_Linux_x86_64.tar.gz"
+    checksum="20f692a635779351f2a30c3f70bf0dda23454bc3c88bd747216b003bbd2866d6"
+    ;;
+  aarch64 | arm64)
+    archive="cli_Linux_arm64.tar.gz"
+    checksum="bee8e5b4951774d1ea38f0dca26e52fe74677e1371f360537432303221a58d13"
+    ;;
+  *)
+    die "unsupported architecture: $(uname -m)"
+    ;;
+esac
+
+source_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+environment_file="/etc/rails-builders/monitoring"
+
+if [[ ! -e "$environment_file" ]]; then
+  [[ -n "${HONEYBADGER_API_KEY:-}" ]] || die "HONEYBADGER_API_KEY is required for the first install"
+  [[ "$HONEYBADGER_API_KEY" =~ ^[[:alnum:]_-]+$ ]] || die "HONEYBADGER_API_KEY has an unsupported format"
+  install -d -m 0755 /etc/rails-builders
+  install -m 0600 /dev/null "$environment_file"
+  printf 'HONEYBADGER_API_KEY=%s\n' "$HONEYBADGER_API_KEY" >"$environment_file"
+fi
+chmod 0600 "$environment_file"
+unset HONEYBADGER_API_KEY
+
+download_dir="$(mktemp -d "${TMPDIR:-/tmp}/rails-builders-monitoring.XXXXXX")"
+cleanup() {
+  if [[ -d "$download_dir" && "$download_dir" == "${TMPDIR:-/tmp}/rails-builders-monitoring."* ]]; then
+    rm -rf -- "$download_dir"
+  fi
+}
+trap cleanup EXIT
+
+archive_path="$download_dir/$archive"
+curl --fail --silent --show-error --location \
+  --output "$archive_path" \
+  "https://github.com/honeybadger-io/cli/releases/download/v${HB_VERSION}/${archive}"
+printf '%s  %s\n' "$checksum" "$archive_path" | sha256sum --check --status || \
+  die "Honeybadger CLI checksum verification failed"
+tar -xzf "$archive_path" -C "$download_dir" hb
+install -m 0755 "$download_dir/hb" /usr/local/bin/hb
+install -m 0644 "$source_dir/rails-builders-host-metrics.service" \
+  /etc/systemd/system/rails-builders-host-metrics.service
+
+systemctl daemon-reload
+systemctl enable --now rails-builders-host-metrics.service
+
+printf '%s: Honeybadger host metrics enabled with hb %s\n' "$PROGRAM" "$HB_VERSION"

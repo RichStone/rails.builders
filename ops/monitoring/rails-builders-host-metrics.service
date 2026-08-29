@@ -1,0 +1,19 @@
+[Unit]
+Description=Report Rails Builders host metrics to Honeybadger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/rails-builders/monitoring
+ExecStart=/usr/local/bin/hb agent --config /dev/null --tag environment=production --tag host=rails-builders-production
+Restart=always
+RestartSec=10
+DynamicUser=true
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

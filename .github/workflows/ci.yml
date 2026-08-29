@@ -96,6 +96,9 @@ jobs:
       - name: Test backup and restore scripts
         run: ops/backup/test
 
+      - name: Test host metrics installation
+        run: ops/monitoring/test
+
   system-test:
     runs-on: ubuntu-latest
 

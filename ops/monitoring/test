@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+source_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+installer="$source_dir/install"
+unit="$source_dir/rails-builders-host-metrics.service"
+
+bash -n "$installer"
+
+grep -F 'readonly HB_VERSION="0.10.1"' "$installer" >/dev/null
+grep -F '20f692a635779351f2a30c3f70bf0dda23454bc3c88bd747216b003bbd2866d6' "$installer" >/dev/null
+grep -F 'bee8e5b4951774d1ea38f0dca26e52fe74677e1371f360537432303221a58d13' "$installer" >/dev/null
+grep -F 'EnvironmentFile=/etc/rails-builders/monitoring' "$unit" >/dev/null
+grep -F 'DynamicUser=true' "$unit" >/dev/null
+grep -F 'ExecStart=/usr/local/bin/hb agent --config /dev/null --tag environment=production --tag host=rails-builders-production' "$unit" >/dev/null
+
+printf 'host metrics installation smoke test passed\n'
