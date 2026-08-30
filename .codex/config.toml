@@ -1,0 +1,6 @@
+# Keep the production-monitoring connection scoped to this trusted project.
+# Choose read-only access during the first Honeybadger OAuth authorization.
+[mcp_servers.honeybadger]
+url = "https://mcp.honeybadger.io/mcp"
+auth = "oauth"
+default_tools_approval_mode = "writes"
