@@ -15,7 +15,11 @@ module RailsBuilders
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
-    config.action_dispatch.default_headers["Referrer-Policy"] = "no-referrer"
+    # Keep referrers off third parties, but not "no-referrer": browsers send
+    # `Origin: null` on native form submissions under that policy, and Rails'
+    # origin-based CSRF check rejects those. "same-origin" still sends no
+    # referrer cross-origin, so Google Meet and Google sign-in learn nothing.
+    config.action_dispatch.default_headers["Referrer-Policy"] = "same-origin"
     config.filter_redirect += [
       %r{\Ahttps://meet\.google\.com/},
       %r{\Ahttps://accounts\.google\.com/}

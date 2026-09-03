@@ -40,7 +40,10 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Public Builder"
     assert_not_includes response.body, "builder@example.com"
     assert_includes response.headers.fetch("Content-Security-Policy"), "default-src 'self'"
-    assert_equal "no-referrer", response.headers["Referrer-Policy"]
+    # Cross-origin requests still carry no referrer at all; "no-referrer" itself
+    # cannot be used because browsers then send `Origin: null` on native form
+    # submissions, which Rails' origin-based CSRF check rejects.
+    assert_equal "same-origin", response.headers["Referrer-Policy"]
   end
 
   test "the public page describes the weekly group and emits social metadata" do
