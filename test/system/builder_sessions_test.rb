@@ -68,9 +68,47 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_text "Processing transcript"
   end
 
+  test "facilitator edits analysis and expands the private session artifacts" do
+    started_at = 2.hours.ago
+    @builder_session.update!(
+      state: "completed",
+      started_at:,
+      hangout_started_at: started_at + 30.minutes,
+      ended_at: started_at + 45.minutes,
+      facilitator_name_snapshot: @facilitator.name
+    )
+    @builder_session.create_transcript!(
+      state: "ready",
+      source: "manual",
+      content: "Ada: We shipped the smaller onboarding flow.",
+      summary_notes: "## Flow summary\n\n- Ship the narrow path first.",
+      session_analysis: "## Ada\n\n**Current project:** Onboarding"
+    )
+    sign_in_as(@facilitator)
+
+    visit builder_session_path(@builder_session)
+    assert_selector "[data-session-analysis-content] h2", text: "Ada"
+    assert_no_selector "details[data-session-notes][open]"
+    assert_no_selector "details[data-session-transcript][open]"
+
+    find("details[data-session-notes] > summary").click
+    assert_selector "details[data-session-notes][open]", text: /Ship the narrow path first/
+    find("details[data-session-transcript] > summary").click
+    assert_selector "details[data-session-transcript][open]", text: /smaller onboarding flow/
+
+    find(".session-context-editor > summary").click
+    fill_in "Session analysis (Markdown)", with: "## Ada\n\n**Current project:** Loop Labs\n\n**Latest trend:** She narrowed the launch again."
+    click_button "Save session analysis"
+
+    assert_selector "[data-session-analysis-content] h2", text: "Ada"
+    assert_selector "[data-session-analysis-content] strong", text: "Current project:"
+    assert_text "She narrowed the launch again."
+  end
+
   private
 
   def sign_in_as(user)
     visit verify_email_path(token: user.reload.generate_token_for(:email_verification))
+    assert_current_path dashboard_path
   end
 end

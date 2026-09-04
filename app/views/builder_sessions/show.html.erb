@@ -11,7 +11,7 @@
     <% if @builder_session.location.present? %><p class="session-location"><strong>Location:</strong> <%= @builder_session.location %></p><% end %>
     <% if @builder_session.meeting_code && @builder_session.joinable? %>
       <%= link_to "Join Google Meet", join_builder_session_path(@builder_session), class: "button button-primary", target: "_blank", rel: "noopener noreferrer" %>
-      <p class="privacy-note">This meeting may be transcribed. Session transcripts are retained for Program participants.</p>
+      <p class="privacy-note">This meeting may be recorded or transcribed. Private transcripts, AI-generated notes, and trend analysis are retained for Program participants. <%= link_to "Privacy details", privacy_path %>.</p>
     <% end %>
   </header>
 
@@ -162,35 +162,74 @@
     </section>
 
     <% transcript = @builder_session.transcript %>
-    <section class="transcript-panel"
-      <% if transcript&.state.in?(%w[pending processing]) %>
-        data-controller="session-refresh"
-        data-session-refresh-url-value="<%= heartbeat_builder_session_path(@builder_session) %>"
-        data-session-refresh-version-value="<%= @builder_session.updated_at.iso8601(6) %>"
-      <% end %>>
-      <div class="section-heading"><p class="eyebrow">Captured conversation</p><h2>Transcript</h2></div>
-      <% if transcript&.state == "ready" %>
-        <div class="session-transcript" data-session-transcript><%= simple_format(h(transcript.content)) %></div>
+    <% if transcript&.state == "ready" %>
+      <section class="session-record">
+        <section class="session-analysis-panel" data-session-analysis>
+          <div class="section-heading"><p class="eyebrow">The useful signal</p><h2>Session analysis</h2></div>
+          <% if transcript.session_analysis.present? %>
+            <div class="session-markdown session-analysis-content" data-session-analysis-content><%= render_session_markdown(transcript.session_analysis) %></div>
+          <% else %>
+            <p class="session-artifact-empty">Analysis has not been added yet.</p>
+          <% end %>
+
+          <% if session_operator? %>
+            <details class="session-context-editor">
+              <summary>Edit notes and analysis</summary>
+              <%= form_with scope: :transcript, url: builder_session_transcript_path(@builder_session), method: :patch do |form| %>
+                <%= form.label :summary_notes, "Summary notes (Markdown)" %>
+                <%= form.text_area :summary_notes, value: transcript.summary_notes, rows: 8, maxlength: 1.megabyte %>
+                <%= form.label :session_analysis, "Session analysis (Markdown)" %>
+                <%= form.text_area :session_analysis, value: transcript.session_analysis, rows: 14, maxlength: 1.megabyte %>
+                <%= form.submit "Save session analysis", class: "button button-primary" %>
+              <% end %>
+            </details>
+          <% end %>
+        </section>
+
+        <details class="session-artifact-panel" data-session-notes>
+          <summary><span><small>Wispr Flow</small>Summary notes</span><strong aria-hidden="true">+</strong></summary>
+          <% if transcript.summary_notes.present? %>
+            <div class="session-markdown" data-session-notes-content><%= render_session_markdown(transcript.summary_notes) %></div>
+          <% else %>
+            <p class="session-artifact-empty">Summary notes have not been added yet.</p>
+          <% end %>
+        </details>
+
+        <details class="session-artifact-panel" data-session-transcript>
+          <summary><span><small>Verbatim record</small>Transcript</span><strong aria-hidden="true">+</strong></summary>
+          <div class="session-transcript" data-session-transcript-content><%= simple_format(h(transcript.content)) %></div>
+        </details>
+
         <% if current_user.administrator? %>
-          <%= button_to "Delete transcript", builder_session_transcript_path(@builder_session), method: :delete, class: "button button-quiet", form: { data: { turbo_confirm: "Permanently delete this transcript?" } } %>
+          <%= button_to "Delete transcript", builder_session_transcript_path(@builder_session), method: :delete, class: "button button-quiet session-record-delete", form: { data: { turbo_confirm: "Permanently delete this transcript, notes, and analysis?" } } %>
         <% end %>
-      <% elsif transcript&.state == "deleted" %>
-        <p>This transcript was deleted.</p>
-      <% elsif transcript&.state == "unavailable" %>
+      </section>
+    <% else %>
+      <section class="transcript-panel"
+        <% if transcript&.state.in?(%w[pending processing]) %>
+          data-controller="session-refresh"
+          data-session-refresh-url-value="<%= heartbeat_builder_session_path(@builder_session) %>"
+          data-session-refresh-version-value="<%= @builder_session.updated_at.iso8601(6) %>"
+        <% end %>>
+        <div class="section-heading"><p class="eyebrow">Captured conversation</p><h2>Transcript</h2></div>
+        <% if transcript&.state == "deleted" %>
+          <p>This transcript, its notes, and its analysis were deleted.</p>
+        <% elsif transcript&.state == "unavailable" %>
         <div class="transcript-processing">
           <span class="transcript-orbit" aria-hidden="true">◆</span>
           <p><strong>Automatic transcript unavailable</strong></p>
           <p>Google did not make a transcript available within 24 hours. A facilitator can add the fallback copy.</p>
         </div>
         <%= render "manual_transcript_form", builder_session: @builder_session if session_operator? %>
-      <% else %>
-        <div class="transcript-processing">
-          <span class="transcript-orbit" aria-hidden="true">◆</span>
-          <p><strong>Processing transcript</strong></p>
-          <p><%= transcript&.processing_tip || BuilderSessionTranscript::PROCESSING_TIPS.first %></p>
-        </div>
-        <%= render "manual_transcript_form", builder_session: @builder_session if session_operator? %>
-      <% end %>
-    </section>
+        <% else %>
+          <div class="transcript-processing">
+            <span class="transcript-orbit" aria-hidden="true">◆</span>
+            <p><strong>Processing transcript</strong></p>
+            <p><%= transcript&.processing_tip || BuilderSessionTranscript::PROCESSING_TIPS.first %></p>
+          </div>
+          <%= render "manual_transcript_form", builder_session: @builder_session if session_operator? %>
+        <% end %>
+      </section>
+    <% end %>
   <% end %>
 </main>

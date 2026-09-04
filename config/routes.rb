@@ -20,7 +20,7 @@ Rails.application.routes.draw do
   end
   resources :builder_sessions, path: "sessions", only: %i[index show] do
     post :sync_calendar, on: :collection
-    resource :transcript, only: %i[create destroy], controller: "builder_session_transcripts"
+    resource :transcript, only: %i[create update destroy], controller: "builder_session_transcripts"
     member do
       get :join
       post :start

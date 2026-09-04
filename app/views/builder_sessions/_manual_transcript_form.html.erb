@@ -3,6 +3,10 @@
   <%= form_with scope: :transcript, url: builder_session_transcript_path(builder_session) do |form| %>
     <%= form.label :content, "Transcript text" %>
     <%= form.text_area :content, rows: 12, maxlength: 1.megabyte, required: true %>
-    <%= form.submit "Save read-only transcript", class: "button button-primary" %>
+    <%= form.label :summary_notes, "Summary notes (Markdown)" %>
+    <%= form.text_area :summary_notes, rows: 8, maxlength: 1.megabyte %>
+    <%= form.label :session_analysis, "Session analysis (Markdown)" %>
+    <%= form.text_area :session_analysis, rows: 12, maxlength: 1.megabyte %>
+    <%= form.submit "Save session record", class: "button button-primary" %>
   <% end %>
 </details>

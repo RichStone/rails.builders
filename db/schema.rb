@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_110000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -83,8 +83,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_130000) do
     t.datetime "last_attempted_at"
     t.string "last_error_code"
     t.datetime "next_attempt_at"
+    t.text "session_analysis"
     t.string "source"
     t.string "state", default: "pending", null: false
+    t.text "summary_notes"
     t.datetime "updated_at", null: false
     t.index ["builder_session_id"], name: "index_builder_session_transcripts_on_builder_session_id", unique: true
     t.index ["state", "next_attempt_at"], name: "index_builder_session_transcripts_on_state_and_next_attempt_at"

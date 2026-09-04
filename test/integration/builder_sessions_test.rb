@@ -48,6 +48,13 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
       scheduled_starts_at: 1.day.from_now,
       scheduled_ends_at: 1.day.from_now + 90.minutes
     )
+    @builder_session.create_transcript!(
+      state: "ready",
+      source: "manual",
+      content: "PRIVATE TRANSCRIPT",
+      summary_notes: "PRIVATE SUMMARY NOTES",
+      session_analysis: "PRIVATE SESSION ANALYSIS"
+    )
 
     get root_path
 
@@ -60,6 +67,9 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "abc-defg-hij"
     assert_not_includes response.body, "private-code"
     assert_not_includes response.body, @builder.email
+    assert_not_includes response.body, "PRIVATE TRANSCRIPT"
+    assert_not_includes response.body, "PRIVATE SUMMARY NOTES"
+    assert_not_includes response.body, "PRIVATE SESSION ANALYSIS"
   end
 
   test "the public live banner does not reveal private people or meeting links" do
@@ -93,6 +103,8 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_select "meta[name='turbo-cache-control'][content='no-cache']"
     assert_select "a[href='#{join_builder_session_path(@builder_session)}']", text: /Join Google Meet/
+    assert_select ".privacy-note", text: /recorded or transcribed.*AI-generated notes.*trend analysis/i
+    assert_select ".privacy-note a[href='#{privacy_path}']", text: "Privacy details"
     assert_select "[data-session-controls]", count: 0
 
     get join_builder_session_path(@builder_session)
@@ -279,13 +291,33 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(@facilitator)
     post builder_session_transcript_path(@builder_session), params: {
-      transcript: { content: "Ada\n<script>alert('nope')</script>\n<a href='https://example.com'>click</a>\n<img src='/up'>" }
+      transcript: {
+        content: "Ada\n<script>alert('nope')</script>\n<a href='https://example.com'>click</a>\n<img src='/up'>",
+        summary_notes: "## Flow summary\n\n- Ada shipped onboarding.\n\n<script>alert('notes')</script>",
+        session_analysis: "## Ada\n\n**Current project:** Onboarding\n\n**Latest trend:** Sharper scope.\n\n**What others commented:**\n\n- Yaro: Keep the launch narrow.\n\n[steal](javascript:alert('x'))\n\n<img src='/up'>"
+      }
     }
     assert_redirected_to builder_session_path(@builder_session)
     assert_equal "manual", transcript.reload.source
     assert_equal "ready", transcript.state
+    assert_equal "## Flow summary\n\n- Ada shipped onboarding.\n\n<script>alert('notes')</script>", transcript.summary_notes
+    assert_equal "## Ada\n\n**Current project:** Onboarding\n\n**Latest trend:** Sharper scope.\n\n**What others commented:**\n\n- Yaro: Keep the launch narrow.\n\n[steal](javascript:alert('x'))\n\n<img src='/up'>", transcript.session_analysis
+    assert_not_includes transcript.read_attribute_before_type_cast(:summary_notes), "Ada shipped onboarding"
+    assert_not_includes transcript.read_attribute_before_type_cast(:session_analysis), "Sharper scope"
 
     get builder_session_path(@builder_session)
+    panels = css_select(".session-record > [data-session-analysis], .session-record > [data-session-notes], .session-record > [data-session-transcript]")
+    assert_equal %w[data-session-analysis data-session-notes data-session-transcript], panels.map { |panel| panel.attributes.keys.grep(/^data-session-/).first }
+    assert_select "[data-session-analysis] h2", text: "Ada"
+    assert_select "[data-session-analysis] strong", text: "Current project:"
+    assert_select "[data-session-analysis] li", text: /Keep the launch narrow/
+    assert_select "[data-session-analysis] a", count: 0
+    assert_select "[data-session-analysis] img", count: 0
+    assert_select "details[data-session-notes]:not([open])"
+    assert_select "[data-session-notes] h2", text: "Flow summary"
+    assert_select "[data-session-notes] li", text: /Ada shipped onboarding/
+    assert_select "[data-session-notes] script", count: 0
+    assert_select "details[data-session-transcript]:not([open])"
     assert_select "[data-session-transcript]", text: /Ada/
     assert_select "[data-session-transcript] a", count: 0
     assert_select "[data-session-transcript] img", count: 0
@@ -293,6 +325,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "&lt;a href="
     assert_includes response.body, "&lt;img src="
     assert_select "textarea[name='transcript[content]']", count: 0
+    assert_select "textarea[name='transcript[session_analysis]']", count: 1
 
     admin = User.create!(email: "admin@example.com", name: "Administrator", administrator: true, verified_at: Time.current)
     delete sign_out_path
@@ -300,6 +333,47 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     delete builder_session_transcript_path(@builder_session)
     assert_equal "deleted", transcript.reload.state
     assert_nil transcript.content
+    assert_nil transcript.summary_notes
+    assert_nil transcript.session_analysis
+  end
+
+  test "facilitators update notes and analysis without changing a ready transcript while Builders cannot" do
+    travel_to(Time.zone.parse("2026-08-24 18:00")) { @builder_session.start!(facilitator: @facilitator) }
+    travel_to(Time.zone.parse("2026-08-24 19:00")) { @builder_session.finish! }
+    transcript = @builder_session.reload.transcript
+    transcript.replace_with_manual!("Original transcript", summary_notes: "Original notes", session_analysis: "## Original")
+    sign_in_as(@facilitator)
+
+    patch builder_session_transcript_path(@builder_session), params: {
+      transcript: {
+        content: "Replacement transcript",
+        state: "deleted",
+        source: "google",
+        summary_notes: "Updated notes",
+        session_analysis: "## Updated"
+      }
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal "Original transcript", transcript.reload.content
+    assert_equal "ready", transcript.state
+    assert_equal "manual", transcript.source
+    assert_equal "Updated notes", transcript.summary_notes
+    assert_equal "## Updated", transcript.session_analysis
+
+    delete sign_out_path
+    sign_in_as(@builder)
+    patch builder_session_transcript_path(@builder_session), params: {
+      transcript: { summary_notes: "Builder notes", session_analysis: "## Builder edit" }
+    }
+
+    assert_redirected_to builder_sessions_path
+    assert_equal "Updated notes", transcript.reload.summary_notes
+    assert_equal "## Updated", transcript.session_analysis
+
+    get builder_session_path(@builder_session)
+    assert_select "[data-session-analysis]", text: /Updated/
+    assert_select "textarea[name='transcript[session_analysis]']", count: 0
   end
 
   test "facilitators cannot overwrite ready or deleted transcripts by posting directly" do
@@ -316,6 +390,13 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     post builder_session_transcript_path(@builder_session), params: { transcript: { content: "Resurrected" } }
     assert_equal "deleted", transcript.reload.state
     assert_nil transcript.content
+
+    patch builder_session_transcript_path(@builder_session), params: {
+      transcript: { summary_notes: "Restored notes", session_analysis: "## Restored" }
+    }
+    assert_equal "deleted", transcript.reload.state
+    assert_nil transcript.summary_notes
+    assert_nil transcript.session_analysis
   end
 
   test "a manual transcript cannot be attached before a session is completed" do

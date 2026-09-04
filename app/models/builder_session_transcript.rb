@@ -15,6 +15,8 @@ class BuilderSessionTranscript < ApplicationRecord
   after_update_commit -> { builder_session.touch }
 
   encrypts :content
+  encrypts :summary_notes
+  encrypts :session_analysis
   encrypts :google_conference_record_name
   encrypts :google_transcript_names
 
@@ -23,6 +25,7 @@ class BuilderSessionTranscript < ApplicationRecord
   validates :attempts, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :last_error_code, length: { maximum: 100 }, allow_nil: true
   validates :content, length: { maximum: 1.megabyte }, allow_nil: true
+  validates :summary_notes, :session_analysis, length: { maximum: 1.megabyte }, allow_nil: true
   validates :content, presence: true, if: -> { state == "ready" }
 
   def transcript_names
@@ -33,7 +36,7 @@ class BuilderSessionTranscript < ApplicationRecord
     PROCESSING_TIPS[builder_session_id % PROCESSING_TIPS.length]
   end
 
-  def replace_with_manual!(value)
+  def replace_with_manual!(value, summary_notes: nil, session_analysis: nil)
     with_lock do
       unless state.in?(MANUAL_FALLBACK_STATES)
         errors.add(:state, "does not allow a replacement transcript")
@@ -44,6 +47,8 @@ class BuilderSessionTranscript < ApplicationRecord
         state: "ready",
         source: "manual",
         content: value.to_s.strip.presence,
+        summary_notes: summary_notes.to_s.strip.presence,
+        session_analysis: session_analysis.to_s.strip.presence,
         google_conference_record_name: nil,
         google_transcript_names: nil,
         next_attempt_at: nil,
@@ -54,15 +59,32 @@ class BuilderSessionTranscript < ApplicationRecord
     end
   end
 
+  def update_session_context!(attributes)
+    context = attributes.slice(:summary_notes, :session_analysis).transform_values { |value| value.to_s.strip.presence }
+
+    with_lock do
+      unless state == "ready"
+        errors.add(:state, "does not allow notes or analysis updates")
+        raise ActiveRecord::RecordInvalid, self
+      end
+
+      update!(context)
+    end
+  end
+
   def delete_content!
-    update!(
-      state: "deleted",
-      content: nil,
-      google_conference_record_name: nil,
-      google_transcript_names: nil,
-      next_attempt_at: nil,
-      deleted_at: Time.current,
-      last_error_code: nil
-    )
+    with_lock do
+      update!(
+        state: "deleted",
+        content: nil,
+        summary_notes: nil,
+        session_analysis: nil,
+        google_conference_record_name: nil,
+        google_transcript_names: nil,
+        next_attempt_at: nil,
+        deleted_at: Time.current,
+        last_error_code: nil
+      )
+    end
   end
 end
