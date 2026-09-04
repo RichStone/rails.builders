@@ -25,6 +25,14 @@ class RailsBuildersConfigurationTest < ActiveSupport::TestCase
     assert Honeybadger.config[:"request.disable_session"]
   end
 
+  test "CSRF rejections are reported instead of silently ignored" do
+    # Honeybadger ignores these by default, which is how a bug that rejected
+    # every non-Turbo form POST stayed invisible in production.
+    ignored = Honeybadger.config.ignored_classes
+    assert_not_includes ignored, "ActionController::InvalidAuthenticityToken"
+    assert_includes ignored, "ActionController::RoutingError", "the rest of the gem defaults must stay ignored"
+  end
+
   test "Google API clients do not log authenticated HTTP details" do
     assert_not Google::Apis.logger.debug?
   end

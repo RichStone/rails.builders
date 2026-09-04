@@ -4,3 +4,7 @@ report_data: <%= Rails.env.production? && ENV["HONEYBADGER_API_KEY"].present? %>
 request:
   disable_url: true
   disable_session: true
+exceptions:
+  # Honeybadger ignores CSRF failures by default, which hid a production bug.
+  # `ignore` only adds, so derive the gem's defaults and drop the one entry.
+  ignore_only: <%= (Honeybadger::Config::IGNORE_DEFAULT - ["ActionController::InvalidAuthenticityToken"]).to_json %>
