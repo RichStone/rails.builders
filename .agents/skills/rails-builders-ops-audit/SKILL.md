@@ -44,7 +44,7 @@ Collect only the minimum evidence needed to determine status:
 7. Report aggregate Solid Queue failed-execution and recurring-task counts.
 8. If the optional repository backup bundle is installed, confirm its timers are active and its last backup, repository check, and restore smoke test are fresh. Do not treat the intentionally uninstalled optional bundle as a failure.
 9. Use the first authenticated read-only Honeybadger capability available in this project, preferring the project-scoped MCP connection. Discover its current read tools instead of assuming fixed tool names, scope every query to Rails Builders, and skip rather than guess between projects. Check connectivity, the count of unresolved production errors newly seen or recurring in the last 24 hours, active alarms, and whether CPU, memory, and disk events from the host metrics service are current. When the integration exposes uptime monitors or check-ins, include their aggregate status. Never fetch or report individual occurrences, stack traces, messages, request data, user context, or provider identifiers during the routine audit.
-10. When authenticated access is available, confirm Hetzner backup and deletion-protection status without copying private details.
+10. Run `ops/monitoring/hetzner-status` when its repository-scoped Keychain credential is available. Report only its aggregate status fields; never include provider identifiers or retry with a token from another project.
 
 If an authenticated provider capability is unavailable, continue the independent health checks and report only which provider check was unavailable. Do not make a plugin or one exact MCP tool name a permanent dependency of this workflow.
 

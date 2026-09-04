@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 077
+
+readonly keychain_service="rails-builders-hcloud-readonly"
+
+command -v security >/dev/null 2>&1 || {
+  printf 'macOS Keychain is required\n' >&2
+  exit 1
+}
+
+read -rsp 'Hetzner read-only token: ' token
+printf '\n'
+
+if [[ -z "$token" ]]; then
+  printf 'No token entered\n' >&2
+  exit 1
+fi
+
+security add-generic-password \
+  -U \
+  -a "${USER:?USER is required}" \
+  -s "$keychain_service" \
+  -w "$token" >/dev/null
+unset token
+
+printf 'Hetzner audit credential stored in macOS Keychain\n'

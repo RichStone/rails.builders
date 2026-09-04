@@ -42,3 +42,24 @@ fields @ts, used_percent::float, load_avg_1::float, load_avg_5::float, load_avg_
 Change the event type to `report.system.memory` or `report.system.disk` for RAM
 or filesystem usage. The public `/up` endpoint remains only a liveness probe;
 resource details belong in the authenticated monitoring dashboard.
+
+## Hetzner status
+
+The daily audit can check the single server in this Hetzner project without
+exposing its name, address, or provider identifiers. Generate a project-scoped
+API token with **Read** permission, then store it locally without echoing it:
+
+```sh
+ops/monitoring/store-hetzner-token
+```
+
+Run the sanitized check with:
+
+```sh
+ops/monitoring/hetzner-status
+```
+
+The checker reads only aggregate server state, backup freshness, and protection
+flags. Its credential is stored in macOS Keychain under the repository-specific
+service name `rails-builders-hcloud-readonly`; it is not written to the repository
+or shared with other projects.

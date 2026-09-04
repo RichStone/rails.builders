@@ -1,0 +1,114 @@
+#!/usr/bin/env ruby
+
+require "json"
+require "net/http"
+require "open3"
+require "time"
+require "uri"
+
+class HetznerStatus
+  class Unavailable < StandardError; end
+
+  API_ROOT = "https://api.hetzner.cloud/v1/"
+  BACKUP_FRESHNESS_SECONDS = 48 * 60 * 60
+  KEYCHAIN_SERVICE = "rails-builders-hcloud-readonly"
+
+  def initialize(fetch:, now: Time.now.utc)
+    @fetch = fetch
+    @now = now
+  end
+
+  def call
+    servers = @fetch.call("servers").fetch("servers")
+    raise Unavailable, "project_scope_ambiguous" unless servers.one?
+
+    server = servers.first
+    backups = @fetch.call(backup_path(server.fetch("id"))).fetch("images")
+    latest_backup = backups.first
+
+    {
+      "server_running" => server.fetch("status") == "running",
+      "backups_enabled" => !server["backup_window"].nil?,
+      "backup_fresh" => backup_fresh?(latest_backup),
+      "deletion_protected" => server.dig("protection", "delete") == true,
+      "rebuild_protected" => server.dig("protection", "rebuild") == true
+    }
+  rescue KeyError, TypeError, JSON::ParserError
+    raise Unavailable, "response_invalid"
+  end
+
+  private
+
+  def backup_path(server_id)
+    "images?#{URI.encode_www_form(type: "backup", bound_to: server_id, sort: "created:desc", per_page: 1)}"
+  end
+
+  def backup_fresh?(backup)
+    return false unless backup
+
+    Time.parse(backup.fetch("created")) >= @now - BACKUP_FRESHNESS_SECONDS
+  rescue ArgumentError, KeyError
+    false
+  end
+end
+
+class HetznerApi
+  def initialize(token:)
+    @token = token
+  end
+
+  def fetch(path)
+    uri = URI.join(HetznerStatus::API_ROOT, path)
+    request = Net::HTTP::Get.new(uri)
+    request["Authorization"] = "Bearer #{@token}"
+
+    response = Net::HTTP.start(
+      uri.hostname,
+      uri.port,
+      use_ssl: true,
+      open_timeout: 5,
+      read_timeout: 10
+    ) { |http| http.request(request) }
+
+    raise HetznerStatus::Unavailable, "provider_unavailable" unless response.is_a?(Net::HTTPSuccess)
+
+    JSON.parse(response.body)
+  rescue JSON::ParserError
+    raise HetznerStatus::Unavailable, "response_invalid"
+  rescue IOError, SocketError, SystemCallError, Timeout::Error
+    raise HetznerStatus::Unavailable, "provider_unavailable"
+  end
+end
+
+def keychain_token
+  return unless File.executable?("/usr/bin/security")
+
+  token, _errors, status = Open3.capture3(
+    "/usr/bin/security",
+    "find-generic-password",
+    "-s",
+    HetznerStatus::KEYCHAIN_SERVICE,
+    "-w"
+  )
+  token.strip if status.success?
+end
+
+if $PROGRAM_NAME == __FILE__
+  begin
+    token = keychain_token
+    raise HetznerStatus::Unavailable, "credential_unavailable" if token.nil? || token.empty?
+
+    checks = HetznerStatus.new(fetch: HetznerApi.new(token:).method(:fetch)).call
+    checks.each { |name, passed| puts "#{name}=#{passed ? "ok" : "attention"}" }
+    puts "hetzner_status=#{checks.values.all? ? "ok" : "attention"}"
+    exit(checks.values.all? ? 0 : 1)
+  rescue HetznerStatus::Unavailable => error
+    warn "hetzner_status=unavailable"
+    warn "reason=#{error.message}"
+    exit 2
+  rescue StandardError
+    warn "hetzner_status=unavailable"
+    warn "reason=unexpected_error"
+    exit 2
+  end
+end
