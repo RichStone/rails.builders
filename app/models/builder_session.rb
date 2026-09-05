@@ -51,7 +51,7 @@ class BuilderSession < ApplicationRecord
     core_ends_at = hangout_started_at || ended_at
     return default_timer_minutes unless started_at && core_ends_at
 
-    ((core_ends_at - (builder_updates_started_at || started_at)) / 60).floor
+    (normalized_timer_seconds(core_ends_at - (builder_updates_started_at || started_at)) / 60).floor
   end
 
   def ready_attendances
@@ -215,11 +215,11 @@ class BuilderSession < ApplicationRecord
   def phase_remaining_seconds(at: Time.current)
     case state
     when "connection"
-      [ (pre_core_duration_seconds - effective_elapsed_seconds(at:)).ceil, 0 ].max
+      [ normalized_timer_seconds(pre_core_duration_seconds - effective_elapsed_seconds(at:)).ceil, 0 ].max
     when "builder_updates"
-      (scheduled_core_end_at(at:) - at).ceil
+      normalized_timer_seconds(scheduled_core_end_at(at:) - at).ceil
     when "closing"
-      [ (closing_duration_seconds - effective_seconds_since(closing_started_at, at:)).ceil, 0 ].max
+      [ normalized_timer_seconds(closing_duration_seconds - effective_seconds_since(closing_started_at, at:)).ceil, 0 ].max
     else
       0
     end
@@ -230,9 +230,9 @@ class BuilderSession < ApplicationRecord
   def clock_seconds(at: Time.current)
     if state == "hangout"
       hangout_elapsed = effective_seconds_since(hangout_started_at, at:)
-      hangout_duration_seconds.zero? ? hangout_elapsed.floor : hangout_duration_seconds - hangout_elapsed.ceil
+      hangout_duration_seconds.zero? ? normalized_timer_seconds(hangout_elapsed).floor : hangout_duration_seconds - normalized_timer_seconds(hangout_elapsed).ceil
     elsif state == "builder_updates" && current_speaker
-      current_speaker.speaker_allotted_seconds - effective_seconds_since(current_speaker.speaker_started_at, at:).ceil
+      current_speaker.speaker_allotted_seconds - normalized_timer_seconds(effective_seconds_since(current_speaker.speaker_started_at, at:)).ceil
     else
       phase_remaining_seconds(at:)
     end
@@ -351,6 +351,10 @@ class BuilderSession < ApplicationRecord
     expected_started_at.present? && run_token == expected_started_at
   end
 
+  def normalized_timer_seconds(seconds)
+    seconds.round(3)
+  end
+
   def attendance_for!(user)
     attendances.find_by(user:) || begin
       raise ActiveRecord::RecordNotFound unless state == "ready" && user.active? && !user.facilitator?
@@ -419,11 +423,11 @@ class BuilderSession < ApplicationRecord
     speakers = attendances.where(speaker_state: %w[speaking queued]).order(:speaker_position).to_a
     return if speakers.empty?
 
-    available_seconds = [ (scheduled_core_end_at(at:) - at).round(3).ceil, 0 ].max
+    available_seconds = [ normalized_timer_seconds(scheduled_core_end_at(at:) - at).ceil, 0 ].max
     seconds_per_speaker, extra_seconds = available_seconds.divmod(speakers.length)
     speakers.each_with_index do |speaker, index|
       remaining_seconds = seconds_per_speaker + (index < extra_seconds ? 1 : 0)
-      elapsed_seconds = speaker.speaker_state == "speaking" ? effective_seconds_since(speaker.speaker_started_at, at:).ceil : 0
+      elapsed_seconds = speaker.speaker_state == "speaking" ? normalized_timer_seconds(effective_seconds_since(speaker.speaker_started_at, at:)).ceil : 0
       speaker.update!(speaker_allotted_seconds: elapsed_seconds + remaining_seconds)
     end
   end

@@ -110,6 +110,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
     travel_to(started_at) { @builder_session.start!(facilitator: @facilitator, duration_seconds: 20.minutes.to_i) }
 
     @builder_session.update_column(:builder_updates_started_at, started_at + 0.0001)
+    @builder_session.current_speaker_attendance.update_column(:speaker_started_at, started_at - 0.0001)
     @builder_session.send(:distribute_remaining_speaker_time!, at: started_at)
 
     allocated_seconds = @builder_session.attendances.where(role: "builder").sum(:speaker_allotted_seconds)
