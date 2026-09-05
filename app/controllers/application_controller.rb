@@ -1,4 +1,14 @@
 class ApplicationController < ActionController::Base
+  PRODUCT_ANALYTICS_ROUTES = {
+    "home#index" => { route: "home", path: "/" },
+    "sessions#new" => { route: "sign_in", path: "/sign-in" },
+    "sessions#check_email" => { route: "check_email", path: "/check-email" },
+    "dashboard#show" => { route: "dashboard", path: "/dashboard" },
+    "builder_sessions#index" => { route: "sessions", path: "/sessions" },
+    "builder_sessions#show" => { route: "session", path: "/sessions/:session" },
+    "profiles#edit" => { route: "profile", path: "/profile" }
+  }.freeze
+
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
@@ -6,9 +16,15 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
   after_action :no_store, if: :current_user
 
-  helper_method :current_user, :session_member?, :session_operator?
+  helper_method :current_user, :session_member?, :session_operator?, :product_analytics_page
 
   private
+
+  def product_analytics_page
+    return unless Rails.configuration.x.posthog.enabled
+
+    PRODUCT_ANALYTICS_ROUTES["#{controller_path}##{action_name}"]
+  end
 
   def current_user
     @current_user ||= User.find_by(id: session[:user_id])

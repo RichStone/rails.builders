@@ -461,6 +461,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Hetzner"
     assert_includes response.body, "Resend"
     assert_includes response.body, "Honeybadger"
+    assert_includes response.body, "PostHog"
     assert_includes response.body, "ClickFunnels"
     assert_includes response.body, "lodge a complaint"
   end

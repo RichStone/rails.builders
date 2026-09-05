@@ -10,7 +10,9 @@ class SessionsController < ApplicationController
 
   def create
     @user = User.find_or_initialize_by(email: normalized_email)
+    new_registration = @user.new_record?
     if @user.save
+      ProductAnalytics.capture(new_registration ? "registration_created" : "verification_link_requested")
       request_newsletter if params[:newsletter_opt_in] == "1" && @user.newsletter_confirmed_at.nil?
       token = @user.with_lock do
         @user.increment!(:sign_in_token_version)
@@ -38,12 +40,14 @@ class SessionsController < ApplicationController
 
   def verify
     user = User.find_by_token_for!(:email_verification, params.require(:token))
+    first_verification = !user.verified?
     user.with_lock do
       raise ActiveSupport::MessageVerifier::InvalidSignature unless User.find_by_token_for(:email_verification, params[:token]) == user
 
       user.increment!(:sign_in_token_version)
     end
     user.complete_verification!
+    ProductAnalytics.capture(first_verification ? "registration_verified" : "sign_in_completed")
     reset_session
     session[:user_id] = user.id
     ClickfunnelsNewsletterJob.perform_later(user.id) if user.newsletter_confirmed_at?

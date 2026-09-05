@@ -25,7 +25,8 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-  <body>
+  <% analytics_page = product_analytics_page %>
+  <body<% if analytics_page %> data-posthog-token="<%= Rails.configuration.x.posthog.token %>" data-posthog-host="<%= Rails.configuration.x.posthog.host %>" data-posthog-route="<%= analytics_page.fetch(:route) %>" data-posthog-path="<%= analytics_page.fetch(:path) %>"<% end %>>
     <header class="site-header">
       <%= link_to root_path, class: "brand" do %>
         <%= render "layouts/brand_lockup" %>
@@ -42,7 +43,7 @@
           <%= link_to "How To", root_path(anchor: "how-it-works") %>
           <span class="nav-divider" aria-hidden="true">·</span>
           <%= link_to "Current Builders", root_path(anchor: "builders") %>
-          <%= link_to "Join or sign in", sign_in_path, class: "button button-small" %>
+          <%= link_to "Join or sign in", sign_in_path, class: "button button-small", data: { analytics_placement: "header" } %>
         <% end %>
       </nav>
     </header>

@@ -44,6 +44,12 @@ For the stated scope across homepage, sign-in, and app pages, **PostHog is the o
 
 Removing privacy from the ranking does not remove applicable legal or security obligations. In every product, retain the allowlisted event and normalized-route design below, and never send verification tokens, newsletter tokens, email addresses, private page titles, or record IDs.
 
+### Error monitoring decision
+
+Keep **Honeybadger as the likely long-term error tracker** even if PostHog is adopted for product analytics. Honeybadger's mature Ruby and Rails integration sits closer to the application's primary runtime and already provides Rails request and query performance dashboards, Ruby breadcrumbs, host metrics, external uptime probes, missing-job check-ins, and operational incident routing ([Rails dashboard](https://docs.honeybadger.io/guides/dashboards/rails/), [Ruby breadcrumbs](https://docs.honeybadger.io/lib/ruby/errors/breadcrumbs/), [uptime](https://docs.honeybadger.io/guides/uptime/), [check-ins](https://docs.honeybadger.io/guides/check-ins/)). Rails Builders already uses its host-metrics CLI and supports Honeybadger dead-man check-in URLs in the backup bundle.
+
+PostHog Error Tracking can capture Rails controller and Active Job exceptions and offers issue grouping, stack traces, releases, assignments, resolution, and alerts ([Rails installation](https://posthog.com/docs/error-tracking/installation/ruby-on-rails), [issues and exceptions](https://posthog.com/docs/error-tracking/issues-and-exceptions), [alerts](https://posthog.com/docs/error-tracking/alerts), [releases](https://posthog.com/docs/error-tracking/releases)). That overlap is not, by itself, a reason to migrate. Treat PostHog primarily as the product analytics system and Honeybadger as the operational error-monitoring system. Reconsider that boundary only when a concrete limitation or cost justifies a migration and explicit replacements exist for every Honeybadger capability in use.
+
 ## Privacy-first recommendation
 
 Start with **Umami Cloud Hobby**, provided the account can be contractually or operationally pinned to its EU service region. It is the best match for the complete requirement: a sub-2 KB, cookieless tracker; automatic page views; explicit click/form events; and ordered funnels built from page views and events. The hosted Hobby plan is free for low-traffic sites, while the self-hosted software is open source ([Umami introduction](https://docs.umami.is/docs), [cloud FAQ](https://docs.umami.is/docs/cloud/faq), [events](https://docs.umami.is/docs/track-events), [funnels](https://docs.umami.is/docs/funnel)).
@@ -87,9 +93,9 @@ Do not “track every click.” Use a small allowlist tied to actual decisions.
 
 ### Acquisition funnel
 
-1. `home_view` — public `/`
+1. `$pageview` with `route: home` — public `/`
 2. `join_cta_clicked` — attach a `placement` value from the fixed allowlist `header`, `hero`, `format`, `readiness`, or `footer`
-3. `sign_in_view` — public `/sign-in`
+3. `$pageview` with `route: sign_in` — public `/sign-in`
 4. `registration_created` — emit only after a new user record saves; the same form also signs in existing users
 5. `registration_verified` — emit only on the first transition from unverified to verified
 
@@ -97,14 +103,14 @@ Measure returning authentication separately with `verification_link_requested` a
 
 ### Enrollment funnel
 
-1. `dashboard_view` — normalized route name only
+1. `$pageview` with `route: dashboard` — normalized route name only
 2. `waitlist_joined` — successful server-side state transition
-3. `seat_offer_presented` — server-side or normalized dashboard state, without a user identifier
-4. `seat_confirmed` — successful server-side state transition
+3. `seat_offer_received` — successful server-side state transition
+4. `membership_started` — successful server-side state transition
 
 ### App engagement
 
-Use only normalized page/event names such as `dashboard`, `sessions_index`, `session_join_clicked`, `profile_edit`, and `profile_publication_requested`. Do not send record IDs, raw dynamic URLs, page titles, query strings, verification/newsletter tokens, names, emails, attendance data, session/transcript text, or product URLs. Exclude administration and facilitator surfaces unless a later decision identifies a concrete operational question they must answer.
+The initial page allowlist is `home`, `sign_in`, `check_email`, `dashboard`, `sessions`, `session`, and `profile`. The only custom interaction is `join_cta_clicked`; all conversions are emitted by Rails after committed state changes. The browser may attach only `route` and the bounded `placement`; it remains anonymous and is never identified with a Rails Builders account. Server conversion events have no custom properties and omit `distinct_id`, which makes the official Ruby SDK assign a fresh personless ID to each event; they provide exact aggregate counts without account linking or implied cross-event funnels. Do not send record IDs, raw dynamic URLs, page titles, query strings, verification/newsletter tokens, names, emails, attendance data, session/transcript text, or product URLs. Exclude administration and facilitator surfaces unless a later decision identifies a concrete operational question they must answer.
 
 For Turbo navigation, verify one and only one page-view event per completed visit. Record conversions only after the successful server-side state transition, not on submit-button clicks; otherwise validation errors and expired tokens inflate the numbers. For an Umami funnel, the server can render a one-time, allowlisted success marker on the redirected page and let the browser tracker emit the anonymous event. A backend event is fine for an exact aggregate counter but must not be assumed to join the originating browser session automatically.
 

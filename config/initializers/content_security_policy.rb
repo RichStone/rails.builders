@@ -10,7 +10,7 @@ Rails.application.configure do
   config.content_security_policy do |policy|
     policy.default_src :self
     policy.base_uri :self
-    policy.connect_src :self
+    policy.connect_src :self, "https://eu.i.posthog.com"
     policy.font_src :self, :data
     policy.form_action :self, "https://accounts.google.com"
     policy.frame_ancestors :none

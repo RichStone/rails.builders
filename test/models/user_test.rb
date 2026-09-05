@@ -24,6 +24,20 @@ class UserTest < ActiveSupport::TestCase
     assert_equal 1, @program.reload.occupied_seats
   end
 
+  test "enrollment conversions are emitted from committed state changes" do
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "inactive")
+    captured = []
+
+    with_stubbed_singleton_method(ProductAnalytics, :capture, ->(event) { captured << event }) do
+      user.update!(enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
+      user.update!(enrollment_status: "offered", offer_expires_at: 2.days.from_now, waitlist_joined_at: nil, waitlist_rank: nil)
+      user.update!(enrollment_status: "active", offer_expires_at: nil)
+      user.update!(enrollment_status: "withdrawn")
+    end
+
+    assert_equal %w[waitlist_joined seat_offer_received membership_started], captured
+  end
+
   test "opening general admission does not enroll inactive registrations" do
     first = User.create!(email: "first@example.com")
     second = User.create!(email: "second@example.com")

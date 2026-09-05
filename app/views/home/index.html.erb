@@ -8,7 +8,7 @@
       <h1>Build in public with other <em>Rails.Builders</em></h1>
       <p class="hero-lede">A focused group for engineers who build on Rails for their own business. Weekly sessions, momentum, honest feedback, gamification, and fellow devs who notice when you ship. AI-pilled.</p>
       <div class="hero-actions">
-        <%= link_to "Claim your place", sign_in_path, class: "button button-primary ruby-burst-button", data: { controller: "ruby-burst", action: "click->ruby-burst#explode" } %>
+        <%= link_to "Claim your place", sign_in_path, class: "button button-primary ruby-burst-button", data: { analytics_placement: "hero", controller: "ruby-burst", action: "click->ruby-burst#explode" } %>
         <%= link_to "See how it works", "#how-it-works", class: "button button-quiet" %>
       </div>
       <p class="microcopy">Email-only sign in · <%= pluralize(@program.places_left, "place") %> left 🔥</p>
@@ -140,7 +140,7 @@
         <% end %>
       </ol>
       <div class="format-progress" hidden data-program-format-target="progress" aria-hidden="true"><span>🚂</span></div>
-      <%= link_to "I love it 🤝", sign_in_path, class: "button format-handshake", hidden: true, data: { program_format_target: "handshake" } %>
+      <%= link_to "I love it 🤝", sign_in_path, class: "button format-handshake", hidden: true, data: { analytics_placement: "format", program_format_target: "handshake" } %>
     </div>
   </section>
 
@@ -157,7 +157,7 @@
         <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
         <div class="readiness-unlock" hidden data-readiness-checklist-target="unlock">
           <p><strong>That’s all you need!</strong> You’re ready to build with the group.</p>
-          <%= link_to "Bring me in 🤝", sign_in_path, class: "button button-primary" %>
+          <%= link_to "Bring me in 🤝", sign_in_path, class: "button button-primary", data: { analytics_placement: "readiness" } %>
         </div>
       </div>
     </details>
@@ -196,6 +196,6 @@
   </section>
 
   <section class="final-cta">
-    <div class="ruby-mark">◆</div><p class="eyebrow">Your next commit could use company</p><h2>Come build the thing.</h2><p>One email gets you started. We’ll tell you exactly where you stand.</p><%= link_to "Join Rails Builders", sign_in_path, class: "button button-light" %>
+    <div class="ruby-mark">◆</div><p class="eyebrow">Your next commit could use company</p><h2>Come build the thing.</h2><p>One email gets you started. We’ll tell you exactly where you stand.</p><%= link_to "Join Rails Builders", sign_in_path, class: "button button-light", data: { analytics_placement: "footer" } %>
   </section>
 </main>

@@ -104,6 +104,7 @@ an older workflow run refuses to replace a newer commit from `main`.
   [host metrics bundle](ops/monitoring/RUNBOOK.md) uses the same project to
   report CPU, load, RAM, and filesystem usage without exposing a diagnostics
   endpoint.
+- `POSTHOG_PROJECT_TOKEN` enables EU-hosted product analytics: anonymous normalized page views, allowlisted join clicks, and aggregate registration and enrollment conversions. Session replay, account identification, autocapture, logs, feature flags, and error tracking remain disabled. Honeybadger is the error-monitoring and operational-monitoring system.
 - `APP_HOST` controls links in production email and defaults to `rails.builders`.
 
 ### Google Calendar and Meet

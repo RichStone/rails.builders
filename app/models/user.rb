@@ -43,6 +43,7 @@ class User < ApplicationRecord
   before_validation :set_slack_desired_state
   before_validation :clear_public_profile_approval_without_opt_in
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
+  after_update_commit :capture_enrollment_conversion, if: :saved_change_to_enrollment_status?
   before_destroy :prevent_last_verified_administrator_deletion
 
   scope :og, -> { where(og: true) }
@@ -319,6 +320,15 @@ class User < ApplicationRecord
       FacilitatorMailer.enrollment_status(facilitator, self, enrollment_status).deliver_later
     end
     UserMailer.offer_reminder(self).deliver_later(wait_until: offer_expires_at - 24.hours) if offered? && offer_expires_at > 24.hours.from_now
+  end
+
+  def capture_enrollment_conversion
+    event = {
+      "waitlisted" => "waitlist_joined",
+      "offered" => "seat_offer_received",
+      "active" => "membership_started"
+    }[enrollment_status]
+    ProductAnalytics.capture(event) if event
   end
 
   def avatar_is_a_safe_image
