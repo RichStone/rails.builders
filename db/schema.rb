@@ -102,9 +102,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_110000) do
     t.string "facilitator_name_snapshot"
     t.string "finish_reason"
     t.string "google_event_id", null: false
+    t.integer "hangout_duration_seconds", default: 0, null: false
     t.datetime "hangout_started_at"
     t.string "location"
     t.string "meet_url"
+    t.integer "pre_core_duration_seconds", default: 0, null: false
     t.integer "program_id", null: false
     t.datetime "scheduled_ends_at", null: false
     t.datetime "scheduled_starts_at", null: false

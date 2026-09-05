@@ -2,9 +2,11 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["item", "status"]
-  static values = { url: String }
+  static values = { url: String, runStartedAt: String }
 
   start(event) {
+    if (this.saving) return
+
     this.draggedItem = event.currentTarget.closest("[data-speaker-order-target='item']")
     event.dataTransfer.effectAllowed = "move"
     event.dataTransfer.setData("text/plain", this.draggedItem.dataset.attendanceId)
@@ -33,6 +35,8 @@ export default class extends Controller {
   }
 
   earlier(event) {
+    if (this.saving) return
+
     const item = event.currentTarget.closest("[data-speaker-order-target='item']")
     const items = this.itemTargets
     const index = items.indexOf(item)
@@ -43,6 +47,8 @@ export default class extends Controller {
   }
 
   later(event) {
+    if (this.saving) return
+
     const item = event.currentTarget.closest("[data-speaker-order-target='item']")
     const items = this.itemTargets
     const index = items.indexOf(item)
@@ -53,6 +59,8 @@ export default class extends Controller {
   }
 
   async persist() {
+    this.element.dataset.speakerOrderSaving = "true"
+    if (this.hasStatusTarget) this.statusTarget.textContent = "Saving speaker order…"
     const response = await fetch(this.urlValue, {
       method: "PATCH",
       headers: {
@@ -61,14 +69,25 @@ export default class extends Controller {
         "X-CSRF-Token": document.querySelector("meta[name='csrf-token']")?.content
       },
       credentials: "same-origin",
-      body: JSON.stringify({ attendance_ids: this.itemTargets.map((item) => item.dataset.attendanceId) })
+      body: JSON.stringify({
+        attendance_ids: this.itemTargets.map((item) => item.dataset.attendanceId),
+        run_started_at: this.runStartedAtValue
+      })
     }).catch(() => null)
 
-    if (response?.status === 204) {
+    if (response?.ok) {
+      const state = await response.json()
+      const timer = document.querySelector("[data-controller~='session-timer']")
+      if (timer) timer.dataset.sessionTimerVersionValue = state.version
       if (this.hasStatusTarget) this.statusTarget.textContent = "Speaker order saved."
     } else {
       if (this.hasStatusTarget) this.statusTarget.textContent = "Speaker order changed elsewhere. Reloading."
       window.Turbo.visit(window.location.href, { action: "replace" })
     }
+    delete this.element.dataset.speakerOrderSaving
+  }
+
+  get saving() {
+    return this.element.dataset.speakerOrderSaving === "true"
   }
 }

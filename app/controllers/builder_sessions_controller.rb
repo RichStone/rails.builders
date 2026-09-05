@@ -1,7 +1,7 @@
 class BuilderSessionsController < ApplicationController
   before_action :require_session_member
-  before_action :require_session_operator, only: %i[sync_calendar start pause resume advance next_speaker finish attendance speaker_order end_time]
-  before_action :set_builder_session, only: %i[show join start pause resume advance next_speaker finish attendance speaker_order end_time heartbeat]
+  before_action :require_session_operator, only: %i[sync_calendar start cancel_start pause resume advance next_speaker finish attendance speaker_order timing]
+  before_action :set_builder_session, only: %i[show join start cancel_start pause resume advance next_speaker finish attendance speaker_order timing heartbeat]
   before_action :queue_stale_calendar_sync, only: :index
 
   def index
@@ -37,63 +37,93 @@ class BuilderSessionsController < ApplicationController
   end
 
   def start
-    duration_minutes = Integer(params[:duration_minutes], exception: false)
-    duration_seconds = duration_minutes&.between?(1, 300) ? duration_minutes.minutes.to_i : nil
-    @builder_session.start!(facilitator: current_user, duration_seconds:)
+    pre_core_minutes = params[:pre_core_minutes].nil? ? 0 : Integer(params[:pre_core_minutes], exception: false)
+    core_minutes = params[:duration_minutes].nil? ? @builder_session.default_timer_minutes : Integer(params[:duration_minutes], exception: false)
+    hangout_minutes = params[:hangout_minutes].nil? ? 0 : Integer(params[:hangout_minutes], exception: false)
+    valid_durations = pre_core_minutes&.between?(0, 300) && core_minutes&.between?(1, 300) &&
+      hangout_minutes&.between?(0, 300) && pre_core_minutes + core_minutes + hangout_minutes <= 300
+    return redirect_to(@builder_session, alert: "Choose valid session phase lengths.") unless valid_durations
+
+    @builder_session.start!(
+      facilitator: current_user,
+      duration_seconds: core_minutes.minutes.to_i,
+      pre_core_duration_seconds: pre_core_minutes.minutes.to_i,
+      hangout_duration_seconds: hangout_minutes.minutes.to_i
+    )
     redirect_to @builder_session, notice: "Session started."
   rescue BuilderSession::AlreadyActive, ActiveRecord::RecordInvalid
     redirect_to builder_sessions_path, alert: "The session could not be started."
   end
 
+  def cancel_start
+    cancelled = @builder_session.cancel_start!(expected_started_at: params[:run_started_at])
+    redirect_to @builder_session,
+      (cancelled ? { notice: "Mistaken session start discarded." } : { alert: "That session run had already changed." })
+  end
+
   def pause
-    @builder_session.pause!
-    redirect_to @builder_session, notice: "Session paused."
+    paused = params[:run_started_at].present? &&
+      @builder_session.pause!(expected_started_at: params[:run_started_at])
+    redirect_to @builder_session,
+      (paused ? { notice: "Session paused." } : { alert: "That session run had already changed." })
   end
 
   def resume
-    @builder_session.resume!
-    redirect_to @builder_session, notice: "Session resumed."
+    resumed = params[:run_started_at].present? &&
+      @builder_session.resume!(expected_started_at: params[:run_started_at])
+    redirect_to @builder_session,
+      (resumed ? { notice: "Session resumed." } : { alert: "That session run had already changed." })
   end
 
   def advance
-    @builder_session.advance_phase!
-    redirect_to @builder_session, notice: "Session advanced."
+    advanced = params[:state].present? && params[:run_started_at].present? &&
+      @builder_session.advance_phase!(expected_state: params[:state], expected_started_at: params[:run_started_at])
+    redirect_to @builder_session, (advanced ? { notice: "Session advanced." } : { alert: "The session had already moved on." })
   end
 
   def next_speaker
-    @builder_session.finish_current_speaker!
-    redirect_to @builder_session, notice: "Speaker completed."
+    speaker_id = Integer(params[:speaker_id], exception: false)
+    completed = speaker_id && params[:run_started_at].present? &&
+      @builder_session.finish_current_speaker!(expected_speaker_id: speaker_id, expected_started_at: params[:run_started_at])
+    redirect_to @builder_session, (completed ? { notice: "Speaker completed." } : { alert: "That speaker had already been completed." })
   end
 
   def finish
-    @builder_session.finish!
-    redirect_to @builder_session, notice: "Session finished."
+    finished = params[:run_started_at].present? && @builder_session.finish!(expected_started_at: params[:run_started_at])
+    redirect_to @builder_session,
+      (finished ? { notice: "Session finished." } : { alert: "That session run had already changed." })
   end
 
   def attendance
     user = User.find(params[:user_id])
-    if params[:status] == "present"
-      @builder_session.mark_present!(user)
+    changed = if params[:status] == "present"
+      @builder_session.mark_present!(user, expected_started_at: params[:run_started_at])
     else
-      @builder_session.mark_absent!(user)
+      @builder_session.mark_absent!(user, expected_started_at: params[:run_started_at])
     end
-    redirect_to @builder_session
+    redirect_to @builder_session, (changed ? {} : { alert: "That session run had already changed." })
   end
 
   def speaker_order
-    @builder_session.reorder_unspoken_speakers!(params[:attendance_ids])
-    head :no_content
+    reordered = params[:run_started_at].present? && @builder_session.reorder_unspoken_speakers!(
+      params[:attendance_ids],
+      expected_started_at: params[:run_started_at]
+    )
+    return head :conflict unless reordered
+
+    render json: { version: @builder_session.reload.updated_at.iso8601(6) }
   rescue BuilderSession::InvalidSpeakerOrder
     head :unprocessable_entity
   end
 
-  def end_time
+  def timing
     zone = ActiveSupport::TimeZone[@builder_session.time_zone]
+    corrected_start = zone&.parse(params[:started_at].to_s)
     corrected_end = zone&.parse(params[:ended_at].to_s)
-    @builder_session.correct_automatic_end!(corrected_end)
-    redirect_to @builder_session, notice: "Session end time corrected."
+    @builder_session.correct_times!(started_at: corrected_start, ended_at: corrected_end)
+    redirect_to @builder_session, notice: "Session times corrected."
   rescue ActiveRecord::RecordInvalid, ArgumentError
-    redirect_to @builder_session, alert: "The session end time could not be corrected."
+    redirect_to @builder_session, alert: "The session times could not be corrected."
   end
 
   def heartbeat

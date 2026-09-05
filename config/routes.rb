@@ -24,6 +24,7 @@ Rails.application.routes.draw do
     member do
       get :join
       post :start
+      post :cancel_start
       post :pause
       post :resume
       post :advance
@@ -31,7 +32,7 @@ Rails.application.routes.draw do
       post :finish
       patch :attendance
       patch :speaker_order
-      patch :end_time
+      patch :timing
       patch :heartbeat
     end
   end

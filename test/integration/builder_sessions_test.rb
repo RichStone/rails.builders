@@ -106,11 +106,198 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_select ".privacy-note", text: /recorded or transcribed.*AI-generated notes.*trend analysis/i
     assert_select ".privacy-note a[href='#{privacy_path}']", text: "Privacy details"
     assert_select "[data-session-controls]", count: 0
+    assert_select ".attendance-row", text: /Active Builder.*Attending/m
+    assert_select "form[action='#{attendance_builder_session_path(@builder_session)}']", count: 0
 
     get join_builder_session_path(@builder_session)
     assert_redirected_to "https://meet.google.com/abc-defg-hij"
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_equal "[FILTERED]", response.filtered_location
+  end
+
+  test "the ready session shows every Active Builder regardless of public profile" do
+    @builder.update!(public_profile: false, public_profile_approved: false)
+    sign_in_as(@facilitator)
+
+    get builder_session_path(@builder_session)
+
+    assert_response :success
+    assert_select ".attendance-panel", text: /Expected attendance/
+    assert_select ".attendance-row", text: /Active Builder.*Attending/m
+    assert_select ".attendance-row", text: /Waiting Builder/, count: 0
+    assert_select "form[action='#{attendance_builder_session_path(@builder_session)}']" do
+      assert_select "button", text: "Mark not attending"
+    end
+  end
+
+  test "facilitators can change expected attendance repeatedly before the session starts" do
+    sign_in_as(@facilitator)
+
+    2.times do
+      patch attendance_builder_session_path(@builder_session), params: { user_id: @builder.id, status: "present" }
+      follow_redirect!
+      assert_select ".attendance-row", text: /Active Builder.*Attending/m
+
+      patch attendance_builder_session_path(@builder_session), params: { user_id: @builder.id, status: "absent" }
+      follow_redirect!
+      assert_select ".attendance-row", text: /Active Builder.*Not attending/m
+    end
+
+    patch attendance_builder_session_path(@builder_session), params: { user_id: @builder.id, status: "present" }
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    follow_redirect!
+
+    assert_select ".attendance-row", text: /Active Builder.*Present/m
+    assert_nil @builder_session.attendances.find_by!(user: @builder).arrived_at
+  end
+
+  test "facilitators configure every phase and can discard a mistaken start" do
+    @builder_session.update!(
+      scheduled_starts_at: 2.hours.from_now,
+      scheduled_ends_at: 3.hours.from_now
+    )
+    sign_in_as(@facilitator)
+
+    get builder_session_path(@builder_session)
+
+    assert_select ".session-ready-panel", text: /outside the scheduled start window/i
+    assert_select "form[action='#{start_builder_session_path(@builder_session)}'][data-turbo='false']" do
+      assert_select "[data-turbo-confirm]", count: 0
+      assert_select "input[name='pre_core_minutes'][value='10']"
+      assert_select "input[name='duration_minutes'][value='30']"
+      assert_select "input[name='hangout_minutes'][value='30']"
+    end
+
+    post start_builder_session_path(@builder_session), params: {
+      pre_core_minutes: 5,
+      duration_minutes: 20,
+      hangout_minutes: 10
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal "connection", @builder_session.reload.state
+    assert_equal 5.minutes.to_i, @builder_session.pre_core_duration_seconds
+    assert_equal 20.minutes.to_i, @builder_session.timer_duration_seconds
+    assert_equal 10.minutes.to_i, @builder_session.hangout_duration_seconds
+
+    get builder_session_path(@builder_session)
+    assert_select ".live-phase", text: /Pre-core/i
+    assert_select "form[action='#{cancel_start_builder_session_path(@builder_session)}']" do
+      assert_select "input[name='run_started_at'][value='#{@builder_session.started_at.iso8601(6)}']"
+      assert_select "button", text: "Discard session run"
+    end
+
+    post cancel_start_builder_session_path(@builder_session), params: {
+      run_started_at: @builder_session.started_at.iso8601(6)
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal "ready", @builder_session.reload.state
+    assert_nil @builder_session.transcript
+  end
+
+  test "a stale finish submission cannot complete a newer timer run" do
+    first_start = Time.zone.parse("2026-08-24 18:00")
+    travel_to(first_start) { @builder_session.start!(facilitator: @facilitator) }
+    @builder_session.finish_current_speaker!(at: first_start + 1.minute)
+    first_run = @builder_session.started_at.iso8601(6)
+    assert @builder_session.cancel_start!(expected_started_at: first_run)
+
+    second_start = first_start + 2.minutes
+    travel_to(second_start) { @builder_session.start!(facilitator: @facilitator) }
+    @builder_session.finish_current_speaker!(at: second_start + 1.minute)
+    second_run = @builder_session.started_at.iso8601(6)
+    sign_in_as(@facilitator)
+
+    post finish_builder_session_path(@builder_session), params: { run_started_at: first_run }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal "hangout", @builder_session.reload.state
+    assert_nil @builder_session.transcript
+
+    post finish_builder_session_path(@builder_session), params: { run_started_at: second_run }
+
+    assert_equal "completed", @builder_session.reload.state
+    assert @builder_session.transcript
+  end
+
+  test "stale live controls cannot mutate a replacement timer run" do
+    User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
+    User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
+    first_start = Time.zone.parse("2026-08-24 18:00")
+    travel_to(first_start) { @builder_session.start!(facilitator: @facilitator, pre_core_duration_seconds: 5.minutes.to_i) }
+    first_run = @builder_session.run_token
+    assert @builder_session.cancel_start!(expected_started_at: first_run)
+    sign_in_as(@facilitator)
+
+    patch attendance_builder_session_path(@builder_session),
+      params: { user_id: @builder.id, status: "absent", run_started_at: first_run }
+    assert_equal "present", @builder_session.reload.attendances.find_by!(user: @builder).status
+
+    travel_to(first_start + 2.minutes) do
+      @builder_session.start!(facilitator: @facilitator, pre_core_duration_seconds: 5.minutes.to_i)
+    end
+    second_run = @builder_session.run_token
+
+    post pause_builder_session_path(@builder_session), params: { run_started_at: first_run }
+    assert_not @builder_session.reload.paused?
+    post pause_builder_session_path(@builder_session), params: { run_started_at: second_run }
+    assert @builder_session.reload.paused?
+
+    post resume_builder_session_path(@builder_session), params: { run_started_at: first_run }
+    assert @builder_session.reload.paused?
+    post resume_builder_session_path(@builder_session), params: { run_started_at: second_run }
+    assert_not @builder_session.reload.paused?
+
+    post advance_builder_session_path(@builder_session), params: { state: "connection", run_started_at: first_run }
+    assert_equal "connection", @builder_session.reload.state
+    post advance_builder_session_path(@builder_session), params: { state: "connection", run_started_at: second_run }
+    assert_equal "builder_updates", @builder_session.reload.state
+
+    current_speaker = @builder_session.current_speaker_attendance
+    patch attendance_builder_session_path(@builder_session),
+      params: { user_id: current_speaker.user_id, status: "absent", run_started_at: first_run }
+    assert_equal "present", current_speaker.reload.status
+    assert_equal current_speaker, @builder_session.reload.current_speaker_attendance
+
+    original_order = @builder_session.unspoken_speakers.pluck(:id)
+    patch speaker_order_builder_session_path(@builder_session),
+      params: { attendance_ids: original_order.reverse, run_started_at: first_run },
+      as: :json
+    assert_response :conflict
+    assert_equal original_order, @builder_session.reload.unspoken_speakers.pluck(:id)
+
+    post next_speaker_builder_session_path(@builder_session),
+      params: { speaker_id: current_speaker.id, run_started_at: first_run }
+    assert_equal current_speaker, @builder_session.reload.current_speaker_attendance
+  end
+
+  test "invalid phase lengths never start a session" do
+    sign_in_as(@facilitator)
+
+    [
+      { pre_core_minutes: "nope", duration_minutes: 20, hangout_minutes: 10 },
+      { pre_core_minutes: 100, duration_minutes: 200, hangout_minutes: 1 },
+      { pre_core_minutes: 10, duration_minutes: 0, hangout_minutes: 10 },
+      { pre_core_minutes: 10, duration_minutes: 20, hangout_minutes: -1 }
+    ].each do |phase_lengths|
+      post start_builder_session_path(@builder_session), params: phase_lengths
+
+      assert_redirected_to builder_session_path(@builder_session)
+      assert_equal "ready", @builder_session.reload.state
+      assert_equal "Choose valid session phase lengths.", flash[:alert]
+    end
+  end
+
+  test "Builders cannot discard an active timer run" do
+    @builder_session.start!(facilitator: @facilitator)
+    run_started_at = @builder_session.started_at.iso8601(6)
+    sign_in_as(@builder)
+
+    post cancel_start_builder_session_path(@builder_session), params: { run_started_at: }
+
+    assert_redirected_to builder_sessions_path
+    assert_equal "builder_updates", @builder_session.reload.state
   end
 
   test "cancelled and completed sessions cannot be joined" do
@@ -148,6 +335,68 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_select ".session-complete-panel", text: /90 minutes/, count: 0
   end
 
+  test "facilitators can correct completed start and end times while attendance stays editable" do
+    original_start = ActiveSupport::TimeZone["Europe/Madrid"].parse("2026-08-24 18:00")
+    @builder_session.update!(
+      state: "completed",
+      started_at: original_start,
+      hangout_started_at: original_start + 45.minutes,
+      ended_at: original_start + 75.minutes,
+      finish_reason: "manual",
+      facilitator_name_snapshot: @facilitator.name
+    )
+    @builder_session.attendances.create!(user: @builder, display_name: @builder.name, role: "builder", status: "present")
+    sign_in_as(@facilitator)
+
+    get builder_session_path(@builder_session)
+
+    assert_select "form[action='#{timing_builder_session_path(@builder_session)}']" do
+      assert_select "input[name='started_at']"
+      assert_select "input[name='ended_at']"
+      assert_select "input[type='submit'][value='Correct session times']"
+    end
+    assert_select "form[action='#{attendance_builder_session_path(@builder_session)}'] button", text: "Mark absent"
+
+    patch timing_builder_session_path(@builder_session), params: {
+      started_at: "2026-08-24T17:55",
+      ended_at: "2026-08-24T19:20"
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal original_start - 5.minutes, @builder_session.reload.started_at
+    assert_equal original_start + 80.minutes, @builder_session.ended_at
+  end
+
+  test "the correction form preserves recorded seconds in its own submitted values" do
+    zone = ActiveSupport::TimeZone["Europe/Madrid"]
+    started_at = zone.parse("2026-08-24 18:00:05") + 0.2.seconds
+    displayed_start = zone.parse("2026-08-24 18:00:05")
+    displayed_end = zone.parse("2026-08-24 18:46:00")
+    @builder_session.update!(
+      state: "completed",
+      started_at:,
+      builder_updates_started_at: started_at + 0.6.seconds,
+      hangout_started_at: displayed_end + 0.2.seconds,
+      ended_at: displayed_end + 0.7.seconds,
+      facilitator_name_snapshot: @facilitator.name
+    )
+    sign_in_as(@facilitator)
+
+    get builder_session_path(@builder_session)
+
+    assert_select "input[name='started_at'][value='2026-08-24T18:00:05'][step='1']"
+    assert_select "input[name='ended_at'][value='2026-08-24T18:46:00'][step='1']"
+
+    patch timing_builder_session_path(@builder_session), params: {
+      started_at: "2026-08-24T18:00:05",
+      ended_at: "2026-08-24T18:46:00"
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal displayed_start, @builder_session.reload.started_at
+    assert_equal displayed_end, @builder_session.ended_at
+  end
+
   test "a missed ready session appears in Past instead of Upcoming" do
     sign_in_as(@builder)
 
@@ -181,29 +430,50 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     sign_in_as(@facilitator)
     post start_builder_session_path(@builder_session), params: { duration_minutes: 45 }
     assert_redirected_to builder_session_path(@builder_session)
-    assert_equal "connection", @builder_session.reload.state
+    assert_equal "builder_updates", @builder_session.reload.state
     assert_equal 45.minutes.to_i, @builder_session.timer_duration_seconds
+    run_started_at = @builder_session.run_token
 
     get builder_session_path(@builder_session)
     assert_select "[data-controller='session-timer']"
     assert_select "[data-session-controls]"
     assert_select "form[action='#{pause_builder_session_path(@builder_session)}']"
 
-    patch attendance_builder_session_path(@builder_session), params: { user_id: @builder.id, status: "present" }
+    patch attendance_builder_session_path(@builder_session), params: { user_id: @builder.id, status: "present", run_started_at: }
     assert_equal "present", @builder_session.attendances.find_by!(user: @builder).status
 
-    post advance_builder_session_path(@builder_session)
-    assert_equal "builder_updates", @builder_session.reload.state
-    post pause_builder_session_path(@builder_session)
+    post pause_builder_session_path(@builder_session), params: { run_started_at: }
     assert @builder_session.paused?
-    post resume_builder_session_path(@builder_session)
+    post resume_builder_session_path(@builder_session), params: { run_started_at: }
     assert_not @builder_session.paused?
-    post next_speaker_builder_session_path(@builder_session)
-    assert_equal "closing", @builder_session.reload.state
-    post advance_builder_session_path(@builder_session)
+    speaker_id = @builder_session.current_speaker_attendance.id
+    post next_speaker_builder_session_path(@builder_session), params: { speaker_id:, run_started_at: }
     assert_equal "hangout", @builder_session.reload.state
-    post finish_builder_session_path(@builder_session)
+    post finish_builder_session_path(@builder_session), params: { run_started_at: @builder_session.started_at.iso8601(6) }
     assert_equal "completed", @builder_session.reload.state
+  end
+
+  test "repeated speaker and core-finish submissions do not skip ahead" do
+    User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
+    User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
+    sign_in_as(@facilitator)
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    first_speaker_id = @builder_session.reload.current_speaker_attendance.id
+    run_started_at = @builder_session.run_token
+
+    2.times do
+      post next_speaker_builder_session_path(@builder_session), params: { speaker_id: first_speaker_id, run_started_at: }
+    end
+
+    assert_equal "builder_updates", @builder_session.reload.state
+    assert_equal 1, @builder_session.attendances.where(speaker_state: "completed").count
+
+    2.times do
+      post advance_builder_session_path(@builder_session), params: { state: "builder_updates", run_started_at: }
+    end
+
+    assert_equal "hangout", @builder_session.reload.state
+    assert_nil @builder_session.ended_at
   end
 
   test "the facilitator sees a two-thirds timer default and the session prompts" do
@@ -212,18 +482,14 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
 
     get builder_session_path(@builder_session)
 
-    assert_select "label[for='duration_minutes']", text: "Core session timer (minutes)"
+    assert_select "label[for='duration_minutes']", text: "Core (minutes)"
     assert_select "input[name='duration_minutes'][value='60']"
 
     post start_builder_session_path(@builder_session)
     assert_equal 60.minutes.to_i, @builder_session.reload.timer_duration_seconds
 
     get builder_session_path(@builder_session)
-    assert_select "h2", text: "What did you ship—or learn—since we last met?"
-
-    @builder_session.mark_present!(@builder)
-    post advance_builder_session_path(@builder_session)
-    get builder_session_path(@builder_session)
+    assert_select ".live-phase", text: /Core session/i
 
     assert_select "[data-session-prompts]" do
       assert_select "li", text: "One business challenge"
@@ -232,12 +498,23 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "the live room shows the shared core-time allocation for every queued Builder" do
+    User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
+    sign_in_as(@facilitator)
+
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    follow_redirect!
+
+    assert_select ".live-phase", text: /Core session/i
+    assert_select ".speaker-queue .attendance-row", count: 1 do
+      assert_select "span", text: /Up next · 15:00 allocated/
+    end
+  end
+
   test "facilitators drag the complete unspoken queue into a new order" do
     second_builder = User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     third_builder = User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
     @builder_session.start!(facilitator: @facilitator)
-    [ @builder, second_builder, third_builder ].each { |builder| @builder_session.mark_present!(builder) }
-    @builder_session.advance_phase!
     requested_order = @builder_session.unspoken_speakers.pluck(:id).reverse
     sign_in_as(@facilitator)
 
@@ -245,13 +522,16 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller~='speaker-order']"
     assert_select "[data-speaker-order-target='item']", count: 2
 
-    patch speaker_order_builder_session_path(@builder_session), params: { attendance_ids: requested_order }, as: :json
+    patch speaker_order_builder_session_path(@builder_session),
+      params: { attendance_ids: requested_order, run_started_at: @builder_session.run_token },
+      as: :json
 
-    assert_response :no_content
+    assert_response :success
+    assert_equal @builder_session.reload.updated_at.iso8601(6), response.parsed_body.fetch("version")
     assert_equal requested_order, @builder_session.unspoken_speakers.pluck(:id)
 
     patch speaker_order_builder_session_path(@builder_session),
-      params: { attendance_ids: [ requested_order.first, requested_order.first ] },
+      params: { attendance_ids: [ requested_order.first, requested_order.first ], run_started_at: @builder_session.run_token },
       as: :json
     assert_response :unprocessable_entity
     assert_equal requested_order, @builder_session.unspoken_speakers.pluck(:id)
@@ -261,8 +541,6 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     second_builder = User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     third_builder = User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
     @builder_session.start!(facilitator: @facilitator)
-    [ @builder, second_builder, third_builder ].each { |builder| @builder_session.mark_present!(builder) }
-    @builder_session.advance_phase!
     original_order = @builder_session.unspoken_speakers.pluck(:id)
     requested_order = original_order.reverse
     sign_in_as(@builder)
@@ -271,16 +549,20 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller~='speaker-order']", count: 0
     assert_select "[draggable='true'][data-action*='speaker-order']", count: 0
 
-    patch speaker_order_builder_session_path(@builder_session), params: { attendance_ids: requested_order }, as: :json
+    patch speaker_order_builder_session_path(@builder_session),
+      params: { attendance_ids: requested_order, run_started_at: @builder_session.run_token },
+      as: :json
     assert_redirected_to builder_sessions_path
     assert_equal original_order, @builder_session.unspoken_speakers.pluck(:id)
 
     delete sign_out_path
     administrator = User.create!(email: "administrator@example.com", name: "Administrator", administrator: true, verified_at: Time.current)
     sign_in_as(administrator)
-    patch speaker_order_builder_session_path(@builder_session), params: { attendance_ids: requested_order }, as: :json
+    patch speaker_order_builder_session_path(@builder_session),
+      params: { attendance_ids: requested_order, run_started_at: @builder_session.run_token },
+      as: :json
 
-    assert_response :no_content
+    assert_response :success
     assert_equal requested_order, @builder_session.unspoken_speakers.pluck(:id)
   end
 
@@ -421,20 +703,26 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller='session-refresh']", count: 0
   end
 
-  test "facilitators correct an automatic close while Builders cannot" do
+  test "facilitators correct an automatic close while Builders cannot change session times" do
     started_at = ActiveSupport::TimeZone["Europe/Madrid"].parse("2026-08-24 18:00")
     travel_to(started_at) { @builder_session.start!(facilitator: @facilitator) }
     travel_to(started_at + 6.hours) { @builder_session.synchronize! }
     sign_in_as(@facilitator)
 
-    patch end_time_builder_session_path(@builder_session), params: { ended_at: "2026-08-24T19:30" }
+    patch timing_builder_session_path(@builder_session), params: {
+      started_at: "2026-08-24T18:00",
+      ended_at: "2026-08-24T19:30"
+    }
 
     assert_redirected_to builder_session_path(@builder_session)
     assert_equal started_at + 90.minutes, @builder_session.reload.ended_at
 
     delete sign_out_path
     sign_in_as(@builder)
-    patch end_time_builder_session_path(@builder_session), params: { ended_at: "2026-08-24T20:00" }
+    patch timing_builder_session_path(@builder_session), params: {
+      started_at: "2026-08-24T18:00",
+      ended_at: "2026-08-24T20:00"
+    }
 
     assert_redirected_to builder_sessions_path
     assert_equal started_at + 90.minutes, @builder_session.reload.ended_at

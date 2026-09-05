@@ -20,7 +20,7 @@ class GoogleMeetTranscriptImportTest < ActiveSupport::TestCase
       time_zone: "Europe/Madrid"
     )
     travel_to(Time.zone.parse("2026-08-24 18:00")) { @builder_session.start!(facilitator: @facilitator) }
-    assert_equal "connection", @builder_session.reload.state
+    assert_equal "hangout", @builder_session.reload.state
     travel_to(Time.zone.parse("2026-08-24 19:00")) { @builder_session.finish! }
     assert_equal "completed", @builder_session.reload.state
     @transcript = BuilderSessionTranscript.find_by!(builder_session: @builder_session)

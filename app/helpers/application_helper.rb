@@ -40,4 +40,9 @@ module ApplicationHelper
     )
     sanitize(html, tags: SESSION_MARKDOWN_TAGS, attributes: [])
   end
+
+  def format_timer_seconds(total_seconds)
+    minutes, seconds = total_seconds.to_i.abs.divmod(60)
+    "#{"−" if total_seconds.to_i.negative?}#{minutes}:#{seconds.to_s.rjust(2, "0")}"
+  end
 end
