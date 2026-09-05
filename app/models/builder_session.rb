@@ -419,7 +419,7 @@ class BuilderSession < ApplicationRecord
     speakers = attendances.where(speaker_state: %w[speaking queued]).order(:speaker_position).to_a
     return if speakers.empty?
 
-    available_seconds = [ (scheduled_core_end_at(at:) - at).ceil, 0 ].max
+    available_seconds = [ (scheduled_core_end_at(at:) - at).round(3).ceil, 0 ].max
     seconds_per_speaker, extra_seconds = available_seconds.divmod(speakers.length)
     speakers.each_with_index do |speaker, index|
       remaining_seconds = seconds_per_speaker + (index < extra_seconds ? 1 : 0)

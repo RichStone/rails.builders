@@ -104,6 +104,18 @@ class BuilderSessionTest < ActiveSupport::TestCase
     assert_equal [ 10.minutes.to_i ], @builder_session.attendances.where(role: "builder").pluck(:speaker_allotted_seconds).uniq
   end
 
+  test "timestamp precision cannot invent an extra second of speaker budget" do
+    User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
+    started_at = Time.zone.parse("2026-08-24 18:00")
+    travel_to(started_at) { @builder_session.start!(facilitator: @facilitator, duration_seconds: 20.minutes.to_i) }
+
+    @builder_session.update_column(:builder_updates_started_at, started_at + 0.0001)
+    @builder_session.send(:distribute_remaining_speaker_time!, at: started_at)
+
+    allocated_seconds = @builder_session.attendances.where(role: "builder").sum(:speaker_allotted_seconds)
+    assert_equal 20.minutes.to_i, allocated_seconds
+  end
+
   test "configured pre-core delays randomization and preserves the full core budget" do
     second_builder = User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     started_at = Time.zone.parse("2026-08-24 18:00")
