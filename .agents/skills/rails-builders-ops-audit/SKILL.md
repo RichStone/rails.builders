@@ -23,13 +23,17 @@ If a check cannot be performed without exposing sensitive data, skip it and repo
 
 ## Authorization boundary
 
-The repository owner grants standing authorization for scheduled and manual audits to update and squash-merge Dependabot PRs that pass every gate in this skill. This authorization is limited to the guarded Dependabot workflow and its three-merge-per-sweep cap.
+The repository owner grants standing authorization for scheduled and manual audits to fetch `origin` and fast-forward a clean local `main` to `origin/main` before auditing. This authorization permits only a fast-forward; it does not permit switching branches, merging divergent history, or disturbing local work.
+
+The repository owner also grants standing authorization to update and squash-merge Dependabot PRs that pass every gate in this skill. This authorization is limited to the guarded Dependabot workflow and its three-merge-per-sweep cap.
 
 Everything else remains read-only. This skill does not authorize a manual deploy, reboot, package installation, credential or account change, firewall or DNS change, provider mutation, unrelated code edit, non-Dependabot PR update, or non-Dependabot merge.
 
 ## Preserve the workspace
 
-Start with `git status --short --branch`. Never reset, clean, stash, overwrite, or commit unrelated local work. If dependency verification needs a checkout and the current workspace is dirty, use a temporary worktree based on the remote PR head.
+Start with `git status --short --branch`, then fetch `origin`. If the current branch is `main`, the workspace is clean, and local history can be fast-forwarded, update it to `origin/main` before reading repository configuration or running checks. This keeps project-scoped integrations, scripts, and audit policy current.
+
+If the workspace is dirty, is on another branch, or has diverged from `origin/main`, do not switch, reset, clean, stash, merge, overwrite, or commit local work. Run the audit from a temporary worktree based on `origin/main`, and remove that worktree when finished. Use a separate temporary worktree based on the remote PR head when dependency verification requires its checkout.
 
 ## Production audit
 
