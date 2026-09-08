@@ -84,7 +84,7 @@ button, input, textarea, select { font: inherit; }
 .countdown span { display: block; margin-top: 12px; color: #77c793; font: 700 11px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .24em; text-transform: uppercase; }
 .countdown-label { margin: -10px 0 0 !important; color: #9ed7b2 !important; text-align: center; font: 700 12px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing: .12em; text-transform: uppercase; }
 
-.section { max-width: 1184px; margin: auto; padding: 110px 0; }
+.section { max-width: 1240px; margin: auto; padding: 110px 28px; }
 .section-heading { max-width: 720px; margin-bottom: 54px; }.section-heading h2 { font-size: clamp(42px, 5vw, 67px); }.section-heading > p:last-child { max-width: 620px; margin-top: 20px; color: var(--muted); font-size: 18px; }
 .section-reveal { position: relative; }.section-reveal > summary { list-style: none; }.section-reveal > summary::-webkit-details-marker { display: none; }.section-reveal-trigger { border: 1px solid transparent; display: flex; align-items: center; gap: 17px; cursor: pointer; user-select: none; }.section-reveal-trigger strong,.section-reveal-trigger small { display: block; }.section-reveal-trigger strong { font: 700 16px/1.15 "Space Grotesk",sans-serif; letter-spacing: -.02em; }.section-reveal-trigger small { margin-top: 5px; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .how-it-works { padding-bottom: 135px; }
@@ -194,7 +194,7 @@ button, input, textarea, select { font: inherit; }
 
 @media (max-width: 1050px) {
   .hero { min-height: auto; grid-template-columns: 1fr .75fr; }.hero-art { min-height: 430px; }.hero-art::before { width: 330px; height: 330px; }.orbit-one { width: 390px; }.orbit-two { height: 430px; }
-  .section { padding-left: 28px; padding-right: 28px; }.how-it-works .section-heading { max-width: calc(100% - 295px); }.calendar-stage,.program-format { padding-left: 28px; padding-right: 28px; }.steps { grid-template-columns: 1fr 1fr; }.builder-grid { grid-template-columns: repeat(3,1fr); }.cohort-strip { margin-left: 20px; margin-right: 20px; }.public-session-grid { grid-template-columns: 1fr 1fr; }
+  .how-it-works .section-heading { max-width: calc(100% - 295px); }.calendar-stage,.program-format { padding-left: 28px; padding-right: 28px; }.steps { grid-template-columns: 1fr 1fr; }.builder-grid { grid-template-columns: repeat(3,1fr); }.cohort-strip { margin-left: 20px; margin-right: 20px; }.public-session-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 760px) {
   .site-header { min-height: 70px; height: auto; padding: 14px 18px; flex-wrap: wrap; gap: 8px 18px; }.site-header nav { width: 100%; padding-bottom: 2px; gap: 18px; overflow-x: auto; scrollbar-width: thin; }.site-header nav a { flex: 0 0 auto; }.site-footer { flex-direction: column; gap: 9px; padding: 28px 20px; }
