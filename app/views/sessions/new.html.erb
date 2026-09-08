@@ -1,7 +1,7 @@
 <main class="auth-page"><section class="auth-card">
   <p class="eyebrow">Join or come back</p><h1>One email. No password.</h1><p>We’ll send a secure link that verifies your address and signs you in.</p>
   <%= form_with url: sign_in_path, class: "stacked-form" do |form| %>
-    <%= form.label :email, "Email address" %><%= form.email_field :email, required: true, autofocus: true, autocomplete: "email", maxlength: 320, placeholder: "you@example.com" %>
+    <%= form.label :email, "Email address" %><%= form.email_field :email, value: @user&.email, required: true, autofocus: true, autocomplete: "email", maxlength: 254, placeholder: "you@example.com" %>
     <label class="check-row"><%= form.check_box :newsletter_opt_in %><span>Yes, email me Rich Steinmetz’s Loop Labs newsletter about Rails, AI engineering, and building software products. <small>Optional. We’ll ask you to confirm separately, and every email includes an unsubscribe link.</small></span></label>
     <%= form.submit "Email me a secure link", class: "button button-primary" %>
   <% end %>

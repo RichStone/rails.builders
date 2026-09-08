@@ -53,6 +53,16 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_response :too_many_requests
   end
 
+  test "malformed email addresses show a correction before either confirmation is queued" do
+    assert_no_enqueued_emails do
+      post sign_in_path, params: { email: "builder..name@example.com", newsletter_opt_in: "1" }
+    end
+
+    assert_response :unprocessable_content
+    assert_select ".alert", text: "Email is invalid"
+    assert_select "input[name='email'][value='builder..name@example.com']"
+  end
+
   test "a successful sign-in rejects the pre-authentication CSRF token" do
     previous_forgery_protection = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true

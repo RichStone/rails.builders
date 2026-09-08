@@ -3,6 +3,29 @@ require "test_helper"
 class UserTest < ActiveSupport::TestCase
   READINESS_CONFIRMATION = %w[0 1 2 3 4 5].freeze
 
+  test "email addresses reject malformed recipient syntax and oversized parts" do
+    [
+      ".builder@example.com", "builder.@example.com", "builder..name@example.com",
+      "builder@localhost", "builder@-example.com", "builder@example-.com",
+      "#{'a' * 65}@example.com", "builder@#{'a' * 64}.com",
+      "#{'a' * 64}@#{'b' * 63}.#{'c' * 63}.#{'d' * 61}.com"
+    ].each do |email|
+      user = User.new(email: email)
+
+      assert_not user.valid?, "accepted malformed recipient: #{email}"
+      assert user.errors.of_kind?(:email, :invalid) || user.errors.of_kind?(:email, :too_long)
+    end
+  end
+
+  test "email addresses allow normalized plus addressing and valid length boundaries" do
+    [ " Builder.Name+rails@Example.co.uk ", "o'connor@example.com", "#{'a' * 64}@#{'b' * 63}.com" ].each do |email|
+      user = User.new(email: email)
+
+      assert user.valid?, user.errors.full_messages.to_sentence
+      assert_equal email.strip.downcase, user.email
+    end
+  end
+
   setup do
     @program = Program.create!(
       name: "Continuous",

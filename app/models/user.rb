@@ -23,7 +23,8 @@ class User < ApplicationRecord
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :name, :testimonial, with: ->(value) { value.strip }
 
-  validates :email, presence: true, uniqueness: { case_sensitive: false }, length: { maximum: 320 }, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :email, presence: true, uniqueness: { case_sensitive: false }, length: { maximum: 254 }, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validate :email_has_deliverable_parts
   validates :name, length: { maximum: 100 }, allow_nil: true
   validates :testimonial, length: { maximum: 2_000 }, allow_nil: true
   validates :enrollment_status, inclusion: { in: ENROLLMENT_STATUSES }
@@ -273,6 +274,17 @@ class User < ApplicationRecord
   end
 
   private
+
+  def email_has_deliverable_parts
+    local_part, domain = email.to_s.split("@", 2)
+    return unless domain
+
+    # URI's mailto pattern permits dot placement and lengths rejected by delivery providers.
+    unless local_part.length <= 64 && !local_part.match?(/\A\.|\.\.|\.\z/) &&
+        domain.include?(".") && domain.split(".").all? { |label| label.length <= 63 }
+      errors.add(:email, :invalid)
+    end
+  end
 
   def clear_seat_and_queue!(status:)
     update!(enrollment_status: status, offer_expires_at: nil, waitlist_joined_at: nil, waitlist_rank: nil)
