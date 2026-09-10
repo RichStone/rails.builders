@@ -13,6 +13,22 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
+  test "admin sees registration and email health using aggregate counts" do
+    SignupAbuse.record(:registration_created)
+    SignupAbuse.record(:honeypot)
+    SignupAbuse.record(:email_bounced)
+    sign_in_as(@admin)
+
+    get admin_root_path
+
+    assert_select "section[data-signup-monitoring]" do
+      assert_select "h2", text: "Signup and email health"
+      assert_select "li", text: /New registrations: 1/
+      assert_select "li", text: /Bot form submissions: 1/
+      assert_select "li", text: /Bounced emails: 1/
+    end
+  end
+
   test "Calendar connection leaves Turbo so the browser can follow Google redirects" do
     sign_in_as(@admin)
 

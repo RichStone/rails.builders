@@ -5,6 +5,7 @@ class Admin::DashboardController < Admin::BaseController
     @program = Program.current
     @calendar_connection = @program.calendar_connection
     @users = User.order(:waitlist_rank, :created_at)
+    @signup_counts = SignupAbuse.counts
     builders_by_status = @users.group_by(&:enrollment_status)
     statuses = %w[active waitlisted] | User::ENROLLMENT_STATUSES
     @builder_groups = statuses.filter_map do |status|

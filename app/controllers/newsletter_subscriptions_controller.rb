@@ -1,15 +1,18 @@
 class NewsletterSubscriptionsController < ApplicationController
+  before_action :no_store
+
   def show
-    @token = params.require(:token)
+    @token = email_link_token
     User.find_by_token_for!(:newsletter_confirmation, @token)
   rescue ActionController::ParameterMissing, ActiveSupport::MessageVerifier::InvalidSignature, ActiveRecord::RecordNotFound
     redirect_to root_path, alert: "That newsletter link is invalid or has expired."
   end
 
   def create
-    user = User.find_by_token_for!(:newsletter_confirmation, params.require(:token))
+    token = email_link_token
+    user = User.find_by_token_for!(:newsletter_confirmation, token)
     user.with_lock do
-      raise ActiveSupport::MessageVerifier::InvalidSignature unless User.find_by_token_for(:newsletter_confirmation, params[:token]) == user
+      raise ActiveSupport::MessageVerifier::InvalidSignature unless User.find_by_token_for(:newsletter_confirmation, token) == user
 
       user.update!(newsletter_confirmed_at: Time.current, newsletter_token_version: user.newsletter_token_version + 1)
     end

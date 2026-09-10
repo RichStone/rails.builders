@@ -46,14 +46,14 @@ class ProductAnalyticsIntegrationTest < ActionDispatch::IntegrationTest
     replacement = ->(event) { captured << event; true }
 
     with_stubbed_singleton_method(ProductAnalytics, :capture, replacement) do
-      post sign_in_path, params: { email: "new@example.com" }
+      post sign_in_path, params: sign_in_params(email: "new@example.com")
       user = User.find_by!(email: "new@example.com")
       post verify_email_path, params: { token: user.generate_token_for(:email_verification) }
 
-      post sign_in_path, params: { email: "new@example.com" }
+      post sign_in_path, params: sign_in_params(email: "new@example.com")
       post verify_email_path, params: { token: user.reload.generate_token_for(:email_verification) }
 
-      post sign_in_path, params: { email: "not-an-email" }
+      post sign_in_path, params: sign_in_params(email: "not-an-email")
     end
 
     assert_equal %w[registration_created registration_verified verification_link_requested sign_in_completed], captured

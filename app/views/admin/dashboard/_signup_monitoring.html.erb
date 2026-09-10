@@ -1,0 +1,26 @@
+<section class="admin-program" data-signup-monitoring>
+  <h2>Signup and email health</h2>
+  <p><%= @users.count %> current accounts · <%= @users.count(&:verified?) %> verified email addresses.</p>
+  <% if @signup_counts %>
+    <p>Activity since <%= (Time.current.beginning_of_hour - 23.hours).strftime("%d %b %Y %H:%M %Z") %>. Aggregate counts contain no email addresses or IP addresses.</p>
+    <details>
+      <summary>Registration, bot checks, and email delivery counts</summary>
+      <ul>
+      <% {
+        registration_created: "New registrations", registration_verified: "Emails verified",
+        verification_link_requested: "Sign-in links requested", sign_in_completed: "Completed sign-ins",
+        honeypot: "Bot form submissions", invalid_form: "Invalid or expired forms", too_fast: "Forms submitted too quickly",
+        turnstile_rejected: "Failed bot checks", turnstile_unavailable: "Unavailable bot checks",
+        ip_rate_limit: "IP rate limits", email_rate_limit: "Email rate limits", mail_cooldown: "Repeat emails prevented",
+        invalid_verification: "Invalid verification links", email_bounced: "Bounced emails",
+        email_complained: "Spam complaints", email_suppressed: "Suppressed emails", email_failed: "Failed emails"
+      }.each do |reason, label| %>
+        <li><%= label %>: <%= @signup_counts.fetch(reason) %></li>
+      <% end %>
+      </ul>
+    </details>
+  <% else %>
+    <p>Signup monitoring is temporarily unavailable.</p>
+  <% end %>
+  <p>Email event monitoring: <%= ENV["RESEND_WEBHOOK_SECRET"].present? ? "configured" : "not configured" %>. Resend automatically suppresses hard bounces and spam complaints. Operational spikes are reported to Honeybadger.</p>
+</section>

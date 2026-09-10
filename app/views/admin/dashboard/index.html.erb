@@ -2,6 +2,8 @@
   <p class="eyebrow">Control room</p>
   <h1>Rails Builders administration</h1>
 
+  <%= render "signup_monitoring" %>
+
   <section class="admin-program">
     <h2><%= @program.name %></h2>
     <%= form_with model: [:admin, @program], class: "inline-form" do |form| %>

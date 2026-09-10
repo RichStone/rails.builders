@@ -93,8 +93,8 @@ jobs:
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test
 
-      - name: Test product analytics JavaScript
-        run: node --test test/javascript/product_analytics_test.mjs
+      - name: Test JavaScript
+        run: node --test test/javascript/*_test.mjs
 
       - name: Test backup and restore scripts
         run: ops/backup/test
@@ -198,8 +198,11 @@ jobs:
           POSTHOG_PROJECT_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          RESEND_WEBHOOK_SECRET: ${{ secrets.RESEND_WEBHOOK_SECRET }}
         run: |
-          for name in KAMAL_REGISTRY_PASSWORD RAILS_MASTER_KEY RAILS_BUILDERS_OG_EMAILS RAILS_BUILDERS_FACILITATOR_EMAIL RESEND_API_KEY HONEYBADGER_API_KEY POSTHOG_PROJECT_TOKEN GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET; do
+          for name in KAMAL_REGISTRY_PASSWORD RAILS_MASTER_KEY RAILS_BUILDERS_OG_EMAILS RAILS_BUILDERS_FACILITATOR_EMAIL RESEND_API_KEY HONEYBADGER_API_KEY POSTHOG_PROJECT_TOKEN GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY RESEND_WEBHOOK_SECRET; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::$name is not configured"
               exit 1

@@ -20,6 +20,13 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def email_link_token
+    token = params[:token]
+    raise ActiveSupport::MessageVerifier::InvalidSignature unless token.is_a?(String) && token.valid_encoding? && token.present? && token.bytesize <= 2048
+
+    token
+  end
+
   def product_analytics_page
     return unless Rails.configuration.x.posthog.enabled
 

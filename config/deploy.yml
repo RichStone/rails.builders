@@ -31,6 +31,9 @@ env:
     - POSTHOG_PROJECT_TOKEN
     - GOOGLE_OAUTH_CLIENT_ID
     - GOOGLE_OAUTH_CLIENT_SECRET
+    - TURNSTILE_SITE_KEY
+    - TURNSTILE_SECRET_KEY
+    - RESEND_WEBHOOK_SECRET
 
 volumes:
   - /srv/rails-builders/storage:/rails/storage

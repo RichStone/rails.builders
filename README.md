@@ -107,6 +107,40 @@ an older workflow run refuses to replace a newer commit from `main`.
 - `POSTHOG_PROJECT_TOKEN` enables EU-hosted product analytics: anonymous normalized page views, allowlisted join clicks, and aggregate registration and enrollment conversions. Session replay, account identification, autocapture, logs, feature flags, and error tracking remain disabled. Honeybadger is the error-monitoring and operational-monitoring system.
 - `APP_HOST` controls links in production email and defaults to `rails.builders`.
 
+### Signup protection
+
+Production sign-in requests require a Cloudflare Turnstile Managed widget. Configure
+the widget for `rails.builders` (and `www.rails.builders`), with pre-clearance off.
+Store `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` in the GitHub `production`
+environment secrets. Kamal passes them to the app; missing production keys fail
+startup. Local development skips external checks unless both keys are configured;
+automated tests use simulated checks. Never put Cloudflare's test keys in production.
+
+The app validates Turnstile on the server before issuing a magic link, binding
+each result to the request hostname and the `sign_in` action. A failed or
+unavailable check offers a retry and sends no email. A hidden honeypot and a
+session-bound form timestamp reject simple automation. Per-IP and per-email
+limits use the shared Solid Cache store; a resend cooldown avoids duplicate mail
+and preserves a previously issued link. Newsletter confirmation remains separate
+and repeated requests cannot resend it continuously.
+
+Create a Resend webhook for `https://rails.builders/webhooks/resend`, subscribing
+to `email.bounced`, `email.complained`, `email.suppressed`, and `email.failed`.
+Store its signing secret as `RESEND_WEBHOOK_SECRET` in the same GitHub production
+environment. The endpoint authenticates the signature and timestamp before
+processing, ignores duplicate deliveries, and records only aggregate outcomes.
+Resend retains control of recipient suppression after hard bounces and complaints.
+
+The Administrator dashboard shows recent registration, verification, rejection,
+and delivery-failure counts. Abnormal volumes and verification-service failures
+raise deduplicated Honeybadger alerts without recipient addresses, IP addresses,
+form contents, or challenge tokens. Use these counts with Turnstile's dashboard
+to investigate a spike before tightening limits further.
+
+References: [Turnstile server validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/),
+[Resend webhook verification](https://resend.com/docs/webhooks/verify-webhooks-requests),
+and [Resend suppressions](https://resend.com/docs/dashboard/emails/email-suppressions).
+
 ### Google Calendar and Meet
 
 Sessions use a dedicated secondary Google Calendar owned by the Program’s main facilitator. Every timed event within the Program dates becomes a session, recurring events are expanded into their occurrences, all-day events are ignored, and Google Calendar remains the schedule source of truth. Create the recurring session event—including its Google Meet conference—on that calendar before connecting it in Administration.

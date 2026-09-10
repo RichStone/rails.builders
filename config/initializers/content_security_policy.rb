@@ -14,9 +14,10 @@ Rails.application.configure do
     policy.font_src :self, :data
     policy.form_action :self, "https://accounts.google.com"
     policy.frame_ancestors :none
+    policy.frame_src :self, "https://challenges.cloudflare.com"
     policy.img_src :self, :data
     policy.object_src :none
-    policy.script_src :self
+    policy.script_src :self, "https://challenges.cloudflare.com"
     policy.style_src :self, :unsafe_inline
   end
 
