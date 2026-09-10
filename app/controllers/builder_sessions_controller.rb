@@ -101,7 +101,11 @@ class BuilderSessionsController < ApplicationController
     else
       @builder_session.mark_absent!(user, expected_started_at: params[:run_started_at])
     end
-    redirect_to @builder_session, (changed ? {} : { alert: "That session run had already changed." })
+    flash[:alert] = "That session run had already changed." unless changed
+    respond_to do |format|
+      format.html { redirect_to @builder_session }
+      format.turbo_stream { render turbo_stream: turbo_stream.refresh(request_id: nil, scroll: :preserve) }
+    end
   end
 
   def speaker_order

@@ -113,6 +113,32 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_text "She narrowed the launch again."
   end
 
+  test "attendance corrections preserve the viewport" do
+    started_at = 2.hours.ago
+    @builder_session.update!(
+      state: "completed",
+      started_at:,
+      hangout_started_at: started_at + 30.minutes,
+      ended_at: started_at + 45.minutes,
+      facilitator_name_snapshot: @facilitator.name
+    )
+    11.times do |index|
+      @builder_session.attendances.create!(display_name: "Scrollable Builder #{index}", role: "builder", status: "present")
+    end
+    @builder_session.attendances.create!(user: @builder, display_name: "Scrollable Builder Target", role: "builder", status: "present")
+    sign_in_as(@facilitator)
+
+    visit builder_session_path(@builder_session)
+    row = find(".attendance-row", text: "Scrollable Builder Target")
+    page.execute_script("document.documentElement.style.scrollBehavior = 'auto'; arguments[0].scrollIntoView({ block: 'center' })", row)
+    scroll_position = page.evaluate_script("window.scrollY")
+
+    within(row) { click_button "Mark absent" }
+
+    assert_button "Mark present"
+    assert_in_delta scroll_position, page.evaluate_script("window.scrollY"), 1
+  end
+
   test "finishing the core starts a count-up hangout before the session can finish" do
     sign_in_as(@facilitator)
     click_link "Sessions"
