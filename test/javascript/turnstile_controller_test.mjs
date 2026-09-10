@@ -84,7 +84,7 @@ test("Turbo snapshots and disconnects remove stale widgets and returning forms g
   assert.deepEqual(resets, ["widget-2"])
 })
 
-test("a blocked script offers retry and navigation during loading never renders a stale widget", async () => {
+test("a blocked script retries with the async API and navigation never renders a stale widget", async () => {
   const scripts = []
   globalThis.document = {
     createElement: () => ({ remove() { this.removed = true } }),
@@ -106,10 +106,18 @@ test("a blocked script offers retry and navigation during loading never renders 
   assert.equal(scripts.length, 2)
   controller.disconnect()
   let renders = 0
-  window.turnstile = { ready: (callback) => callback(), render: () => renders++ }
-  scripts[1].onload()
+  let options
+  window.turnstile = {
+    ready: () => { throw new Error("Remove async/defer before using turnstile.ready()") },
+    render: (_element, configuration) => { options = configuration; return ++renders }
+  }
+  assert.doesNotThrow(() => scripts[1].onload())
   await retrying
   assert.equal(renders, 0)
   await controller.connect()
   assert.equal(renders, 1)
+  assert.equal(controller.submitTarget.disabled, true)
+  options.callback("verified-async-token")
+  assert.equal(controller.submitTarget.disabled, false)
+  assert.equal(controller.statusTarget.textContent, "Browser verified.")
 })

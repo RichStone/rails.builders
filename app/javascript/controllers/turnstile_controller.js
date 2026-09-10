@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 let scriptLoad
 
 function loadTurnstile() {
-  if (window.turnstile) return new Promise((resolve) => window.turnstile.ready(resolve))
+  if (typeof window.turnstile?.render === "function") return Promise.resolve()
   return scriptLoad ||= new Promise((resolve, reject) => {
     const script = document.createElement("script")
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
@@ -19,7 +19,7 @@ function loadTurnstile() {
     script.onerror = failed
     script.onload = () => {
       clearTimeout(timeout)
-      if (window.turnstile) window.turnstile.ready(resolve)
+      if (typeof window.turnstile?.render === "function") resolve()
       else failed()
     }
     document.head.append(script)
