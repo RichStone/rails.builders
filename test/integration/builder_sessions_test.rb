@@ -199,13 +199,13 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
   test "a stale finish submission cannot complete a newer timer run" do
     first_start = Time.zone.parse("2026-08-24 18:00")
     travel_to(first_start) { @builder_session.start!(facilitator: @facilitator) }
-    @builder_session.finish_current_speaker!(at: first_start + 1.minute)
+    2.times { @builder_session.finish_current_speaker!(at: first_start + 1.minute) }
     first_run = @builder_session.started_at.iso8601(6)
     assert @builder_session.cancel_start!(expected_started_at: first_run)
 
     second_start = first_start + 2.minutes
     travel_to(second_start) { @builder_session.start!(facilitator: @facilitator) }
-    @builder_session.finish_current_speaker!(at: second_start + 1.minute)
+    2.times { @builder_session.finish_current_speaker!(at: second_start + 1.minute) }
     second_run = @builder_session.started_at.iso8601(6)
     sign_in_as(@facilitator)
 
@@ -448,6 +448,9 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_not @builder_session.paused?
     speaker_id = @builder_session.current_speaker_attendance.id
     post next_speaker_builder_session_path(@builder_session), params: { speaker_id:, run_started_at: }
+    assert_equal "builder_updates", @builder_session.reload.state
+    speaker_id = @builder_session.current_speaker_attendance.id
+    post next_speaker_builder_session_path(@builder_session), params: { speaker_id:, run_started_at: }
     assert_equal "hangout", @builder_session.reload.state
     post finish_builder_session_path(@builder_session), params: { run_started_at: @builder_session.started_at.iso8601(6) }
     assert_equal "completed", @builder_session.reload.state
@@ -498,7 +501,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the live room shows the shared core-time allocation for every queued Builder" do
+  test "the live room shows the shared core-time allocation for every queued speaker" do
     User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     sign_in_as(@facilitator)
 
@@ -506,8 +509,11 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_select ".live-phase", text: /Core session/i
-    assert_select ".speaker-queue .attendance-row", count: 1 do
-      assert_select "span", text: /Up next · 15:00 allocated/
+    assert_select ".speaker-queue .attendance-row", count: 2 do
+      assert_select "span", text: /Up next · 10:00 allocated/
+    end
+    assert_select ".attendance-panel:last-of-type .attendance-row", text: /Main Facilitator/ do
+      assert_select "form[action='#{attendance_builder_session_path(@builder_session)}']", count: 0
     end
   end
 
@@ -520,7 +526,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
 
     get builder_session_path(@builder_session)
     assert_select "[data-controller~='speaker-order']"
-    assert_select "[data-speaker-order-target='item']", count: 2
+    assert_select "[data-speaker-order-target='item']", count: 3
 
     patch speaker_order_builder_session_path(@builder_session),
       params: { attendance_ids: requested_order, run_started_at: @builder_session.run_token },

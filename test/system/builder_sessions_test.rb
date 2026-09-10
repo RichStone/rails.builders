@@ -68,6 +68,9 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_button "Resume"
     click_button "Resume", exact: true
     assert_button "Pause"
+    previous_speaker = find(".live-session-stage h2").text
+    click_button "Next"
+    assert_no_selector ".live-session-stage h2", text: previous_speaker
     click_button "Next"
     assert_selector ".live-phase", text: /Hangout/i
     find("summary", text: "Finish session").click
@@ -149,12 +152,23 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_selector ".live-phase", text: /Core session/i
     assert_button "Next"
     assert_no_selector "summary", text: "Finish session"
-    click_button "Finish core & start hangout"
+    find("summary", text: "Finish core & start hangout").click
+    click_button "Confirm finish core"
 
     assert_selector ".live-phase", text: /Hangout/i
     assert_selector "summary", text: "Finish session"
     assert_no_selector ".attendance-row", text: /Speaking/
     assert_selector ".session-clock", text: "0:01", wait: 3
+  end
+
+  test "the core timer starts hangout as soon as the shared time expires" do
+    sign_in_as(@facilitator)
+    @builder_session.start!(facilitator: @facilitator, duration_seconds: 1)
+
+    visit builder_session_path(@builder_session)
+
+    assert_selector ".live-phase", text: /Core session/i
+    assert_selector ".live-phase", text: /Hangout/i, wait: 2.5
   end
 
   test "timer controls survive repeated attendance, pause, queue, phase, and correction changes" do
@@ -177,8 +191,8 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     configure_session(core: 5)
     click_button "Start session"
     assert_selector ".live-phase", text: /Core session/i
-    assert_selector ".speaker-queue .attendance-row", count: 3
-    assert_selector ".speaker-queue .attendance-row", text: /1:15 allocated/, count: 3
+    assert_selector ".speaker-queue .attendance-row", count: 4
+    assert_selector ".speaker-queue .attendance-row", text: /1:00 allocated/, count: 4
 
     2.times do
       click_button "Pause"
@@ -191,7 +205,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     end
 
     2.times do
-      queue_item = all("[data-speaker-order-target='item']", count: 3)[1]
+      queue_item = all("[data-speaker-order-target='item']", count: 4)[1]
       queued_name = queue_item.find("strong").text
       queue_item.find("button[data-action='speaker-order#earlier']").click
       assert_selector "[data-speaker-order-target='status']", text: "Speaker order saved.", visible: :all
@@ -216,11 +230,11 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
       within(all(".attendance-panel", minimum: 2).last) do
         within(".attendance-row", text: "Second Builder") { click_button "Mark absent" }
       end
-      assert_selector ".speaker-queue .attendance-row", count: 2
+      assert_selector ".speaker-queue .attendance-row", count: 3
       within(all(".attendance-panel", minimum: 2).last) do
         within(".attendance-row", text: "Second Builder") { click_button "Mark present" }
       end
-      assert_selector ".speaker-queue .attendance-row", count: 3
+      assert_selector ".speaker-queue .attendance-row", count: 4
     end
 
     2.times do
@@ -335,7 +349,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
       if index.zero?
         click_button "Start core session"
         assert_selector ".live-phase", text: /Core session/i
-        assert_selector ".live-session-stage h2", text: second_builder.name
+        assert_selector ".live-session-stage h2", text: /#{Regexp.escape(second_builder.name)}|#{Regexp.escape(@facilitator.name)}/
       end
 
       find("summary", text: "Cancel session").click
@@ -353,7 +367,8 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     click_link "Browser session"
     configure_session(core: 1, hangout: 1)
     click_button "Start session"
-    click_button "Finish core & start hangout"
+    find("summary", text: "Finish core & start hangout").click
+    click_button "Confirm finish core"
 
     assert_selector ".live-phase", text: /Hangout/i
     assert_selector ".session-clock", text: /0:5\d/

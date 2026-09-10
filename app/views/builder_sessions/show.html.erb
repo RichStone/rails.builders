@@ -113,7 +113,7 @@
           <% if @builder_session.state == "builder_updates" && @builder_session.unspoken_speakers.any? %>
             <details class="session-confirmation">
               <summary><%= advance_label %></summary>
-              <p>This skips every Builder still in the queue.</p>
+              <p>This skips every speaker still in the queue.</p>
               <%= button_to "Confirm finish core", advance_builder_session_path(@builder_session), params: { state: @builder_session.state, run_started_at: run_token }, class: "button button-quiet" %>
             </details>
           <% else %>
@@ -178,7 +178,7 @@
         <% @builder_session.attendances.order(Arel.sql("CASE role WHEN 'facilitator' THEN 0 ELSE 1 END"), :speaker_position, :display_name).each do |attendance| %>
           <li class="attendance-row">
             <div><strong><%= attendance.display_name %></strong><span><%= attendance.role.humanize %> · <%= attendance.status.humanize %><%= " · #{attendance.speaker_state.humanize}" if attendance.speaker_state %></span></div>
-            <% if session_operator? %>
+            <% if session_operator? && attendance.role != "facilitator" %>
               <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present", run_started_at: run_token }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") if attendance.user_id %>
             <% else %>
               <span class="status-pill"><%= attendance.status.humanize %></span>

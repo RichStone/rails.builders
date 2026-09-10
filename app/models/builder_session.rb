@@ -77,7 +77,7 @@ class BuilderSession < ApplicationRecord
       was_absent = attendance.status == "absent"
       arrived_at = attendance.arrived_at || at if active?
       attendance.update!(status: "present", arrived_at: arrived_at || attendance.arrived_at)
-      if state == "builder_updates" && attendance.role == "builder" && was_absent && attendance.speaker_state != "completed"
+      if state == "builder_updates" && was_absent && attendance.speaker_state != "completed"
         insert_late_speaker!(attendance, at:, random:)
       end
       touch
@@ -90,6 +90,8 @@ class BuilderSession < ApplicationRecord
       return false if expected_started_at.present? ? !same_timer_run?(expected_started_at) : active?
 
       attendance = attendance_for!(user)
+      return self if active? && attendance.role == "facilitator"
+
       was_current = attendance.speaker_state == "speaking"
       attendance.assign_attributes(status: "absent")
       if was_current
@@ -245,7 +247,7 @@ class BuilderSession < ApplicationRecord
   def current_speaker_attendance = current_speaker
 
   def unspoken_speakers
-    attendances.where(role: "builder", status: "present", speaker_state: "queued").order(:speaker_position)
+    attendances.where(status: "present", speaker_state: "queued").order(:speaker_position)
   end
 
   def reorder_unspoken_speakers!(attendance_ids, expected_started_at: run_token)
@@ -370,7 +372,7 @@ class BuilderSession < ApplicationRecord
 
   def begin_builder_updates!(at:, random: Random)
     update!(state: "builder_updates", builder_updates_started_at: at)
-    queued = attendances.where(role: "builder", status: "present", speaker_state: nil).to_a.shuffle(random:)
+    queued = attendances.where(status: "present", speaker_state: nil).to_a.shuffle(random:)
     queued.each_with_index do |attendance, index|
       attendance.update!(speaker_state: "queued", speaker_position: index + 1)
     end

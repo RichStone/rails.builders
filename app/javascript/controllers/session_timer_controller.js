@@ -28,10 +28,16 @@ export default class extends Controller {
     const elapsed = this.pausedValue ? 0 : (Date.now() - this.renderedAtValue) / 1000
     const raw = this.modeValue === "countup" ? this.secondsValue + elapsed : this.secondsValue - elapsed
     const seconds = this.modeValue === "countup" ? Math.max(0, Math.floor(raw)) : Math.ceil(raw)
-    this.displayTarget.textContent = this.format(seconds)
-    if (this.hasTotalTarget) this.totalTarget.textContent = this.format(Math.max(0, Math.ceil(this.totalSecondsValue - elapsed)))
+    const totalSeconds = Math.ceil(this.totalSecondsValue - elapsed)
+    const coreExpired = this.stateValue === "builder_updates" && totalSeconds <= 0
+    this.displayTarget.textContent = this.format(coreExpired ? 0 : seconds)
+    if (this.hasTotalTarget) this.totalTarget.textContent = this.format(Math.max(0, totalSeconds))
     this.element.classList.toggle("timer-amber", this.modeValue === "countdown" && seconds <= 30 && seconds > 10)
     this.element.classList.toggle("timer-red", this.modeValue === "countdown" && seconds <= 10)
+    if (coreExpired && !this.coreHandoffRequested) {
+      this.coreHandoffRequested = true
+      this.heartbeat()
+    }
   }
 
   async heartbeat() {

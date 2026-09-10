@@ -74,7 +74,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
     assert_equal 60.minutes.to_i, @builder_session.timer_duration_seconds
   end
 
-  test "starting immediately distributes the full core budget across attending Builders" do
+  test "starting immediately includes the facilitator in the core speaker budget" do
     second_builder = User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     third_builder = User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
     [ @builder, second_builder, third_builder ].each { |builder| @builder_session.mark_present!(builder) }
@@ -84,24 +84,30 @@ class BuilderSessionTest < ActiveSupport::TestCase
 
     assert_equal "builder_updates", @builder_session.state
     assert_equal started_at, @builder_session.builder_updates_started_at
-    attending = @builder_session.attendances.where(role: "builder", status: "present")
-    assert_equal [ "queued", "queued", "speaking" ], attending.order(:speaker_state).pluck(:speaker_state)
-    assert_equal [ 10.minutes.to_i ], attending.pluck(:speaker_allotted_seconds).uniq
-    assert_equal 30.minutes.to_i, attending.sum(:speaker_allotted_seconds)
+    speakers = @builder_session.attendances.where(status: "present").where.not(speaker_state: nil)
+    assert_equal [ "queued", "queued", "queued", "speaking" ], speakers.order(:speaker_state).pluck(:speaker_state)
+    assert_equal [ 7.minutes.to_i + 30 ], speakers.pluck(:speaker_allotted_seconds).uniq
+    assert_equal 30.minutes.to_i, speakers.sum(:speaker_allotted_seconds)
+    facilitator_attendance = speakers.find_by!(user: @facilitator)
+
+    @builder_session.mark_absent!(@facilitator)
+
+    assert_equal "present", facilitator_attendance.reload.status
+    assert_includes %w[speaking queued], facilitator_attendance.speaker_state
   end
 
-  test "starting randomizes the attending Builder order" do
+  test "starting randomizes the attending speaker order" do
     second_builder = User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     third_builder = User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
     fourth_builder = User.create!(email: "fourth@example.com", name: "Fourth Builder", enrollment_status: "active", verified_at: Time.current)
-    expected_builders = [ @builder, second_builder, third_builder, fourth_builder ]
+    expected_speakers = [ @builder, second_builder, third_builder, fourth_builder, @facilitator ]
     zero_random = Object.new.tap { |random| random.define_singleton_method(:rand) { |*| 0 } }
 
     @builder_session.start!(facilitator: @facilitator, duration_seconds: 40.minutes.to_i, random: zero_random)
 
-    speaker_order = @builder_session.attendances.where(role: "builder").order(:speaker_position).pluck(:user_id)
-    assert_equal expected_builders.rotate.map(&:id), speaker_order
-    assert_equal [ 10.minutes.to_i ], @builder_session.attendances.where(role: "builder").pluck(:speaker_allotted_seconds).uniq
+    speakers = @builder_session.attendances.order(:speaker_position)
+    assert_equal expected_speakers.rotate.map(&:id), speakers.pluck(:user_id)
+    assert_equal [ 8.minutes.to_i ], speakers.pluck(:speaker_allotted_seconds).uniq
   end
 
   test "timestamp precision cannot invent an extra second of speaker budget" do
@@ -113,7 +119,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
     @builder_session.current_speaker_attendance.update_column(:speaker_started_at, started_at - 0.0001)
     @builder_session.send(:distribute_remaining_speaker_time!, at: started_at)
 
-    allocated_seconds = @builder_session.attendances.where(role: "builder").sum(:speaker_allotted_seconds)
+    allocated_seconds = @builder_session.attendances.sum(:speaker_allotted_seconds)
     assert_equal 20.minutes.to_i, allocated_seconds
   end
 
@@ -142,10 +148,10 @@ class BuilderSessionTest < ActiveSupport::TestCase
 
     assert_equal "builder_updates", @builder_session.state
     assert_equal started_at + 5.minutes, @builder_session.builder_updates_started_at
-    assert_equal [ second_builder.id, @builder.id ],
-      @builder_session.attendances.where(role: "builder").order(:speaker_position).pluck(:user_id)
-    assert_equal [ 10.minutes.to_i ],
-      @builder_session.attendances.where(role: "builder").pluck(:speaker_allotted_seconds).uniq
+    assert_equal [ second_builder.id, @facilitator.id, @builder.id ],
+      @builder_session.attendances.order(:speaker_position).pluck(:user_id)
+    assert_equal [ 6.minutes.to_i + 40 ],
+      @builder_session.attendances.pluck(:speaker_allotted_seconds).uniq
     assert_equal 20.minutes.to_i, @builder_session.phase_remaining_seconds(at: started_at + 5.minutes)
   end
 
@@ -158,7 +164,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
         hangout_duration_seconds: 2.minutes.to_i
       )
     end
-    @builder_session.finish_current_speaker!(at: started_at + 10.seconds)
+    2.times { @builder_session.finish_current_speaker!(at: started_at + 10.seconds) }
 
     assert_equal "hangout", @builder_session.state
     assert_equal "countdown", @builder_session.clock_mode
@@ -274,20 +280,20 @@ class BuilderSessionTest < ActiveSupport::TestCase
     travel_to started_at + 5.minutes do
       @builder_session.synchronize!
 
-      attendance = @builder_session.attendances.find_by!(user: @builder)
+      attendance = @builder_session.current_speaker_attendance
       assert_equal "builder_updates", @builder_session.state
       assert_equal "speaking", attendance.speaker_state
       assert_equal 1, attendance.speaker_position
-      assert_equal 30.minutes.to_i, attendance.speaker_allotted_seconds
-      assert_equal 25.minutes.to_i, @builder_session.clock_seconds
+      assert_equal 15.minutes.to_i, attendance.speaker_allotted_seconds
+      assert_equal 10.minutes.to_i, @builder_session.clock_seconds
     end
 
     travel_to started_at + 10.minutes do
-      @builder_session.finish_current_speaker!
+      2.times { @builder_session.finish_current_speaker! }
 
       assert_equal "hangout", @builder_session.state
       assert_equal Time.current, @builder_session.hangout_started_at
-      assert_equal "completed", @builder_session.attendances.find_by!(user: @builder).speaker_state
+      assert_equal [ "completed" ], @builder_session.attendances.distinct.pluck(:speaker_state)
     end
 
     travel_to started_at + 11.minutes do
@@ -400,11 +406,11 @@ class BuilderSessionTest < ActiveSupport::TestCase
     end
     travel_to started_at + 5.minutes do
       @builder_session.synchronize!
-      assert_equal 5.minutes.to_i, @builder_session.clock_seconds
+      assert_equal 2.minutes.to_i + 30, @builder_session.clock_seconds
     end
     travel_to started_at + 15.minutes do
       @builder_session.finish_current_speaker!
-      assert_equal 7.minutes.to_i + 30, @builder_session.current_speaker_attendance.speaker_allotted_seconds
+      assert_equal 5.minutes.to_i, @builder_session.current_speaker_attendance.speaker_allotted_seconds
       assert_equal 15.minutes.to_i, @builder_session.phase_remaining_seconds
     end
     travel_to started_at + 30.minutes do
@@ -423,23 +429,23 @@ class BuilderSessionTest < ActiveSupport::TestCase
 
     travel_to started_at + 12.minutes do
       expected_next = @builder_session.unspoken_speakers.first
-      assert_equal(-2.minutes.to_i, @builder_session.clock_seconds)
+      assert_equal(-4.minutes.to_i - 30, @builder_session.clock_seconds)
 
       @builder_session.finish_current_speaker!
 
       assert_equal expected_next, @builder_session.current_speaker_attendance
-      assert_equal 9.minutes.to_i, @builder_session.clock_seconds
-      assert_equal [ 9.minutes.to_i ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
+      assert_equal 6.minutes.to_i, @builder_session.clock_seconds
+      assert_equal [ 6.minutes.to_i ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
     end
 
     travel_to started_at + 17.minutes do
       expected_next = @builder_session.unspoken_speakers.first
-      assert_equal 4.minutes.to_i, @builder_session.clock_seconds
+      assert_equal 1.minute.to_i, @builder_session.clock_seconds
 
       @builder_session.finish_current_speaker!
 
       assert_equal expected_next, @builder_session.current_speaker_attendance
-      assert_equal 13.minutes.to_i, @builder_session.clock_seconds
+      assert_equal 6.minutes.to_i + 30, @builder_session.clock_seconds
     end
   end
 
@@ -448,18 +454,18 @@ class BuilderSessionTest < ActiveSupport::TestCase
     third_builder = User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
     started_at = Time.zone.parse("2026-08-24 18:00")
     travel_to(started_at) { @builder_session.start!(facilitator: @facilitator, duration_seconds: 30.minutes.to_i) }
-    absent_builder = @builder_session.unspoken_speakers.first.user
+    absent_builder = @builder_session.unspoken_speakers.where(role: "builder").first.user
 
     travel_to started_at + 3.minutes do
       @builder_session.mark_absent!(absent_builder)
 
-      assert_equal 13.minutes.to_i + 30, @builder_session.clock_seconds
-      assert_equal [ 13.minutes.to_i + 30 ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
+      assert_equal 9.minutes.to_i, @builder_session.clock_seconds
+      assert_equal [ 9.minutes.to_i ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
 
       @builder_session.mark_present!(absent_builder)
 
-      assert_equal 9.minutes.to_i, @builder_session.clock_seconds
-      assert_equal [ 9.minutes.to_i ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
+      assert_equal 6.minutes.to_i + 45, @builder_session.clock_seconds
+      assert_equal [ 6.minutes.to_i + 45 ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
     end
   end
 
@@ -468,7 +474,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
     User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
     User.create!(email: "fourth@example.com", name: "Fourth Builder", enrollment_status: "active", verified_at: Time.current)
     @builder_session.start!(facilitator: @facilitator)
-    queued = @builder_session.unspoken_speakers.last
+    queued = @builder_session.unspoken_speakers.where(role: "builder").last
     remaining_order = @builder_session.unspoken_speakers.where.not(id: queued.id).to_a
     middle_random = Object.new.tap { |random| random.define_singleton_method(:rand) { |*| 1 } }
 
@@ -478,37 +484,39 @@ class BuilderSessionTest < ActiveSupport::TestCase
 
     @builder_session.mark_present!(queued.user, random: middle_random)
     assert_equal "queued", queued.reload.speaker_state
-    assert_equal [ remaining_order.first, queued, remaining_order.second ], @builder_session.unspoken_speakers.to_a
-    assert_equal [ 7.minutes.to_i + 30 ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
+    assert_equal remaining_order.dup.insert(1, queued), @builder_session.unspoken_speakers.to_a
+    assert_equal [ 6.minutes.to_i ], @builder_session.unspoken_speakers.pluck(:speaker_allotted_seconds).uniq
   end
 
-  test "an absent current speaker can rejoin the active core at a new position" do
-    @builder_session.start!(facilitator: @facilitator, duration_seconds: 30.minutes.to_i)
+  test "an absent current speaker can rejoin the active core queue" do
+    identity_random = Object.new.tap { |random| random.define_singleton_method(:rand) { |length| length - 1 } }
+    @builder_session.start!(facilitator: @facilitator, duration_seconds: 30.minutes.to_i, random: identity_random)
     attendance = @builder_session.current_speaker_attendance
+    next_speaker = @builder_session.unspoken_speakers.first
 
     @builder_session.mark_absent!(attendance.user)
 
     assert_equal "builder_updates", @builder_session.state
-    assert_nil @builder_session.current_speaker_attendance
+    assert_equal next_speaker, @builder_session.current_speaker_attendance
     assert_equal "skipped", attendance.reload.speaker_state
 
     @builder_session.mark_present!(attendance.user)
 
-    assert_equal "speaking", attendance.reload.speaker_state
-    assert_equal attendance, @builder_session.current_speaker_attendance
+    assert_equal "queued", attendance.reload.speaker_state
+    assert_includes @builder_session.unspoken_speakers, attendance
   end
 
-  test "a core with every expected Builder absent waits for live attendance" do
+  test "the facilitator keeps the core running when every Builder is absent" do
     @builder_session.mark_absent!(@builder)
 
     @builder_session.start!(facilitator: @facilitator, duration_seconds: 30.minutes.to_i)
 
     assert_equal "builder_updates", @builder_session.state
-    assert_nil @builder_session.current_speaker_attendance
+    assert_equal @facilitator, @builder_session.current_speaker_attendance.user
 
     @builder_session.mark_present!(@builder)
 
-    assert_equal "speaking", @builder_session.current_speaker_attendance.speaker_state
+    assert_equal "queued", @builder_session.attendances.find_by!(user: @builder).speaker_state
   end
 
   test "pausing freezes phase time and a forgotten session auto-finishes five hours after start" do
