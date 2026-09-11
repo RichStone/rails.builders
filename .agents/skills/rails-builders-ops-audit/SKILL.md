@@ -23,7 +23,7 @@ If a check cannot be performed without exposing sensitive data, skip it and repo
 
 ## Authorization boundary
 
-The repository owner grants standing authorization for scheduled and manual audits to fetch `origin` and fast-forward a clean local `main` to `origin/main` before auditing. This authorization permits only a fast-forward; it does not permit switching branches, merging divergent history, or disturbing local work.
+The repository owner grants standing authorization for scheduled and manual audits to fetch `origin` and rebase a clean local `main` onto `origin/main` before auditing. This authorization applies only to the clean audit worktree on `main`; it does not permit switching branches, autostashing, rewriting divergent history, or disturbing local work.
 
 The repository owner also grants standing authorization to update and squash-merge Dependabot PRs that pass every gate in this skill. This authorization is limited to the guarded Dependabot workflow and its three-merge-per-sweep cap.
 
@@ -31,9 +31,19 @@ Everything else remains read-only. This skill does not authorize a manual deploy
 
 ## Preserve the workspace
 
-Start with `git status --short --branch`, then fetch `origin`. If the current branch is `main`, the workspace is clean, and local history can be fast-forwarded, update it to `origin/main` before reading repository configuration or running checks. This keeps project-scoped integrations, scripts, and audit policy current.
+Start with `git status --short --branch` and record the current commit, then fetch `origin`. If the current branch is `main`, the workspace is clean, and local history has not diverged from `origin/main`, run `git rebase origin/main` before reading repository configuration or running checks. This keeps project-scoped integrations, scripts, and audit policy current. If the rebase conflicts, abort it immediately and use a temporary worktree based on `origin/main`.
 
-If the workspace is dirty, is on another branch, or has diverged from `origin/main`, do not switch, reset, clean, stash, merge, overwrite, or commit local work. Run the audit from a temporary worktree based on `origin/main`, and remove that worktree when finished. Use a separate temporary worktree based on the remote PR head when dependency verification requires its checkout.
+If the workspace is dirty, is on another branch, or has diverged from `origin/main`, do not switch, reset, clean, stash, merge, overwrite, rebase, or commit local work. Run the audit from a temporary worktree based on `origin/main`, and remove that worktree when finished. Use a separate temporary worktree based on the remote PR head when dependency verification requires its checkout.
+
+## Recent main change review
+
+Before checking production, inspect the commits and exact diff that arrived during the initial sync. If the worktree was already current, inspect the latest commit. Review only for newly introduced, evidence-backed concerns in these areas:
+
+- security boundaries such as authentication, authorization, input validation, secret handling, sensitive-data exposure, and dependency or deployment configuration;
+- privacy and compliance such as new data collection, sharing, retention, tracking, consent, or a mismatch with the public privacy notice;
+- obvious performance misgivings such as an unbounded query or loop, an evident N+1 query, a blocking external call on a request path, or unbounded payload or storage growth.
+
+Do not turn this into optimization, profiling, speculative hardening, or a broad code review. Report only concrete findings tied to the new diff. A security or privacy finding, or an obvious performance regression that makes deployment unsafe, is a stop condition for dependency mutations.
 
 ## Production audit
 
