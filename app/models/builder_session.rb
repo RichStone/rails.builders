@@ -10,6 +10,9 @@ class BuilderSession < ApplicationRecord
   has_many :attendances, class_name: "BuilderSessionAttendance", dependent: :restrict_with_error
   has_many :pauses, class_name: "BuilderSessionPause", dependent: :restrict_with_error
   has_one :transcript, class_name: "BuilderSessionTranscript", dependent: :restrict_with_error
+  has_one :chat_log, class_name: "BuilderSessionChatLog", dependent: :restrict_with_error
+  has_many :next_session_promises, dependent: :restrict_with_error
+  has_many :peer_feedbacks, dependent: :restrict_with_error
 
   encrypts :meet_url
 
@@ -37,6 +40,23 @@ class BuilderSession < ApplicationRecord
   def paused? = pauses.where(ended_at: nil).exists?
   def joinable? = state == "ready" || active?
   def run_token = started_at&.iso8601(6)
+
+  def session_record_writable?
+    state == "completed" && !BuilderSessionTranscript.exists?(builder_session_id: id, state: "deleted")
+  end
+
+  def participated?(user)
+    user.present? && (assigned_facilitator_id == user.id || attendances.exists?(user_id: user.id, status: "present"))
+  end
+
+  def previous_promise_for(user)
+    return unless user
+
+    previous_session = program.builder_sessions.where(state: "completed")
+      .where("scheduled_starts_at < ?", scheduled_starts_at)
+      .order(scheduled_starts_at: :desc, id: :desc).first
+    previous_session&.next_session_promises&.find_by(user: user) if previous_session&.session_record_writable?
+  end
 
   def meeting_code
     GoogleWorkspace::MeetLink.code(meet_url) if GoogleWorkspace::MeetLink.canonical?(meet_url)

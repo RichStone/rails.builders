@@ -1,0 +1,48 @@
+<% content_for :preheader, @attended ? "Your session, useful nudges, and this week's cherry on top." : "Catch up on the ideas worth carrying into next week." %>
+<p style="margin: 0 0 12px; color: #a40f32; font-size: 11px; line-height: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">The weekly cherry · <%= @session_date %></p>
+<h1 class="email-title" style="margin: 0 0 26px; color: #35040f; font-family: Georgia, serif; font-size: 42px; line-height: 46px; letter-spacing: -1px;">A little momentum,<br>a cherry on top.</h1>
+<p style="font-size: 16px; line-height: 26px;">Hey <%= @recipient_name %>,</p>
+<% if @attended %>
+  <% if @promise.present? %>
+    <div style="margin: 24px 0; padding: 22px; border-left: 4px solid #e31340; background-color: #fffaf6; border-radius: 0 14px 14px 0;">
+      <p style="margin: 0 0 8px; color: #a40f32; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Your promise until next session</p>
+      <p style="margin: 0; color: #35040f; font-family: Georgia, serif; font-size: 23px; line-height: 31px; font-weight: 700;">You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %></p>
+    </div>
+  <% else %>
+    <p style="font-size: 16px; line-height: 26px;">No explicit next-session promise was captured for you this week.</p>
+  <% end %>
+  <% @feedback.each do |item| %>
+    <div style="margin: 14px 0; padding: 18px 20px; border: 1px solid #ead8d5; border-radius: 14px;">
+      <p style="margin: 0 0 7px; color: #a40f32; font-size: 13px; line-height: 20px; font-weight: 700;"><%= item.fetch(:emoji) %> <%= item.fetch(:name) %> → you</p>
+      <p style="margin: 0; color: #35292c; font-size: 16px; line-height: 25px;"><%= item.fetch(:body) %></p>
+    </div>
+  <% end %>
+<% else %>
+  <p style="padding: 22px; background-color: #ffe6ed; border-radius: 14px; color: #501027; font-size: 17px; line-height: 28px;"><%= @absence_warning %></p>
+  <% if @mentions.any? || @feedback.any? %>
+    <p style="font-size: 16px; line-height: 26px;">The Builders said this about you this time:</p>
+    <% @mentions.each do |mention| %>
+      <p style="padding: 18px; border: 1px solid #ead8d5; border-radius: 14px; font-size: 16px; line-height: 26px;"><%= mention %></p>
+    <% end %>
+    <% @feedback.each do |item| %>
+      <p style="padding: 18px; border: 1px solid #ead8d5; border-radius: 14px; font-size: 16px; line-height: 26px;"><strong><%= item.fetch(:emoji) %> <%= item.fetch(:name) %>:</strong> <%= item.fetch(:body) %></p>
+    <% end %>
+  <% else %>
+    <p style="font-size: 16px; line-height: 26px;">The Builders didn't mention you this time.</p>
+  <% end %>
+<% end %>
+<% if @attended %>
+<div style="margin: 30px 0 24px; padding: 24px; border-radius: 18px; background-color: #ffe6ed; border: 1px solid #ffc2d2;">
+  <p style="margin: 0 0 14px; color: #8f0b2e; font-size: 13px; font-weight: 700; letter-spacing: 1px;">🍒 THE SWEET-RED TL;DR</p>
+  <% @tldr.each do |line| %>
+    <p style="margin: 10px 0 0; color: #501027; font-size: 16px; line-height: 26px;"><%= line %></p>
+  <% end %>
+</div>
+<p style="font-size: 16px; line-height: 26px;"><a href="<%= @session_url %>" style="color: #a40f32; font-weight: 700;">Review the session →</a></p>
+<% end %>
+<p style="font-size: 16px; line-height: 26px;"><%= @next_time ? "The next session is on #{@next_time}." : "Next session time: to be confirmed." %></p>
+<% unless @attended %>
+  <p style="font-size: 16px; line-height: 26px;"><% if @next_meet_url %>Google Meet: <a href="<%= @next_meet_url %>" style="color: #a40f32; font-weight: 700;"><%= @next_meet_url %></a><% else %>The Google Meet link will be available on the session page.<% end %></p>
+<% end %>
+<p style="margin: 24px 0 0; font-size: 16px; line-height: 26px;">Sincerely yours,<br><strong>Rich and Loop Monster</strong></p>
+<img src="cid:<%= @cherry_cid %>" width="160" height="160" alt="This week's ruby-gem cherry for Rails Builders" style="display: block; width: 160px; height: 160px; margin: 24px auto 0; border: 0;">

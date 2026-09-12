@@ -1,0 +1,16 @@
+<% if (builder = builder_session.current_speaker_attendance.user) %>
+  <% if (project = builder.focus_product) %>
+    <div class="speaker-project" data-speaker-project>
+      <span class="speaker-context-label">Currently building</span>
+      <%= link_to project.url, target: "_blank", rel: "noopener noreferrer" do %>
+        <span aria-hidden="true">◆</span> <%= project.name %> <span aria-hidden="true">↗</span>
+      <% end %>
+    </div>
+  <% end %>
+  <% if (promise = builder_session.previous_promise_for(builder)) %>
+    <aside class="speaker-promise" aria-label="Your promise from last session" data-previous-promise>
+      <%= link_to "Last session, you promised…", builder_session_path(promise.builder_session), class: "speaker-context-label" %>
+      <p><%= promise.body %></p>
+    </aside>
+  <% end %>
+<% end %>

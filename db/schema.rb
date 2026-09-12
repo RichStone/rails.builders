@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_12_100000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -61,6 +61,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_110000) do
     t.index ["user_id"], name: "index_builder_session_attendances_on_user_id"
   end
 
+  create_table "builder_session_chat_logs", force: :cascade do |t|
+    t.integer "builder_session_id", null: false
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.datetime "imported_at", null: false
+    t.string "source", null: false
+    t.datetime "updated_at", null: false
+    t.index ["builder_session_id"], name: "index_builder_session_chat_logs_on_builder_session_id", unique: true
+  end
+
   create_table "builder_session_pauses", force: :cascade do |t|
     t.integer "builder_session_id", null: false
     t.datetime "created_at", null: false
@@ -88,8 +98,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_110000) do
     t.string "state", default: "pending", null: false
     t.text "summary_notes"
     t.datetime "updated_at", null: false
+    t.string "wispr_meeting_id"
     t.index ["builder_session_id"], name: "index_builder_session_transcripts_on_builder_session_id", unique: true
     t.index ["state", "next_attempt_at"], name: "index_builder_session_transcripts_on_state_and_next_attempt_at"
+    t.index ["wispr_meeting_id"], name: "index_builder_session_transcripts_on_wispr_meeting_id", unique: true
   end
 
   create_table "builder_sessions", force: :cascade do |t|
@@ -121,6 +133,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_110000) do
     t.index ["program_id", "state", "scheduled_starts_at"], name: "idx_on_program_id_state_scheduled_starts_at_ab613453a0"
     t.index ["program_id"], name: "index_builder_sessions_on_one_active_program", unique: true, where: "state IN ('connection', 'builder_updates', 'closing', 'hangout')"
     t.index ["program_id"], name: "index_builder_sessions_on_program_id"
+  end
+
+  create_table "next_session_promises", force: :cascade do |t|
+    t.text "body", null: false
+    t.integer "builder_session_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["builder_session_id", "user_id"], name: "index_next_session_promises_on_builder_session_id_and_user_id", unique: true
+    t.index ["builder_session_id"], name: "index_next_session_promises_on_builder_session_id"
+    t.index ["user_id"], name: "index_next_session_promises_on_user_id"
+  end
+
+  create_table "peer_feedbacks", force: :cascade do |t|
+    t.integer "author_id", null: false
+    t.text "body", null: false
+    t.integer "builder_session_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "recipient_id", null: false
+    t.string "sentiment", null: false
+    t.string "source", null: false
+    t.string "source_key", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_id"], name: "index_peer_feedbacks_on_author_id"
+    t.index ["builder_session_id", "source_key"], name: "index_peer_feedbacks_on_builder_session_id_and_source_key", unique: true
+    t.index ["builder_session_id"], name: "index_peer_feedbacks_on_builder_session_id"
+    t.index ["recipient_id"], name: "index_peer_feedbacks_on_recipient_id"
   end
 
   create_table "products", force: :cascade do |t|
@@ -207,10 +246,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_110000) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "builder_session_attendances", "builder_sessions"
   add_foreign_key "builder_session_attendances", "users"
+  add_foreign_key "builder_session_chat_logs", "builder_sessions"
   add_foreign_key "builder_session_pauses", "builder_sessions"
   add_foreign_key "builder_session_transcripts", "builder_sessions"
   add_foreign_key "builder_sessions", "programs"
   add_foreign_key "builder_sessions", "users", column: "assigned_facilitator_id"
+  add_foreign_key "next_session_promises", "builder_sessions"
+  add_foreign_key "next_session_promises", "users"
+  add_foreign_key "peer_feedbacks", "builder_sessions"
+  add_foreign_key "peer_feedbacks", "users", column: "author_id"
+  add_foreign_key "peer_feedbacks", "users", column: "recipient_id"
   add_foreign_key "products", "users"
   add_foreign_key "program_calendar_connections", "programs"
   add_foreign_key "program_calendar_connections", "users", column: "facilitator_id"

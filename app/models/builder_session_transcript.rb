@@ -27,6 +27,7 @@ class BuilderSessionTranscript < ApplicationRecord
   validates :content, length: { maximum: 1.megabyte }, allow_nil: true
   validates :summary_notes, :session_analysis, length: { maximum: 1.megabyte }, allow_nil: true
   validates :content, presence: true, if: -> { state == "ready" }
+  validates :wispr_meeting_id, length: { maximum: 100 }, uniqueness: true, allow_nil: true
 
   def transcript_names
     JSON.parse(google_transcript_names.presence || "[]")
@@ -73,18 +74,23 @@ class BuilderSessionTranscript < ApplicationRecord
   end
 
   def delete_content!
-    with_lock do
-      update!(
-        state: "deleted",
-        content: nil,
-        summary_notes: nil,
-        session_analysis: nil,
-        google_conference_record_name: nil,
-        google_transcript_names: nil,
-        next_attempt_at: nil,
-        deleted_at: Time.current,
-        last_error_code: nil
-      )
+    builder_session.with_lock do
+      with_lock do
+        builder_session.chat_log&.destroy!
+        builder_session.next_session_promises.destroy_all
+        builder_session.peer_feedbacks.destroy_all
+        update!(
+          state: "deleted",
+          content: nil,
+          summary_notes: nil,
+          session_analysis: nil,
+          google_conference_record_name: nil,
+          google_transcript_names: nil,
+          next_attempt_at: nil,
+          deleted_at: Time.current,
+          last_error_code: nil
+        )
+      end
     end
   end
 end

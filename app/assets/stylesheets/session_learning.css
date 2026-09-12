@@ -1,0 +1,80 @@
+.speaker-context-label {
+  display: block;
+  color: #ffc2bd;
+  font: 800 10px/1.5 "Space Grotesk", sans-serif;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+.speaker-project { margin: 22px auto 18px; }
+.speaker-project a {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 7px;
+  padding: 7px 17px;
+  border: 1px dashed #efadab;
+  border-radius: 5px 15px 5px 15px;
+  color: #ffe5cf;
+  background: #ffffff0c;
+  font: 700 clamp(17px, 2.2vw, 23px)/1.4 "Chalkduster", "Marker Felt", "Courier New", monospace;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transform: rotate(-1deg);
+}
+.speaker-project a:hover { color: white; border-style: solid; }
+.speaker-project a:focus-visible,.speaker-promise a:focus-visible { outline: 3px solid #ffd29c; outline-offset: 5px; }
+.speaker-project a > span { padding: 0 5px; font-style: normal; }
+.speaker-promise {
+  max-width: 780px;
+  margin: 22px auto 28px;
+  padding: 18px 26px 20px;
+  border: 1px solid #ffd29c66;
+  border-radius: 18px 5px 18px 5px;
+  background: linear-gradient(125deg, #ffffff13, #ffffff04);
+  box-shadow: 6px 6px 0 #ffd29c13;
+}
+.speaker-promise .speaker-context-label { color: #ffceac; text-decoration-color: #ffceac66; }
+.speaker-promise p {
+  margin: 12px 0 0;
+  color: #fff1d9;
+  font: italic 900 clamp(25px, 3.6vw, 38px)/1.2 "Cooper Black", "Baskerville", "Palatino Linotype", Georgia, serif;
+  letter-spacing: -.03em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.session-promises-panel,.session-feedback-panel { padding: 34px 38px; border: 1px solid var(--line); border-radius: 24px; }
+.session-promises-panel { background: linear-gradient(125deg, #fff0ed, #fff8ed); }
+.session-feedback-panel { background: #fffdfb; }
+.session-promises-panel h2,.session-feedback-panel h2 { font-size: clamp(29px, 4vw, 38px); }
+.session-promises-panel .section-heading,.session-feedback-panel .section-heading { margin-bottom: 23px; }
+.session-promise-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.session-promise-list li { display: flex; align-items: flex-start; gap: 15px; padding: 19px 21px; border: 1px solid #d4143d18; border-radius: 15px; background: #ffffffbf; }
+.promise-spark { flex: 0 0 auto; color: var(--ruby); font-size: 29px; line-height: 1.15; }
+.session-promise-list h3 { margin: 0 0 7px; color: var(--ruby-dark); font-size: 17px; }
+.session-promise-list p { margin: 0; font-size: 17px; line-height: 1.5; overflow-wrap: anywhere; }
+.session-feedback-intro { max-width: 640px; margin: -8px 0 25px; color: var(--muted); font-size: 14px; }
+.feedback-conversations { display: grid; gap: 22px; }
+.feedback-pair { overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: white; }
+.feedback-pair > h3 { padding: 17px 21px; border-bottom: 1px solid var(--line); color: var(--ruby-dark); background: #fff1ed; font-size: 21px; overflow-wrap: anywhere; }
+.feedback-pair ul { margin: 0; padding: 0; list-style: none; }
+.feedback-item { padding: 21px; }
+.feedback-item + .feedback-item { border-top: 1px solid var(--line); }
+.feedback-item-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.feedback-item-heading > strong { font-size: 14px; overflow-wrap: anywhere; }
+.feedback-sentiment { flex-shrink: 0; padding: 4px 9px; border-radius: 999px; color: #643839; background: #fff5ec; font-size: 11px; font-weight: 700; }
+.feedback-sentiment > span { margin-right: 3px; font-size: 14px; }
+.feedback-item p { margin: 13px 0 9px; line-height: 1.6; overflow-wrap: anywhere; }
+.feedback-source { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.session-chat-content { overflow-wrap: anywhere; }
+.session-chat-editor { margin: 0 25px 25px; }
+.session-chat-editor > p { margin: 14px 0; color: var(--muted); font-size: 13px; }
+.session-chat-editor .button { justify-self: start; }
+
+@media (max-width: 700px) {
+  .speaker-promise { padding: 17px 16px; }
+  .session-promises-panel,.session-feedback-panel { padding: 26px 20px; }
+  .session-promise-list li { padding: 17px 15px; gap: 12px; }
+  .feedback-pair > h3,.feedback-item { padding: 17px; }
+  .feedback-item-heading { flex-wrap: wrap; }
+  .session-chat-editor { margin-right: 20px; margin-left: 20px; }
+  .session-chat-editor .button { width: 100%; }
+}

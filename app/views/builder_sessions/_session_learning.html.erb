@@ -1,0 +1,43 @@
+<% promises = builder_session.next_session_promises.includes(:user).order(:id) %>
+<% if promises.any? %>
+  <section class="session-promises-panel" data-session-promises>
+    <div class="section-heading"><p class="eyebrow">Small moves. Real momentum.</p><h2>Until next session</h2></div>
+    <ul class="session-promise-list">
+      <% promises.each do |promise| %>
+        <li>
+          <span class="promise-spark" aria-hidden="true">✦</span>
+          <div><h3><%= session_builder_name(promise.user) %></h3><p><%= promise.body %></p></div>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<% conversations = feedback_conversations(builder_session) %>
+<% if conversations.any? %>
+  <section class="session-feedback-panel" data-session-feedback>
+    <div class="section-heading"><p class="eyebrow">Better, together</p><h2>Builder to builder</h2></div>
+    <p class="session-feedback-intro">The useful advice, questions, and encouragement — distilled from the conversation.</p>
+    <div class="feedback-conversations">
+      <% conversations.each do |feedback_items| %>
+        <% pair_names = [ feedback_items.first.author, feedback_items.first.recipient ].map { |user| session_builder_name(user) }.sort %>
+        <section class="feedback-pair" data-feedback-pair>
+          <h3><%= pair_names.join(" ↔ ") %></h3>
+          <ul>
+            <% feedback_items.each do |feedback| %>
+              <% emoji, sentiment = feedback_sentiment(feedback) %>
+              <li class="feedback-item">
+                <div class="feedback-item-heading">
+                  <strong data-feedback-direction><%= session_builder_name(feedback.author) %> → <%= session_builder_name(feedback.recipient) %></strong>
+                  <span class="feedback-sentiment" data-feedback-sentiment><span aria-hidden="true"><%= emoji %></span> <%= sentiment %></span>
+                </div>
+                <p><%= feedback.body %></p>
+                <small class="feedback-source"><%= feedback.source == "chat" ? "Meeting chat" : "Transcript" %></small>
+              </li>
+            <% end %>
+          </ul>
+        </section>
+      <% end %>
+    </div>
+  </section>
+<% end %>

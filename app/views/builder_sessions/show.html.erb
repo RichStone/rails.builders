@@ -12,7 +12,7 @@
     <% if @builder_session.location.present? %><p class="session-location"><strong>Location:</strong> <%= @builder_session.location %></p><% end %>
     <% if @builder_session.meeting_code && @builder_session.joinable? %>
       <%= link_to "Join Google Meet", join_builder_session_path(@builder_session), class: "button button-primary", target: "_blank", rel: "noopener noreferrer" %>
-      <p class="privacy-note">This meeting may be recorded or transcribed. Private transcripts, AI-generated notes, and trend analysis are retained for Program participants. <%= link_to "Privacy details", privacy_path %>.</p>
+      <p class="privacy-note">This meeting may be recorded or transcribed. Private transcripts, meeting chat, AI-generated notes, promises, feedback, and trend analysis are retained for Program participants and may inform personalized session emails. <%= link_to "Privacy details", privacy_path %>.</p>
     <% end %>
   </header>
 
@@ -74,6 +74,7 @@
         <p class="live-phase"><%= @builder_session.paused? ? "Paused" : display_state %></p>
         <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %>
           <h2><%= @builder_session.current_speaker_attendance.display_name %></h2>
+          <%= render "speaker_commitment", builder_session: @builder_session %>
           <ol class="session-prompts" data-session-prompts>
             <li>One business challenge</li>
             <li>One AI-building challenge</li>
@@ -253,6 +254,8 @@
           <% end %>
         </section>
 
+        <%= render "session_learning", builder_session: @builder_session %>
+
         <details class="session-artifact-panel" data-session-notes>
           <summary><span><small>Wispr Flow</small>Summary notes</span><strong aria-hidden="true">+</strong></summary>
           <% if transcript.summary_notes.present? %>
@@ -267,8 +270,10 @@
           <div class="session-transcript" data-session-transcript-content><%= simple_format(h(transcript.content)) %></div>
         </details>
 
+        <%= render "chat_log", builder_session: @builder_session %>
+
         <% if current_user.administrator? %>
-          <%= button_to "Delete transcript", builder_session_transcript_path(@builder_session), method: :delete, class: "button button-quiet session-record-delete", form: { data: { turbo_confirm: "Permanently delete this transcript, notes, and analysis?" } } %>
+          <%= button_to "Delete transcript", builder_session_transcript_path(@builder_session), method: :delete, class: "button button-quiet session-record-delete", form: { data: { turbo_confirm: "Permanently delete this transcript, notes, analysis, meeting chat, promises, and feedback?" } } %>
         <% end %>
       </section>
     <% else %>
@@ -280,7 +285,7 @@
         <% end %>>
         <div class="section-heading"><p class="eyebrow">Captured conversation</p><h2>Transcript</h2></div>
         <% if transcript&.state == "deleted" %>
-          <p>This transcript, its notes, and its analysis were deleted.</p>
+          <p>This transcript, its notes, analysis, meeting chat, promises, and feedback were deleted.</p>
         <% elsif transcript&.state == "unavailable" %>
         <div class="transcript-processing">
           <span class="transcript-orbit" aria-hidden="true">◆</span>
@@ -297,6 +302,12 @@
           <%= render "manual_transcript_form", builder_session: @builder_session if session_operator? %>
         <% end %>
       </section>
+      <% unless transcript&.state == "deleted" %>
+        <div class="session-record">
+          <%= render "session_learning", builder_session: @builder_session %>
+          <%= render "chat_log", builder_session: @builder_session %>
+        </div>
+      <% end %>
     <% end %>
   <% end %>
 </main>

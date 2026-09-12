@@ -1,0 +1,46 @@
+THE WEEKLY CHERRY · <%= @session_date %>
+
+Hey <%= @recipient_name %>,
+
+<% if @attended %>
+<% if @promise.present? %>
+You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %>
+<% else %>
+No explicit next-session promise was captured for you this week.
+<% end %>
+<% @feedback.each do |item| %>
+
+<%= item.fetch(:emoji) %> <%= item.fetch(:name) %> → you: <%= item.fetch(:body) %>
+<% end %>
+<% else %>
+<%= @absence_warning %>
+
+<% if @mentions.any? || @feedback.any? %>
+The Builders said this about you this time:
+<% @mentions.each do |mention| %>
+<%= mention %>
+<% end %>
+<% @feedback.each do |item| %>
+<%= item.fetch(:emoji) %> <%= item.fetch(:name) %>: <%= item.fetch(:body) %>
+<% end %>
+<% else %>
+The Builders didn't mention you this time.
+<% end %>
+<% end %>
+
+<% if @attended %>
+🍒 TL;DR
+<% @tldr.each do |line| %>
+<%= line %>
+<% end %>
+
+You can review the session here: <%= @session_url %>
+<% end %>
+
+<%= @next_time ? "The next session is on #{@next_time}." : "Next session time: to be confirmed." %>
+<% unless @attended %>
+<%= @next_meet_url ? "Google Meet: #{@next_meet_url}" : "The Google Meet link will be available on the session page." %>
+<% end %>
+
+Sincerely yours,
+Rich and Loop Monster

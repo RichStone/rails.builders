@@ -1,0 +1,20 @@
+<% chat_log = builder_session.chat_log %>
+<details class="session-artifact-panel" data-session-chat>
+  <summary><span><small>Written in the room</small>Google Meet chat</span><strong aria-hidden="true">+</strong></summary>
+  <% if chat_log&.content.present? %>
+    <div class="session-transcript session-chat-content" data-session-chat-content><%= simple_format(h(chat_log.content)) %></div>
+  <% else %>
+    <p class="session-artifact-empty">No chat history has been added for this meeting.</p>
+  <% end %>
+  <% if session_operator? %>
+    <details class="session-context-editor session-chat-editor" data-chat-editor>
+      <summary><%= chat_log ? "Edit meeting chat" : "Add meeting chat" %></summary>
+      <p>Paste this meeting’s complete chat, including names and times when available. It stays private to Program participants.</p>
+      <%= form_with scope: :builder_session_chat_log, url: builder_session_chat_log_path(builder_session), method: chat_log ? :patch : :post do |form| %>
+        <%= form.label :content, "Meeting chat text" %>
+        <%= form.text_area :content, value: chat_log&.content, rows: 10, maxlength: 1.megabyte, required: true %>
+        <%= form.submit "Save meeting chat", class: "button button-primary" %>
+      <% end %>
+    </details>
+  <% end %>
+</details>
