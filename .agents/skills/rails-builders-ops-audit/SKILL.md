@@ -56,9 +56,10 @@ Collect only the minimum evidence needed to determine status:
 5. Check externally reachable ports and report only whether the expected web and SSH exposure changed.
 6. Run `PRAGMA quick_check` against the primary, cache, queue, and cable SQLite databases. Report one status per database, never contents.
 7. Report aggregate Solid Queue failed-execution and recurring-task counts.
-8. If the optional repository backup bundle is installed, confirm its timers are active and its last backup, repository check, and restore smoke test are fresh. Do not treat the intentionally uninstalled optional bundle as a failure.
-9. Use the first authenticated read-only Honeybadger capability available in this project, preferring the project-scoped MCP connection. Discover its current read tools instead of assuming fixed tool names, scope every query to Rails Builders, and skip rather than guess between projects. Check connectivity, the count of unresolved production errors newly seen or recurring in the last 24 hours, active alarms, and whether CPU, memory, and disk events from the host metrics service are current. When the integration exposes uptime monitors or check-ins, include their aggregate status. Never fetch or report individual occurrences, stack traces, messages, request data, user context, or provider identifiers during the routine audit.
-10. Run `ops/monitoring/hetzner-status` when its repository-scoped Keychain credential is available. Report only its aggregate status fields; never include provider identifiers or retry with a token from another project.
+8. Check for potential spam signups since the previous completed audit using only the application's aggregate hourly `SignupAbuse` counters. Take the prior audit time from this task when available and round it down to the hour to match the buckets; otherwise use the preceding 24 hours and label that fallback. Report new-registration and verification totals, grouped bot/form/rate-limit signals, and whether an existing configured hourly alert threshold was crossed. Treat a registration/verification mismatch as a signal rather than proof, and never inspect accounts, emails, IPs, IDs, or event payloads or report cache keys. The counters expire after 48 hours, so report the interval as unavailable rather than widening the query when the previous audit is older.
+9. If the optional repository backup bundle is installed, confirm its timers are active and its last backup, repository check, and restore smoke test are fresh. Do not treat the intentionally uninstalled optional bundle as a failure.
+10. Use the first authenticated read-only Honeybadger capability available in this project, preferring the project-scoped MCP connection. Discover its current read tools instead of assuming fixed tool names, scope every query to Rails Builders, and skip rather than guess between projects. Check connectivity, the count of unresolved production errors newly seen or recurring in the last 24 hours, active alarms, and whether CPU, memory, and disk events from the host metrics service are current. When the integration exposes uptime monitors or check-ins, include their aggregate status. Never fetch or report individual occurrences, stack traces, messages, request data, user context, or provider identifiers during the routine audit.
+11. Run `ops/monitoring/hetzner-status` when its repository-scoped Keychain credential is available. Report only its aggregate status fields; never include provider identifiers or retry with a token from another project.
 
 If an authenticated provider capability is unavailable, continue the independent health checks and report only which provider check was unavailable. Do not make a plugin or one exact MCP tool name a permanent dependency of this workflow.
 
@@ -82,6 +83,7 @@ Return a concise private audit summary:
 
 - overall production status;
 - sanitized check results and prioritized findings;
+- the potential-spam assessment and interval;
 - Dependabot PR numbers and actions taken or safe reasons for skipping them;
 - any unavailable checks and the smallest next action.
 
