@@ -35,7 +35,8 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       assert_includes email.fetch(:html), "#ffe6ed"
       assert_includes email.fetch(:text), "https://rails.builders/sessions/#{@session.id}"
       assert_includes email.fetch(:text), "Europe/Berlin"
-      assert_includes email.fetch(:text), "Rich and Loop Monster"
+      assert_includes email.fetch(:text), "Rich and Otto Labot"
+      assert_includes email.fetch(:html), "Rich and Otto Labot"
       assert_not_includes email.fetch(:html), "Private transcript"
     end
   end
