@@ -6,6 +6,9 @@ class RegistrationTest < ApplicationSystemTestCase
   end
 
   test "visitor verifies an email, confirms readiness, and sees an exact waitlist position" do
+    Program.current.update!(capacity: 1)
+    User.create!(email: "occupying@example.com", verified_at: Time.current, enrollment_status: "active")
+
     visit root_path
     assert_text "Build in public with other Rails.Builders"
     click_link "Claim your place"
