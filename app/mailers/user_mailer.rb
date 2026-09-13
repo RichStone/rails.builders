@@ -58,18 +58,20 @@ class UserMailer < ApplicationMailer
         preheader: "You’re ##{@waitlist_position} on the Rails Builders waitlist.",
         eyebrow: "Enrollment update",
         headline: "You’re on the waitlist.",
-        description: @user.og? ? "All #{Program.current.capacity} seats are currently reserved. We’ll email you when a Seat becomes available." : "Seats are currently in OG Priority. We’ll contact you when the general waitlist opens and your turn arrives.",
+        description: "You’re in line. We’ll email you when a Seat becomes available and your turn arrives.",
         button_label: "View your waitlist status",
         position: @waitlist_position
       }
     when "active"
+      next_session = Program.current.builder_sessions.where(state: "ready", scheduled_starts_at: Time.current..).order(:scheduled_starts_at).first
       {
         subject: "Your Rails Builders seat is confirmed",
-        preheader: "Your Rails Builders Seat is confirmed. You’re officially an Active Builder.",
+        preheader: "Your Seat is confirmed, and your Google Calendar invite has the session details.",
         eyebrow: "Seat confirmed",
         headline: "You’re in.",
-        description: "Your Seat is confirmed. You’re officially an Active Builder.",
-        button_label: "Open your dashboard"
+        description: "Your Seat is confirmed. You’re officially an Active Builder, and you have a Google Calendar invite for the remaining sessions.",
+        button_label: "Open your dashboard",
+        note: next_session ? "Next session: #{format_session_time(next_session)}." : "Your Google Calendar invite will update when the next session is scheduled."
       }
     when "declined"
       {
@@ -126,5 +128,10 @@ class UserMailer < ApplicationMailer
         button_label: "Open your dashboard"
       }
     end
+  end
+
+  def format_session_time(builder_session)
+    zone = builder_session.time_zone.presence || Program.current.schedule_zone.name
+    "#{builder_session.scheduled_starts_at.in_time_zone(zone).strftime('%A, %-d %B at %H:%M %Z')} (#{zone})"
   end
 end

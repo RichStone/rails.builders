@@ -96,7 +96,7 @@
         <span><strong>Crack open the build path</strong><small>See all four steps</small></span>
       </summary>
       <div class="steps">
-        <article><span>01</span><h3>Join with your email</h3><p>OG builders get first access to the <%= @program.capacity %> seats. Everyone else keeps a place on the waitlist.</p></article>
+        <article><span>01</span><h3>Join with your email</h3><p>Complete the readiness check and join the waitlist. When a seat opens and your turn arrives, it’s yours to confirm for 72 hours.</p></article>
         <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Add as many products as you like (hopefully ONE 😉).</p></article>
         <article><span>03</span><h3>Build with company</h3><p>Weekly live sessions where builders share what’s working, learn from each other, and keep shipping.</p></article>
         <article><span>04</span><h3>Keep the context</h3><p>Session history, Slack chat and transcripts keep each conversation available and the learning crisp for useful next moves.</p></article>
@@ -164,7 +164,7 @@
   </section>
 
   <section id="builders" class="section builders-section" data-controller="viewport-nudge">
-    <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails Builders.</h2><p>Profiles appear only when a builder chooses to publish and a facilitator approves. The gleaming rubies are OGs who haven’t stepped into the spotlight yet.</p></div>
+    <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails Builders.</h2><p>Profiles appear only when a builder chooses to publish and a facilitator approves. Private profiles stay anonymous until their builders step into the spotlight.</p></div>
 
     <div id="active-builders" class="builder-group">
       <%= render "builder_group_title", title: "Active Builders", icon: "⚡", tooltip: "#{@active_builders.size} building now" %>
@@ -174,7 +174,7 @@
     </div>
 
     <div id="waitlisted-builders" class="builder-group">
-      <%= render "builder_group_title", title: "Waitlisted Builders", icon: "⏳", tooltip: "Signed up, non-OG - opening up soon" %>
+      <%= render "builder_group_title", title: "Waitlisted Builders", icon: "⏳", tooltip: "Signed up and waiting for an open seat" %>
       <div class="builder-grid">
         <% @waitlisted_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
       </div>
@@ -187,10 +187,10 @@
       </div>
     </div>
 
-    <div id="og-builders" class="builder-group">
-      <%= render "builder_group_title", title: "The OGs", icon: "🔥", tooltip: "They started the Build back in 2025" %>
+    <div id="past-builders" class="builder-group">
+      <%= render "builder_group_title", title: "Past Builders", icon: "🔥", tooltip: "They built with the group before the current cohort" %>
       <div class="builder-grid">
-        <% @og_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
+        <% @past_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index, private_label: "Past Builder" %><% end %>
       </div>
     </div>
   </section>

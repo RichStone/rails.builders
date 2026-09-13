@@ -23,6 +23,8 @@ class User < ApplicationRecord
   has_many :facilitated_programs, class_name: "Program", foreign_key: :main_facilitator_id, dependent: :restrict_with_error
   has_one_attached :avatar
 
+  attr_accessor :send_calendar_notification
+
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :name, :testimonial, with: ->(value) { value.strip }
 
@@ -46,6 +48,7 @@ class User < ApplicationRecord
 
   before_validation :set_slack_desired_state
   before_validation :clear_public_profile_approval_without_opt_in
+  after_update_commit :enqueue_calendar_invitation, if: :saved_change_to_enrollment_status?
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
   after_update_commit :capture_enrollment_conversion, if: :saved_change_to_enrollment_status?
   before_destroy :prevent_last_verified_administrator_deletion
@@ -73,11 +76,7 @@ class User < ApplicationRecord
       update!(verified_at: Time.current) unless verified?
 
       if enrollment_status == "unverified"
-        if og? && program.og_priority? && program.seat_available?
-          issue_offer!
-        else
-          clear_seat_and_queue!(status: "inactive")
-        end
+        clear_seat_and_queue!(status: "inactive")
       end
     end
 
@@ -165,7 +164,8 @@ class User < ApplicationRecord
     verified? && !active? && !removed? && (offered? || facilitator? || program.seat_available?)
   end
 
-  def promote_to_active!
+  def promote_to_active!(send_calendar_notification: false)
+    self.send_calendar_notification = send_calendar_notification
     program = Program.current
     program.with_lock do
       with_lock do
@@ -326,7 +326,7 @@ class User < ApplicationRecord
 
   def deliver_enrollment_notifications
     program = Program.current
-    immediately_promotable = waitlisted? && !program.promotions_paused? && program.seat_available? && (!program.og_priority? || og?)
+    immediately_promotable = waitlisted? && !program.promotions_paused? && program.seat_available?
     return if immediately_promotable
 
     UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later
@@ -335,6 +335,16 @@ class User < ApplicationRecord
       FacilitatorMailer.enrollment_status(facilitator, self, enrollment_status).deliver_later
     end
     UserMailer.offer_reminder(self).deliver_later(wait_until: offer_expires_at - 24.hours) if offered? && offer_expires_at > 24.hours.from_now
+  end
+
+  def enqueue_calendar_invitation
+    return unless active?
+
+    connection = Program.current.calendar_connection
+    return unless connection&.status == "connected"
+
+    notification_requested = !!ActiveModel::Type::Boolean.new.cast(send_calendar_notification)
+    GoogleCalendarAttendeeJob.perform_later(connection.id, id, notification_requested)
   end
 
   def capture_enrollment_conversion

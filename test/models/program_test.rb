@@ -2,7 +2,7 @@ require "test_helper"
 
 class ProgramTest < ActiveSupport::TestCase
   setup do
-    @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 1, og_priority: false)
+    @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 1)
   end
 
   test "a facilitator never consumes a seat" do

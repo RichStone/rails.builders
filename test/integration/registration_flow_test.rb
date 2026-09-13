@@ -357,26 +357,23 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "an OG receives a seat offer after verification" do
-    user = User.create!(email: "og@example.com", og: true)
+  test "a returning participant follows the standard readiness path after verification" do
+    user = User.create!(email: "returning@example.com", og: true)
     post sign_in_path, params: sign_in_params(email: user.email)
 
     token = user.reload.generate_token_for(:email_verification)
     get verify_email_path(token: token)
     post verify_email_path, params: { token: token }
 
-    assert_equal "offered", user.reload.enrollment_status
+    assert_equal "inactive", user.reload.enrollment_status
     follow_redirect!
-    assert_select "h1", /Your seat is ready/
-    assert_select ".dashboard-next-steps li", text: /Become an Active Builder/
-    assert_select ".dashboard-next-steps li.is-complete", count: 0
+    assert_select "h1", /Your account is ready/
+    assert_select ".dashboard-next-steps li", text: /Get on the waitlist/
     assert_select "input[name='readiness[]']", count: 6
     assert_select "[data-readiness-checklist-target='activation'][hidden]"
-    assert_select "form", text: /Accept Seat Offer/, count: 0
   end
 
   test "general admission sends one offer outcome rather than a transient waitlist email" do
-    @program.update!(og_priority: false)
     user = User.create!(email: "general@example.com")
     clear_enqueued_jobs
     ActionMailer::Base.deliveries.clear

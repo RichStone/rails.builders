@@ -7,19 +7,20 @@ class Admin::UsersController < Admin::BaseController
     program = Program.current
     attributes = user_params
     active = ActiveModel::Type::Boolean.new.cast(params.require(:user)[:active]) if params.require(:user).key?(:active)
+    send_calendar_notification = ActiveModel::Type::Boolean.new.cast(params[:send_calendar_notification])
     updated = false
     program.with_lock do
       @user.public_profile_approved = false if (attributes.keys & %w[name testimonial avatar public_profile]).any?
       @user.update!(attributes)
       membership_updated = active.nil? || active == @user.active? ||
-        (active ? @user.promote_to_active! : @user.update_active_membership!(active: false))
+        (active ? @user.promote_to_active!(send_calendar_notification:) : @user.update_active_membership!(active: false))
       raise ActiveRecord::Rollback unless membership_updated
 
       updated = true
     end
     return render :edit, status: :unprocessable_entity unless updated
 
-    program.promote_waitlist! unless program.og_priority?
+    program.promote_waitlist!
     redirect_to admin_root_path, notice: "Builder updated."
   end
 
@@ -71,6 +72,6 @@ class Admin::UsersController < Admin::BaseController
   end
 
   def user_params
-    params.require(:user).permit(:email, :name, :testimonial, :avatar, :public_profile, :og, :facilitator, :active, :waitlist_rank, :slack_status).except(:active)
+    params.require(:user).permit(:email, :name, :testimonial, :avatar, :public_profile, :facilitator, :active, :waitlist_rank, :slack_status).except(:active)
   end
 end

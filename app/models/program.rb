@@ -51,11 +51,6 @@ class Program < ApplicationRecord
     User.waitlisted.order(Arel.sql("CASE WHEN waitlist_rank IS NULL THEN 1 ELSE 0 END"), :waitlist_rank, :waitlist_joined_at, :id)
   end
 
-  def open_waitlist!
-    update!(og_priority: false)
-    promote_waitlist!
-  end
-
   def promote_waitlist!(limit: nil)
     with_lock do
       promote_waitlist(limit: limit)
@@ -98,7 +93,7 @@ class Program < ApplicationRecord
   end
 
   def next_eligible_waitlist_entry
-    og_priority? ? ordered_waitlist.where(og: true).first : ordered_waitlist.first
+    ordered_waitlist.first
   end
 
   def ends_on_or_after_starts_on

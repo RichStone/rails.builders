@@ -62,8 +62,7 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_select ".admin-builder-card", text: /Registrant/
     assert_not_includes response.body, "false, false"
 
-    patch admin_program_path(@program), params: { program: { og_priority: "0", capacity: 10 } }
-    assert_not @program.reload.og_priority?
+    patch admin_program_path(@program), params: { program: { capacity: 10 } }
     assert_equal "offered", @builder.reload.enrollment_status
 
     patch admin_user_path(@builder), params: { user: { facilitator: "1", slack_status: "invited" } }
@@ -162,10 +161,13 @@ class AdminTest < ActionDispatch::IntegrationTest
       assert_select "h3", text: "Waitlisted"
       assert_select ".admin-builder-card", text: /builder@example.com/
       assert_select "a[href='#{edit_admin_user_path(@builder)}']", text: /Manage builder/
+      assert_select "form[action='#{admin_user_path(@builder)}'][data-turbo-confirm='Permanently delete this Builder?']" do
+        assert_select "button[aria-label='Delete builder@example.com'][title='Delete Builder']"
+      end
     end
     assert_select "[data-builder-group='offered']" do
       assert_select "h3", text: "Offered"
-      assert_select ".admin-builder-card", text: /#{offered.email}.*TypeOG/m
+      assert_select ".admin-builder-card", text: /#{offered.email}.*TypeRegistrant/m
     end
     assert_select "[data-builder-group='active']" do
       assert_select "h3", text: "Active"
@@ -173,7 +175,7 @@ class AdminTest < ActionDispatch::IntegrationTest
     end
     assert_select "[data-builder-group='removed']", count: 0
     assert_select ".admin-builder-card", count: User.count
-    assert_select "[data-builder-group='og']", count: 0
+    assert_select "[data-builder-group='past']", count: 0
   end
 
   test "changing the main facilitator disconnects the old Calendar but keeps the schedule until reconnection" do
@@ -254,12 +256,25 @@ class AdminTest < ActionDispatch::IntegrationTest
   end
 
   test "admin promotes a builder with the Active Builder checkbox" do
+    @admin.update!(facilitator: true)
+    @program.update!(main_facilitator: @admin)
+    connection = @program.create_calendar_connection!(
+      facilitator: @admin,
+      google_account_email: @admin.email,
+      google_calendar_id: "sessions@group.calendar.google.com",
+      google_calendar_name: "Rails Builders Sessions",
+      oauth_token_json: "{}",
+      status: "connected"
+    )
     sign_in_as(@admin)
 
     get edit_admin_user_path(@builder)
     assert_select "input[type='checkbox'][name='user[active]']:not([checked])"
+    assert_select "input[type='checkbox'][name='send_calendar_notification']:not([checked])"
 
-    patch admin_user_path(@builder), params: { user: { active: "1" } }
+    assert_enqueued_with(job: GoogleCalendarAttendeeJob, args: [ connection.id, @builder.id, true ]) do
+      patch admin_user_path(@builder), params: { user: { active: "1" }, send_calendar_notification: "1" }
+    end
 
     assert_redirected_to admin_root_path
     assert @builder.reload.active?
@@ -270,8 +285,24 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_select "input[type='checkbox'][name='user[active]'][checked]"
   end
 
+  test "admin surfaces no legacy priority or builder labels" do
+    @builder.update!(og: true)
+    sign_in_as(@admin)
+
+    get admin_root_path
+
+    assert_select "input[name='program[og_priority]']", count: 0
+    assert_no_match(/\bOGs?\b/, response.body)
+
+    get edit_admin_user_path(@builder)
+
+    assert_select "input[name='user[og]']", count: 0
+    assert_no_match(/\bOGs?\b/, response.body)
+    assert_select "form[action='#{admin_user_path(@builder)}'][data-turbo-confirm='Permanently delete this Builder?']", count: 1
+  end
+
   test "admin deactivates a builder by unchecking the Active Builder checkbox" do
-    @program.update!(capacity: 1, og_priority: false)
+    @program.update!(capacity: 1)
     @builder.update!(enrollment_status: "active", slack_desired_state: "present", waitlist_rank: nil, waitlist_joined_at: nil)
     waiting = User.create!(email: "waiting@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_rank: 1, waitlist_joined_at: Time.current)
     sign_in_as(@admin)
@@ -285,7 +316,7 @@ class AdminTest < ActionDispatch::IntegrationTest
   end
 
   test "admin uses named removal and reinstatement actions instead of raw status editing" do
-    @program.update!(capacity: 1, og_priority: false)
+    @program.update!(capacity: 1)
     @builder.update!(enrollment_status: "active", slack_desired_state: "present", waitlist_rank: nil, waitlist_joined_at: nil)
     waiting = User.create!(email: "waiting@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_rank: 1, waitlist_joined_at: Time.current)
     sign_in_as(@admin)

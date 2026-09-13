@@ -92,7 +92,7 @@ class UserMailerTest < ActionMailer::TestCase
 
   test "waitlist outcome explains the position" do
     Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
-    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1, og: true)
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
     url = Rails.application.routes.url_helpers.dashboard_url(host: "example.com")
 
     mail = UserMailer.enrollment_status(user)
@@ -101,20 +101,20 @@ class UserMailerTest < ActionMailer::TestCase
     assert_equal "You’re on the Rails Builders waitlist", mail.subject
     assert_includes mail.html_part.body.decoded, "#1"
     assert_includes mail.text_part.body.decoded, "#1"
-    assert_includes mail.html_part.body.decoded, "All 10 seats are currently reserved"
-    assert_includes mail.text_part.body.decoded, "All 10 seats are currently reserved"
+    assert_includes mail.html_part.body.decoded, "We’ll email you when a Seat becomes available"
+    assert_includes mail.text_part.body.decoded, "We’ll email you when a Seat becomes available"
     assert_includes mail.html_part.body.decoded, url
     assert_includes mail.text_part.body.decoded, url
   end
 
-  test "general waitlist outcome explains OG Priority in both parts" do
+  test "waitlist outcome uses the same queue guidance for every builder" do
     Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
     user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
 
     mail = UserMailer.enrollment_status(user)
 
-    assert_includes mail.html_part.body.decoded, "Seats are currently in OG Priority"
-    assert_includes mail.text_part.body.decoded, "Seats are currently in OG Priority"
+    assert_includes mail.html_part.body.decoded, "your turn arrives"
+    assert_includes mail.text_part.body.decoded, "your turn arrives"
   end
 
   test "inactive outcome explains the readiness-gated waitlist opt-in" do
@@ -130,13 +130,29 @@ class UserMailerTest < ActionMailer::TestCase
   end
 
   test "confirmed outcome names Active Builder status in both parts" do
+    program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 9, 3), ends_on: Date.new(2026, 12, 17), capacity: 9)
+    program.builder_sessions.create!(
+      google_event_id: "next-session",
+      title: "Rails Builders",
+      scheduled_starts_at: Time.utc(2026, 9, 17, 15, 30),
+      scheduled_ends_at: Time.utc(2026, 9, 17, 17, 0),
+      time_zone: "Europe/Amsterdam"
+    )
     user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active")
 
-    mail = UserMailer.enrollment_status(user)
+    travel_to Time.utc(2026, 9, 13, 12) do
+      mail = UserMailer.enrollment_status(user)
 
-    assert_equal "Your Rails Builders seat is confirmed", mail.subject
-    assert_includes mail.html_part.body.decoded, "officially an Active Builder"
-    assert_includes mail.text_part.body.decoded, "officially an Active Builder"
+      assert_equal "Your Rails Builders seat is confirmed", mail.subject
+      assert_includes mail.html_part.body.decoded, "officially an Active Builder"
+      assert_includes mail.text_part.body.decoded, "officially an Active Builder"
+      assert_includes mail.html_part.body.decoded, "Google Calendar invite"
+      assert_includes mail.text_part.body.decoded, "Google Calendar invite"
+      assert_includes mail.html_part.body.decoded, "Thursday, 17 September at 17:30 CEST"
+      assert_includes mail.text_part.body.decoded, "Thursday, 17 September at 17:30 CEST"
+      assert_includes mail.html_part.body.decoded, "Europe/Amsterdam"
+      assert_includes mail.text_part.body.decoded, "Europe/Amsterdam"
+    end
   end
 
   test "closed enrollment outcomes preserve their next-step guidance" do

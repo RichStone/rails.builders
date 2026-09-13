@@ -55,7 +55,7 @@ class RegistrationTest < ApplicationSystemTestCase
   end
 
   test "offered builder unlocks Active Builder status with the readiness checklist" do
-    user = User.create!(email: "og-ready@example.com", og: true)
+    user = User.create!(email: "ready@example.com", enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     visit verify_email_path(token: user.generate_token_for(:email_verification))
 
     within(".membership-panel") do

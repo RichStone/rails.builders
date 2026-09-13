@@ -13,7 +13,6 @@ module ApplicationHelper
 
   def user_role_labels(user)
     labels = []
-    labels << "OG" if user.og?
     labels << "Facilitator" if user.facilitator?
     labels << "Admin" if user.administrator?
     labels.presence || [ "Registrant" ]

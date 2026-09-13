@@ -11,11 +11,9 @@ class BuildersController < ApplicationController
   end
 
   def promote
-    if @builder.promote_to_active!
+    send_calendar_notification = ActiveModel::Type::Boolean.new.cast(params[:send_calendar_notification])
+    if @builder.promote_to_active!(send_calendar_notification:)
       connection = Program.current.calendar_connection
-      if connection&.status == "connected"
-        GoogleCalendarAttendeeJob.perform_later(connection.id, @builder.id, params[:send_calendar_notification] == "1")
-      end
       notice = "Builder promoted to Active Builder."
       notice += " Calendar update queued." if connection&.status == "connected"
       redirect_to builder_path(@builder), notice:

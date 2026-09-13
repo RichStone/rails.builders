@@ -2,10 +2,20 @@ require "test_helper"
 
 class EnrollmentActionsTest < ActionDispatch::IntegrationTest
   setup do
-    Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10, og_priority: false)
+    Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
   end
 
   test "offered builder can mark themselves active only after confirming every readiness point" do
+    facilitator = User.create!(email: "facilitator@example.com", verified_at: Time.current, facilitator: true)
+    Program.current.update!(main_facilitator: facilitator)
+    connection = Program.current.create_calendar_connection!(
+      facilitator:,
+      google_account_email: facilitator.email,
+      google_calendar_id: "sessions@group.calendar.google.com",
+      google_calendar_name: "Rails Builders Sessions",
+      oauth_token_json: "{}",
+      status: "connected"
+    )
     user = User.create!(email: "ready@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     sign_in_as(user)
 
@@ -25,7 +35,9 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
     assert user.reload.offered?
 
-    patch membership_path, params: { active: "1", readiness: %w[0 1 2 3 4 5] }
+    assert_enqueued_with(job: GoogleCalendarAttendeeJob, args: [ connection.id, user.id, false ]) do
+      patch membership_path, params: { active: "1", readiness: %w[0 1 2 3 4 5] }
+    end
     assert_redirected_to dashboard_path
     assert user.reload.active?
   end
