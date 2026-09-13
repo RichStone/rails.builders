@@ -9,7 +9,7 @@
     <%= form.label :email, "Email address" %><%= form.email_field :email, value: @user&.email, required: true, autofocus: true, autocomplete: "email", maxlength: 254, placeholder: "you@example.com" %>
     <label class="check-row"><%= form.check_box :newsletter_opt_in, checked: params[:newsletter_opt_in] == "1" %><span>Yes, email me Rich Steinmetz’s Loop Labs newsletter about Rails, AI engineering, and building software products. <small>Optional. We’ll ask you to confirm separately, and every email includes an unsubscribe link.</small></span></label>
     <% if Turnstile.enabled? %>
-      <div data-turnstile-target="widget"></div>
+      <div class="turnstile-widget" data-turnstile-target="widget"></div>
       <p data-turnstile-target="status" role="status" aria-live="polite">Checking your browser…</p>
       <button type="button" data-turnstile-target="retry" data-action="turnstile#retry" hidden>Retry verification</button>
       <noscript><p>Please enable JavaScript to verify your browser and sign in.</p></noscript>
