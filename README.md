@@ -4,7 +4,10 @@ The Rails Builders home, enrollment queue, and small membership tool. It runs on
 
 ## Local setup
 
+Install Ruby 3.4.1 (as specified in [`.ruby-version`](.ruby-version)) and Bundler 2.6.5 (as specified in [`Gemfile.lock`](Gemfile.lock)) before setting up the application.
+
 ```sh
+gem install bundler -v 2.6.5
 bin/setup
 bin/rails db:seed
 bin/dev
