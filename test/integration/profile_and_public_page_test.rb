@@ -271,15 +271,18 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select "#builders[data-controller~='viewport-nudge']"
     assert_select ".builders-section .group-title > span", count: 0
     [
-      [ "active", "Active Builders", "⚡", "1 building now" ],
+      [ "active", "Active Builders", "⚡", "1 Builder meeting weekly to learn from each other" ],
       [ "waitlisted", "Waitlisted Builders", "⏳", "Signed up, non-OG - opening up soon" ],
       [ "inactive", "Still prepping for the Build", "🛠️", "Signed up, but not yet ready to commit to the Build" ],
       [ "og", "The OGs", "🔥", "They started the Build back in 2025" ]
     ].each do |id, title, icon, tooltip|
       assert_select "##{id}-builders .group-title" do
         assert_select "h3", text: title
-        assert_select "details.info-tip:not([open])[data-viewport-nudge-target='item'] summary[aria-label='About #{title}']", text: icon
-        assert_select "details.info-tip p", text: tooltip
+        assert_select "details.info-tip.builder-info-tip:not([open])[data-controller='builder-popover'][data-viewport-nudge-target='item']" do
+          assert_select "summary[aria-label='About #{title}'][aria-expanded='false'][aria-describedby]", text: icon
+          assert_select "button.builder-tip-backdrop[aria-label='Close information about #{title}']"
+          assert_select ".builder-info-popover[role='tooltip'] p", text: tooltip
+        end
       end
     end
   end
