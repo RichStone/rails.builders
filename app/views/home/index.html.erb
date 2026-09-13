@@ -167,7 +167,7 @@
     <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails Builders.</h2><p>Profiles appear only when a builder chooses to publish and a facilitator approves. The gleaming rubies are OGs who haven’t stepped into the spotlight yet.</p></div>
 
     <div id="active-builders" class="builder-group">
-      <%= render "builder_group_title", title: "Active Builders", icon: "⚡", tooltip: "#{@active_builders.size} building now" %>
+      <%= render "builder_group_title", title: "Active Builders", icon: "⚡", tooltip: "#{pluralize(@active_builders.size, "Builder")} meeting weekly to learn from each other" %>
       <div class="builder-grid">
         <% @active_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index %><% end %>
       </div>

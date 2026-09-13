@@ -1,7 +1,13 @@
+<% tip_id = "builder-tip-#{title.parameterize}" %>
 <div class="group-title">
   <h3><%= title %></h3>
-  <details class="info-tip" data-viewport-nudge-target="item">
-    <summary aria-label="About <%= title %>"><%= icon %></summary>
-    <p><%= tooltip %></p>
+  <details class="info-tip builder-info-tip" data-controller="builder-popover" data-viewport-nudge-target="item" data-action="toggle->builder-popover#sync pointerenter->builder-popover#openOnHover pointerleave->builder-popover#closeAfterHover keydown.esc@window->builder-popover#close">
+    <summary aria-label="About <%= title %>" aria-describedby="<%= tip_id %>" aria-expanded="false" data-builder-popover-target="trigger"><span aria-hidden="true"><%= icon %></span></summary>
+    <button type="button" class="builder-tip-backdrop" tabindex="-1" aria-label="Close information about <%= title %>" data-action="builder-popover#close"></button>
+    <div id="<%= tip_id %>" class="builder-info-popover" role="tooltip">
+      <span class="builder-tip-kicker" aria-hidden="true">Rails Builders <i>◆</i></span>
+      <p><%= tooltip %></p>
+      <small>Tap outside to close</small>
+    </div>
   </details>
 </div>
