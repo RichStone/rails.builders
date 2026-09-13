@@ -16,6 +16,13 @@ Rails.application.routes.draw do
   delete "sign-out", to: "sessions#destroy"
 
   resource :dashboard, only: :show, controller: :dashboard
+  resource :community_access_token, only: %i[create destroy]
+
+  namespace :api do
+    namespace :v1 do
+      resource :community, only: :show, controller: :community
+    end
+  end
   resources :builders, only: %i[index show] do
     post :promote, on: :member
   end

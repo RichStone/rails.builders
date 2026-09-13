@@ -4,6 +4,8 @@ class BuilderSession < ApplicationRecord
 
   STATES = %w[ready cancelled connection builder_updates closing hangout completed].freeze
   ACTIVE_STATES = %w[connection builder_updates closing hangout].freeze
+  PUBLIC_MEET_LINK = %r{(?:(?:https?:)?//)?meet\.google\.com/[^\s<]+}i
+  PUBLIC_MEET_CODE = /\b[a-z]{3}-[a-z]{4}-[a-z]{3}\b/i
 
   belongs_to :program
   belongs_to :assigned_facilitator, class_name: "User", optional: true
@@ -40,6 +42,7 @@ class BuilderSession < ApplicationRecord
   def paused? = pauses.where(ended_at: nil).exists?
   def joinable? = state == "ready" || active?
   def run_token = started_at&.iso8601(6)
+  def public_title = title.gsub(PUBLIC_MEET_LINK, "Google Meet").gsub(PUBLIC_MEET_CODE, "Google Meet")
 
   def session_record_writable?
     state == "completed" && !BuilderSessionTranscript.exists?(builder_session_id: id, state: "deleted")
