@@ -93,5 +93,20 @@
       <% end %>
     </div>
   <% end %>
+  <% if session_member? %>
+    <div class="action-panel" id="community-api">
+      <h2>Community data API</h2>
+      <p>Use approved public profiles, past-session metadata, and privacy-safe attendance data with a local AI assistant or script. Private community content is never included.</p>
+      <% if current_user.community_api_token? %>
+        <p>Your token was generated <%= current_user.community_api_token_generated_at.to_fs(:long) %>. Its value cannot be shown again.</p>
+        <div class="button-row">
+          <%= button_to "Replace token", community_access_token_path, class: "button button-quiet", data: { turbo_confirm: "Replace your existing API token? It will stop working immediately." } %>
+          <%= button_to "Revoke token", community_access_token_path, method: :delete, class: "text-danger", data: { turbo_confirm: "Revoke your community API token?" } %>
+        </div>
+      <% else %>
+        <%= button_to "Generate API token", community_access_token_path, class: "button button-quiet" %>
+      <% end %>
+    </div>
+  <% end %>
   <% if current_user.facilitator? %><div class="action-panel"><h2>Profile publication</h2><p>Review builders who have asked to appear publicly.</p><%= link_to "Review profiles", facilitator_profile_reviews_path, class: "button button-quiet" %></div><% end %>
 </main>

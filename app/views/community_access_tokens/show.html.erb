@@ -1,0 +1,17 @@
+<main class="narrow-page">
+  <p class="eyebrow">Community data API</p>
+  <h1>Copy your token now</h1>
+  <p>This token is shown only once. It grants read-only access to approved public profiles and privacy-safe community and session data.</p>
+  <div class="action-panel">
+    <label for="community-api-token"><strong>Bearer token</strong></label>
+    <input id="community-api-token" type="text" value="<%= @community_api_token %>" readonly autocomplete="off" spellcheck="false" aria-describedby="token-warning">
+    <p id="token-warning"><strong>Keep it private.</strong> Generating another token replaces this one.</p>
+  </div>
+  <div class="action-panel">
+    <h2>Use it locally</h2>
+    <pre><code>curl <%= api_v1_community_url %> \
+  -H "Authorization: Bearer YOUR_TOKEN"</code></pre>
+    <p>The response documents its privacy limits. It never includes emails, private profiles, transcripts, chat logs, notes, promises, peer feedback, Meet links, or Calendar identifiers.</p>
+  </div>
+  <%= link_to "Back to dashboard", dashboard_path, class: "button button-primary" %>
+</main>

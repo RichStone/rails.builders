@@ -160,3 +160,21 @@ Turn on Meet transcription or automatic transcription for the recurring meeting 
 Calendar sync runs hourly and can also be queued by a facilitator or Administrator. When a facilitator or Administrator promotes someone directly to Active Builder, the app queues their verified email for addition to each unique upcoming event or recurring series on the selected Calendar. The promotion form can ask Google to send an update, but Google may notify all event guests rather than only the new Builder. Active-session maintenance runs every minute. Google Meet transcript import uses adaptive retries from the five-minute recurring job and stops after a final attempt at 24 hours. OAuth tokens, Meet links, Google transcript resource identifiers, and transcript content are encrypted in the application database.
 
 Slack membership is deliberately manual in v1. Administrators can track its status for each builder. Sessions include Calendar-backed scheduling, shared live timers, attendance, speaker order, and read-only transcripts. Three Strikes remains outside v1.
+
+## Community data API
+
+Active Builders, facilitators, and Administrators can generate a personal bearer
+token from their dashboard and use the read-only community snapshot endpoint:
+
+```sh
+curl https://rails.builders/api/v1/community \
+  -H "Authorization: Bearer rb_your_token"
+```
+
+The snapshot contains approved public builder profiles, current Program totals,
+and past-session metadata with attendance totals. Named attendance is included
+only when the Builder has an approved public profile. The API deliberately omits
+emails, private profiles, transcripts, chat logs, notes, promises, peer feedback,
+Meet links, Calendar identifiers, arrival times, speaker order, and detailed
+timing. Replacing or revoking a token takes effect immediately; the raw token is
+stored only by the member and is shown once.

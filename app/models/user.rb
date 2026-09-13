@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  COMMUNITY_API_TOKEN_PATTERN = /\Arb_[0-9a-f]{64}\z/
+
   ENROLLMENT_STATUSES = %w[unverified inactive waitlisted offered active declined expired withdrawn left_waitlist removed].freeze
   WAITLIST_ELIGIBLE_STATUSES = %w[inactive declined expired withdrawn left_waitlist].freeze
   SLACK_STATUSES = %w[manual_pending invited active removed].freeze
@@ -275,6 +277,27 @@ class User < ApplicationRecord
   def focus_product
     products.find_by(focus: true) || products.first
   end
+
+  def self.authenticate_community_api_token(token)
+    return unless token.is_a?(String) && token.match?(COMMUNITY_API_TOKEN_PATTERN)
+
+    find_by(community_api_token_digest: Digest::SHA256.hexdigest(token))
+  end
+
+  def issue_community_api_token!
+    token = "rb_#{SecureRandom.hex(32)}"
+    update!(
+      community_api_token_digest: Digest::SHA256.hexdigest(token),
+      community_api_token_generated_at: Time.current
+    )
+    token
+  end
+
+  def revoke_community_api_token!
+    update!(community_api_token_digest: nil, community_api_token_generated_at: nil)
+  end
+
+  def community_api_token? = community_api_token_digest.present?
 
   private
 

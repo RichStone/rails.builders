@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_13_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_13_130000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -214,6 +214,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_120000) do
     t.string "clickfunnels_contact_id"
     t.string "clickfunnels_contact_public_id"
     t.string "clickfunnels_sync_status", default: "not_requested", null: false
+    t.string "community_api_token_digest"
+    t.datetime "community_api_token_generated_at"
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "enrollment_status", default: "unverified", null: false
@@ -237,6 +239,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_120000) do
     t.datetime "verified_at"
     t.datetime "waitlist_joined_at"
     t.integer "waitlist_rank"
+    t.index ["community_api_token_digest"], name: "index_users_on_community_api_token_digest", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["enrollment_status"], name: "index_users_on_enrollment_status"
     t.index ["waitlist_rank", "waitlist_joined_at"], name: "index_users_on_waitlist_rank_and_waitlist_joined_at"
