@@ -8,7 +8,7 @@ module GoogleWorkspace
     EVENT_FIELDS = [
       "items(id,status,summary,description,location,hangoutLink",
       "conferenceData(conferenceSolution(key(type)),entryPoints(entryPointType,uri))",
-      "start(date,dateTime,timeZone),end(date,dateTime,timeZone))",
+      "start(date,dateTime,timeZone),end(date,dateTime,timeZone),recurringEventId)",
       "nextPageToken,timeZone"
     ].join(",")
 
@@ -61,6 +61,30 @@ module GoogleWorkspace
       events
     end
 
+    def add_attendee_to_upcoming_events(calendar_id:, starts_at:, ends_at:, email:, send_notification:)
+      event_ids = list_events(calendar_id:, starts_at:, ends_at:).filter_map do |event|
+        event[:recurring_event_id] || event[:id] unless event[:all_day] || event[:status] == "cancelled"
+      end.uniq
+
+      event_ids.count do |event_id|
+        event = service.get_event(calendar_id, event_id, fields: "attendees,etag")
+        attendees = Array(event.attendees)
+        next false if attendees.any? { |attendee| attendee.email.to_s.casecmp?(email) }
+
+        attendees << Google::Apis::CalendarV3::EventAttendee.new(email:)
+        options = Google::Apis::RequestOptions.default.dup
+        options.header = { "If-Match" => event.etag } if event.etag.present?
+        service.patch_event(
+          calendar_id,
+          event_id,
+          Google::Apis::CalendarV3::Event.new(attendees:),
+          send_updates: send_notification ? "all" : "none",
+          options:
+        )
+        true
+      end
+    end
+
     private
 
     attr_reader :connection, :service
@@ -107,7 +131,7 @@ module GoogleWorkspace
     end
 
     def normalize_event(event, calendar_time_zone)
-      normalized = { id: event.id, status: event.status }
+      normalized = { id: event.id, status: event.status, recurring_event_id: event.recurring_event_id }.compact
       return normalized if event.status == "cancelled"
       return normalized.merge(all_day: true) if event.start&.date
 
