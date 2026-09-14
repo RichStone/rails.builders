@@ -371,6 +371,31 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_not @user.public_profile_approved?
   end
 
+  test "replacing a profile picture clears facilitator approval" do
+    @user.products.create!(name: "Approved App", url: "https://approved.example", focus: true)
+    @user.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "original-avatar.png",
+      content_type: "image/png"
+    )
+    @user.update!(name: "Approved Builder", public_profile: true, public_profile_approved: true)
+    sign_in_as(@user)
+
+    avatar = Rack::Test::UploadedFile.new(
+      StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      "image/png",
+      true,
+      original_filename: "replacement-avatar.png"
+    )
+
+    patch profile_path, params: { user: { avatar: } }
+
+    assert_redirected_to dashboard_path
+    assert @user.reload.public_profile?
+    assert_not @user.public_profile_approved?
+    assert_equal "replacement-avatar.png", @user.avatar.filename.to_s
+  end
+
   test "public profile opt-out does not change enrollment or desired Slack membership" do
     @user.products.create!(name: "Private App", url: "https://private.example", focus: true)
     @user.update!(name: "Private Builder", public_profile: true, public_profile_approved: true)

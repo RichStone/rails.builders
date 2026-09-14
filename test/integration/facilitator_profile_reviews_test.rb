@@ -1,4 +1,5 @@
 require "test_helper"
+require "base64"
 
 class FacilitatorProfileReviewsTest < ActionDispatch::IntegrationTest
   setup do
@@ -7,6 +8,11 @@ class FacilitatorProfileReviewsTest < ActionDispatch::IntegrationTest
     @builder = User.create!(email: "builder@example.com", name: "Waiting Builder", verified_at: Time.current,
       enrollment_status: "waitlisted", waitlist_rank: 1, waitlist_joined_at: Time.current)
     @builder.products.create!(name: "Queue App", url: "https://queue.example", focus: true)
+    @builder.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "avatar.png",
+      content_type: "image/png"
+    )
     @builder.update!(public_profile: true)
   end
 
@@ -16,6 +22,7 @@ class FacilitatorProfileReviewsTest < ActionDispatch::IntegrationTest
     get facilitator_profile_reviews_path
     assert_response :success
     assert_select "#builder-#{@builder.id}", text: /Waiting Builder/
+    assert_select "#builder-#{@builder.id} img[alt='Waiting Builder'][src*='/rails/active_storage/representations/']", count: 1
     assert_includes response.body, "Queue App"
 
     patch facilitator_profile_review_path(@builder), params: { user: { public_profile_approved: "true" } }
@@ -24,6 +31,21 @@ class FacilitatorProfileReviewsTest < ActionDispatch::IntegrationTest
 
     patch facilitator_profile_review_path(@builder), params: { user: { public_profile_approved: "false" } }
     assert_not @builder.reload.public_profile_approved?
+  end
+
+  test "a facilitator sees when a profile has no image" do
+    builder_without_image = User.create!(
+      email: "no-image@example.com",
+      name: "No Image Builder",
+      verified_at: Time.current
+    )
+    builder_without_image.products.create!(name: "No Image App", url: "https://no-image.example", focus: true)
+    builder_without_image.update!(public_profile: true)
+    sign_in_as(@facilitator)
+
+    get facilitator_profile_reviews_path
+
+    assert_select "#builder-#{builder_without_image.id} [aria-label='No image uploaded for No Image Builder']", text: "No image", count: 1
   end
 
   test "a non-facilitator cannot review profiles" do
