@@ -281,7 +281,7 @@ GEM
     parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
-    posthog-ruby (3.23.5)
+    posthog-ruby (3.23.7)
       concurrent-ruby (~> 1)
     pp (0.6.4)
       prettyprint
@@ -500,7 +500,7 @@ DEPENDENCIES
   kamal (~> 2.0)
   letter_opener
   letter_opener_web (~> 3.0)
-  posthog-ruby (~> 3.18)
+  posthog-ruby (~> 3.23)
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.3, >= 8.1.3.1)
