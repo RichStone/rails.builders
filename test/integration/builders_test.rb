@@ -1,4 +1,5 @@
 require "test_helper"
+require "base64"
 
 class BuildersTest < ActionDispatch::IntegrationTest
   setup do
@@ -38,10 +39,16 @@ class BuildersTest < ActionDispatch::IntegrationTest
   test "a Facilitator finds and promotes any verified Builder from the Builder page" do
     @program.update!(capacity: 1)
     @builder.update!(enrollment_status: "offered", offer_expires_at: 2.days.from_now, waitlist_rank: nil, waitlist_joined_at: nil)
+    @builder.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "avatar.png",
+      content_type: "image/png"
+    )
     sign_in_as(@facilitator)
 
     get builders_path
     assert_select "a[href='#{builder_path(@builder)}']", text: "Waiting Builder"
+    assert_equal builder_path(@builder), css_select("main section.product-list h2 a").first["href"]
 
     get builder_path(@builder)
     assert_select "form[action='#{promote_builder_path(@builder)}']", text: "Promote to Active Builder"

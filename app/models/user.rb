@@ -58,6 +58,7 @@ class User < ApplicationRecord
   scope :offered, -> { where(enrollment_status: "offered") }
   scope :waitlisted, -> { where(enrollment_status: "waitlisted") }
   scope :publicly_visible, -> { where(public_profile: true, public_profile_approved: true) }
+  scope :avatar_first, -> { left_joins(:avatar_attachment).order(ActiveStorage::Attachment.arel_table[:id].eq(nil)) }
 
   def verified? = verified_at.present?
   def active? = enrollment_status == "active"

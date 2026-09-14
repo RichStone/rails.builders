@@ -1,4 +1,5 @@
 require "test_helper"
+require "base64"
 
 class AdminTest < ActionDispatch::IntegrationTest
   setup do
@@ -151,6 +152,12 @@ class AdminTest < ActionDispatch::IntegrationTest
     offered = User.create!(email: "offered@example.com", verified_at: Time.current, og: true,
       enrollment_status: "offered", offer_expires_at: 72.hours.from_now)
     active = User.create!(email: "active@example.com", verified_at: Time.current, og: true, enrollment_status: "active")
+    active_with_image = User.create!(email: "active-with-image@example.com", verified_at: Time.current, enrollment_status: "active")
+    active_with_image.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "avatar.png",
+      content_type: "image/png"
+    )
     sign_in_as(@admin)
 
     get admin_root_path
@@ -172,6 +179,9 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_select "[data-builder-group='active']" do
       assert_select "h3", text: "Active"
       assert_select ".admin-builder-card", text: /#{active.email}/
+      assert_select ".admin-builder-card small" do |emails|
+        assert_equal [ active_with_image.email, active.email ], emails.map { |email| email.text.strip }
+      end
     end
     assert_select "[data-builder-group='removed']", count: 0
     assert_select ".admin-builder-card", count: User.count

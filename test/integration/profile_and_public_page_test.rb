@@ -46,6 +46,24 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "same-origin", response.headers["Referrer-Policy"]
   end
 
+  test "the public page puts builders with images first in a builder group" do
+    @user.update!(name: "A Builder Without Image")
+    @user.products.create!(name: "No Image App", url: "https://no-image.example", focus: true)
+    @user.update!(public_profile: true, public_profile_approved: true)
+    builder_with_image = User.create!(email: "image@example.com", name: "Z Builder With Image", verified_at: Time.current, enrollment_status: "active")
+    builder_with_image.products.create!(name: "Image App", url: "https://image.example", focus: true)
+    builder_with_image.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "avatar.png",
+      content_type: "image/png"
+    )
+    builder_with_image.update!(public_profile: true, public_profile_approved: true)
+
+    get root_path
+
+    assert_equal [ "Z Builder With Image", "A Builder Without Image" ], css_select("#active-builders .builder-card h4").map { |heading| heading.text.strip }
+  end
+
   test "the public page describes the weekly group and emits social metadata" do
     get root_path
 

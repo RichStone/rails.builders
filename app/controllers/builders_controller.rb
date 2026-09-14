@@ -3,7 +3,7 @@ class BuildersController < ApplicationController
   before_action :set_builder, only: %i[show promote]
 
   def index
-    @builders = User.where.not(verified_at: nil).order(:name, :email)
+    @builders = User.where.not(verified_at: nil).avatar_first.order(:name, :email)
   end
 
   def show

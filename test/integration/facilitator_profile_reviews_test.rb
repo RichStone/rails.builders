@@ -48,6 +48,17 @@ class FacilitatorProfileReviewsTest < ActionDispatch::IntegrationTest
     assert_select "#builder-#{builder_without_image.id} [aria-label='No image uploaded for No Image Builder']", text: "No image", count: 1
   end
 
+  test "profiles with images appear before profiles without them" do
+    builder_without_image = User.create!(email: "first-alphabetically@example.com", name: "A Builder Without Image", verified_at: Time.current)
+    builder_without_image.products.create!(name: "No Image App", url: "https://no-image.example", focus: true)
+    builder_without_image.update!(public_profile: true)
+    sign_in_as(@facilitator)
+
+    get facilitator_profile_reviews_path
+
+    assert_equal [ "Waiting Builder", "A Builder Without Image" ], css_select("main section.product-list h2").map { |heading| heading.text.strip }
+  end
+
   test "a non-facilitator cannot review profiles" do
     sign_in_as(@builder)
 
