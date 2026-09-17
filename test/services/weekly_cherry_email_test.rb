@@ -59,6 +59,8 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       email = render_for(recipient)
       html = Nokogiri::HTML.fragment(email.fetch(:html))
       assert_empty html.css("h1")
+      assert_includes html.text, "The Weekly Ruby Cherry ·"
+      assert_includes email.fetch(:text), "THE WEEKLY RUBY CHERRY ·"
       assert_not_includes email.fetch(:text), "A little momentum"
       assert_includes html.text, "Hey #{recipient.name},"
 
