@@ -1,0 +1,39 @@
+<% content_for :title, "Configure your notifications — Rails.Builders" %>
+<main class="narrow-page">
+  <p class="eyebrow">Your Rails.Builders account</p>
+  <h1>Configure your notifications</h1>
+  <p>Choose which emails you receive and when to get a session reminder.</p>
+
+  <% if current_user.errors.any? %>
+    <p role="alert"><%= current_user.errors.full_messages.to_sentence %></p>
+  <% end %>
+
+  <%= form_with model: current_user, url: notification_preferences_path, class: "stacked-form" do |form| %>
+    <label class="check-row">
+      <%= form.check_box :notifications_enabled %>
+      <span><strong>All notifications</strong><small>Uncheck to pause all Rails.Builders notification emails. Your choices below will be kept.</small></span>
+    </label>
+    <fieldset>
+      <legend>Notification groups</legend>
+      <label class="check-row">
+        <%= form.check_box :enrollment_notifications %>
+        <span><strong>Enrollment notifications</strong><small>Waitlist updates, Seat Offers, offer reminders, and membership changes. If you turn these off, check your dashboard for Seat Offers and deadlines.</small></span>
+      </label>
+      <label class="check-row">
+        <%= form.check_box :session_reminders %>
+        <span><strong>Session reminders</strong><small>One email before each upcoming session while you’re an Active Builder or Facilitator.</small></span>
+      </label>
+      <%= form.label :session_reminder_hours, "Remind me this many hours before the session" %>
+      <%= form.number_field :session_reminder_hours, min: 1, max: 168, step: 1, required: true, aria: { describedby: "reminder-timing-help" } %>
+      <small id="reminder-timing-help">Default: 36 hours. Choose between 1 and 168 hours (one week). Changes apply to reminders that haven’t been sent yet.</small>
+      <% if current_user.facilitator? %>
+        <label class="check-row">
+          <%= form.check_box :product_update_notifications %>
+          <span><strong>Product updates</strong><small>The daily digest of Builders’ product changes for Facilitators.</small></span>
+        </label>
+      <% end %>
+    </fieldset>
+    <p>Sign-in links and newsletter confirmations you request will still be sent. The separate Loop Labs newsletter and Google Calendar reminders are managed through their own unsubscribe or calendar settings.</p>
+    <%= form.submit "Save preferences", class: "button button-primary" %>
+  <% end %>
+</main>

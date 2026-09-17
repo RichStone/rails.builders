@@ -53,6 +53,8 @@ class GoogleWorkspace::AuthorizationTest < ActiveSupport::TestCase
     assert_equal "S256", params.fetch("code_challenge_method")
     assert_equal "otto@looplabs.cc", params.fetch("login_hint")
     assert_equal GoogleWorkspace::Authorization::SCOPES.sort, params.fetch("scope").split.sort
+    assert_includes GoogleWorkspace::Authorization::SCOPES, Google::Apis::CalendarV3::AUTH_CALENDAR_EVENTS_OWNED
+    assert_not_includes GoogleWorkspace::Authorization::SCOPES, Google::Apis::CalendarV3::AUTH_CALENDAR_EVENTS_OWNED_READONLY
     assert request.session.key?(Google::Auth::WebUserAuthorizer::XSRF_KEY)
   end
 

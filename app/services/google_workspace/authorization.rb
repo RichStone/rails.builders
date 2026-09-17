@@ -8,7 +8,7 @@ module GoogleWorkspace
   class Authorization
     SCOPES = [
       Google::Apis::CalendarV3::AUTH_CALENDAR_CALENDARLIST_READONLY,
-      Google::Apis::CalendarV3::AUTH_CALENDAR_EVENTS_OWNED_READONLY,
+      Google::Apis::CalendarV3::AUTH_CALENDAR_EVENTS_OWNED,
       Google::Apis::MeetV2::AUTH_MEETINGS_SPACE_READONLY
     ].freeze
 

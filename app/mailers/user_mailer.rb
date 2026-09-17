@@ -3,7 +3,7 @@ class UserMailer < ApplicationMailer
     @user = user
     @url = verify_email_url(token: token)
     @show_readiness_callout = user.enrollment_status.in?(%w[unverified offered])
-    mail(to: user.email, subject: "Your Rails Builders sign-in link")
+    mail(to: user.email, subject: "Your Rails.Builders sign-in link")
   end
 
   def newsletter_confirmation(user, token)
@@ -13,6 +13,9 @@ class UserMailer < ApplicationMailer
   end
 
   def enrollment_status(user, status = user.enrollment_status, waitlist_position = user.waitlist_position)
+    user.reload if user.persisted?
+    return unless user.receives_enrollment_notifications?
+
     @user = user
     @status = status
     @waitlist_position = waitlist_position
@@ -23,10 +26,19 @@ class UserMailer < ApplicationMailer
 
   def offer_reminder(user)
     @user = user
-    return unless user.reload.offered?
+    return unless user.reload.offered? && user.receives_enrollment_notifications?
 
     @url = dashboard_url
-    mail(to: user.email, subject: "24 hours left to confirm your Rails Builders seat")
+    mail(to: user.email, subject: "24 hours left to confirm your Rails.Builders seat")
+  end
+
+  def session_reminder(user, builder_session)
+    return unless user.reload.session_reminder_due?(builder_session.reload)
+
+    @builder_session = builder_session
+    @session_time = format_session_time(builder_session)
+    @url = builder_session_url(builder_session)
+    mail(to: user.email, subject: "Reminder: #{builder_session.title}")
   end
 
   private
@@ -35,7 +47,7 @@ class UserMailer < ApplicationMailer
     case @status
     when "inactive"
       {
-        subject: "Your Rails Builders account is ready",
+        subject: "Your Rails.Builders account is ready",
         preheader: "Complete the readiness check when you’re ready to join the waitlist.",
         eyebrow: "Readiness check",
         headline: "Choose your next step.",
@@ -44,36 +56,38 @@ class UserMailer < ApplicationMailer
       }
     when "offered"
       {
-        subject: "A Rails Builders seat is yours to confirm",
+        subject: "A Rails.Builders seat is yours to confirm",
         preheader: "A Seat is held for you for 72 hours. Confirm or decline it now.",
         eyebrow: "Seat Offer · Action required",
         headline: "A Seat is yours.",
-        description: "Confirm your Seat within 72 hours. Rails Builders is holding your place until then. Open your dashboard, complete the readiness checklist, and mark yourself as an Active Builder. If you decline, Rails Builders can offer it to the next builder.",
+        description: "Confirm your Seat within 72 hours. Rails.Builders is holding your place until then. Open your dashboard, complete the readiness checklist, and mark yourself as an Active Builder. If you decline, Rails.Builders can offer it to the next builder.",
         button_label: "Review your Seat Offer",
         note: "Your turn is not confirmed until you mark yourself as an Active Builder. Your profile can stay private."
       }
     when "waitlisted"
       {
-        subject: "You’re on the Rails Builders waitlist",
-        preheader: "You’re ##{@waitlist_position} on the Rails Builders waitlist.",
+        subject: "You’re on the Rails.Builders waitlist",
+        preheader: "You’re ##{@waitlist_position} on the Rails.Builders waitlist.",
         eyebrow: "Enrollment update",
         headline: "You’re on the waitlist.",
-        description: @user.og? ? "All #{Program.current.capacity} seats are currently reserved. We’ll email you when a Seat becomes available." : "Seats are currently in OG Priority. We’ll contact you when the general waitlist opens and your turn arrives.",
+        description: "You’re in line. We’ll email you when a Seat becomes available and your turn arrives.",
         button_label: "View your waitlist status",
         position: @waitlist_position
       }
     when "active"
+      next_session = Program.current.builder_sessions.where(state: "ready", scheduled_starts_at: Time.current..).order(:scheduled_starts_at).first
       {
-        subject: "Your Rails Builders seat is confirmed",
-        preheader: "Your Rails Builders Seat is confirmed. You’re officially an Active Builder.",
+        subject: "Your Rails.Builders seat is confirmed",
+        preheader: "Your Seat is confirmed, and your Google Calendar invite has the session details.",
         eyebrow: "Seat confirmed",
         headline: "You’re in.",
-        description: "Your Seat is confirmed. You’re officially an Active Builder.",
-        button_label: "Open your dashboard"
+        description: "Your Seat is confirmed. You’re officially an Active Builder, and you have a Google Calendar invite for the remaining sessions.",
+        button_label: "Open your dashboard",
+        note: next_session ? "Next session: #{format_session_time(next_session)}." : "Your Google Calendar invite will update when the next session is scheduled."
       }
     when "declined"
       {
-        subject: "You declined your Rails Builders seat",
+        subject: "You declined your Rails.Builders seat",
         preheader: "Your Seat Offer was declined. Rejoining the waitlist is always your choice.",
         eyebrow: "Seat Offer update",
         headline: "Your Seat Offer was declined.",
@@ -82,7 +96,7 @@ class UserMailer < ApplicationMailer
       }
     when "expired"
       {
-        subject: "Your Rails Builders offer expired",
+        subject: "Your Rails.Builders offer expired",
         preheader: "Your 72-hour Seat Offer expired and the Seat has moved to the next builder.",
         eyebrow: "Seat Offer update",
         headline: "Your Seat Offer expired.",
@@ -91,8 +105,8 @@ class UserMailer < ApplicationMailer
       }
     when "withdrawn"
       {
-        subject: "Your Rails Builders seat was released",
-        preheader: "Your Rails Builders Seat has been released.",
+        subject: "Your Rails.Builders seat was released",
+        preheader: "Your Rails.Builders Seat has been released.",
         eyebrow: "Seat update",
         headline: "Your Seat has been released.",
         description: "Your place is open for the next builder. If you want another run, you can explicitly join the end of the waitlist from your dashboard.",
@@ -100,8 +114,8 @@ class UserMailer < ApplicationMailer
       }
     when "left_waitlist"
       {
-        subject: "You left the Rails Builders waitlist",
-        preheader: "You are no longer on the Rails Builders waitlist.",
+        subject: "You left the Rails.Builders waitlist",
+        preheader: "You are no longer on the Rails.Builders waitlist.",
         eyebrow: "Waitlist update",
         headline: "You left the waitlist.",
         description: "You can explicitly join the end of the waitlist again from your dashboard whenever the timing is right.",
@@ -109,8 +123,8 @@ class UserMailer < ApplicationMailer
       }
     when "removed"
       {
-        subject: "Your Rails Builders enrollment was removed",
-        preheader: "An Administrator removed your Rails Builders enrollment.",
+        subject: "Your Rails.Builders enrollment was removed",
+        preheader: "An Administrator removed your Rails.Builders enrollment.",
         eyebrow: "Enrollment update",
         headline: "Your enrollment was removed.",
         description: "An Administrator must reinstate your eligibility before you can join the waitlist again.",
@@ -118,13 +132,18 @@ class UserMailer < ApplicationMailer
       }
     else
       {
-        subject: "Your Rails Builders status changed",
-        preheader: "Your Rails Builders enrollment status changed.",
+        subject: "Your Rails.Builders status changed",
+        preheader: "Your Rails.Builders enrollment status changed.",
         eyebrow: "Enrollment update",
         headline: "Your enrollment changed.",
         description: "Your current status is #{@status.humanize}.",
         button_label: "Open your dashboard"
       }
     end
+  end
+
+  def format_session_time(builder_session)
+    zone = builder_session.time_zone.presence || Program.current.schedule_zone.name
+    "#{builder_session.scheduled_starts_at.in_time_zone(zone).strftime('%A, %-d %B at %H:%M %Z')} (#{zone})"
   end
 end

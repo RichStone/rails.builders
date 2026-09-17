@@ -1,0 +1,7 @@
+<% content_for :preheader, "#{@builder_session.title}: #{@session_time}." %>
+
+<%= render "layouts/heading", eyebrow: "Session reminder", title: "See you at the next session." %>
+<p style="margin: 0 0 18px; color: #4f3d40; font-size: 17px; line-height: 27px;"><strong><%= @builder_session.title %></strong><br><%= @session_time %></p>
+<p style="margin: 0 0 18px; color: #4f3d40; font-size: 17px; line-height: 27px;">Bring your business challenge, one thing you’ve been building with AI, and what you want to achieve by the following session.</p>
+
+<%= render "layouts/button", label: "Open session & join", url: @url %>

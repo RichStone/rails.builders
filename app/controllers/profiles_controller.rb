@@ -21,7 +21,7 @@ class ProfilesController < ApplicationController
   def destroy
     if current_user.delete_account!
       reset_session
-      redirect_to root_path, notice: "Your Rails Builders account has been deleted."
+      redirect_to root_path, notice: "Your Rails.Builders account has been deleted."
     else
       redirect_to dashboard_path, alert: "The last verified Administrator cannot delete their account."
     end

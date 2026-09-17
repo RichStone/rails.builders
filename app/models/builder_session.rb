@@ -13,6 +13,7 @@ class BuilderSession < ApplicationRecord
   has_one :chat_log, class_name: "BuilderSessionChatLog", dependent: :restrict_with_error
   has_many :next_session_promises, dependent: :restrict_with_error
   has_many :peer_feedbacks, dependent: :restrict_with_error
+  has_many :session_reminders, dependent: :destroy
 
   encrypts :meet_url
 
@@ -294,6 +295,36 @@ class BuilderSession < ApplicationRecord
     self
   end
 
+  def queue_speaker!(attendance_id:, expected_started_at: run_token, at: Time.current)
+    with_lock do
+      return false unless same_timer_run?(expected_started_at)
+
+      synchronize!(at:)
+      return false unless state == "builder_updates"
+
+      attendance = attendances.find_by(id: attendance_id, role: "builder")
+      return false unless attendance && !attendance.speaker_state.in?(%w[queued speaking])
+
+      attendance.update!(
+        status: "present",
+        arrived_at: attendance.arrived_at || at,
+        speaker_state: "queued",
+        speaker_position: attendances.maximum(:speaker_position).to_i + 1,
+        speaker_allotted_seconds: nil,
+        speaker_started_at: nil,
+        speaker_ended_at: nil,
+        speaker_paused_seconds: 0
+      )
+      if current_speaker
+        distribute_remaining_speaker_time!(at:)
+      else
+        start_speaker!(unspoken_speakers.first, at:)
+      end
+      touch
+    end
+    self
+  end
+
   def synchronize!(at: Time.current, random: Random)
     with_lock do
       if started_at && at >= started_at + 5.hours
@@ -339,6 +370,31 @@ class BuilderSession < ApplicationRecord
       touch
       true
     end
+  end
+
+  def push_current_speaker_to_back!(expected_speaker_id:, expected_started_at: run_token, at: Time.current)
+    with_lock do
+      return false unless same_timer_run?(expected_started_at)
+
+      synchronize!(at:)
+      return false unless state == "builder_updates"
+
+      speaker = current_speaker
+      next_speaker = unspoken_speakers.first
+      return false unless speaker&.id == expected_speaker_id && next_speaker
+
+      speaker.update!(
+        speaker_state: "queued",
+        speaker_position: attendances.maximum(:speaker_position).to_i + 1,
+        speaker_allotted_seconds: nil,
+        speaker_started_at: nil,
+        speaker_ended_at: nil,
+        speaker_paused_seconds: 0
+      )
+      start_speaker!(next_speaker, at:)
+      touch
+    end
+    self
   end
 
   def start!(facilitator:, duration_seconds: nil, pre_core_duration_seconds: 0, hangout_duration_seconds: 0, random: Random)
