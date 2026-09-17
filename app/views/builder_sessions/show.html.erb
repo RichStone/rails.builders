@@ -109,6 +109,7 @@
       <section class="session-controls" data-session-controls>
         <%= button_to(@builder_session.paused? ? "Resume" : "Pause", @builder_session.paused? ? resume_builder_session_path(@builder_session) : pause_builder_session_path(@builder_session), params: { run_started_at: run_token }, class: "button button-quiet", form: { data: { turbo: false } }) %>
         <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %><%= button_to "Next", next_speaker_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-primary" %><% end %>
+        <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance && @builder_session.unspoken_speakers.any? %><%= button_to "Push to back", push_speaker_back_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-quiet" %><% end %>
         <% unless @builder_session.state == "hangout" %>
           <% advance_label = { "connection" => "Start core session", "builder_updates" => "Finish core & start hangout", "closing" => "Start hangout" }.fetch(@builder_session.state) %>
           <% if @builder_session.state == "builder_updates" && @builder_session.unspoken_speakers.any? %>
@@ -180,7 +181,12 @@
           <li class="attendance-row">
             <div><strong><%= attendance.display_name %></strong><span><%= attendance.role.humanize %> · <%= attendance.status.humanize %><%= " · #{attendance.speaker_state.humanize}" if attendance.speaker_state %></span></div>
             <% if session_operator? && attendance.role != "facilitator" %>
-              <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present", run_started_at: run_token }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") if attendance.user_id %>
+              <div class="attendance-actions">
+                <% if @builder_session.state == "builder_updates" && !attendance.speaker_state.in?(%w[queued speaking]) %>
+                  <%= button_to "Add to queue", queue_speaker_builder_session_path(@builder_session), params: { attendance_id: attendance.id, run_started_at: run_token }, class: "attendance-toggle" %>
+                <% end %>
+                <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present", run_started_at: run_token }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") if attendance.user_id %>
+              </div>
             <% else %>
               <span class="status-pill"><%= attendance.status.humanize %></span>
             <% end %>

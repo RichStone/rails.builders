@@ -31,6 +31,8 @@ Rails.application.routes.draw do
       post :resume
       post :advance
       post :next_speaker
+      post :push_speaker_back
+      post :queue_speaker
       post :finish
       patch :attendance
       patch :speaker_order

@@ -182,6 +182,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
 
     get builder_session_path(@builder_session)
     assert_select ".live-phase", text: /Pre-core/i
+    assert_select "form[action='#{queue_speaker_builder_session_path(@builder_session)}']", count: 0
     assert_select "form[action='#{cancel_start_builder_session_path(@builder_session)}']" do
       assert_select "input[name='run_started_at'][value='#{@builder_session.started_at.iso8601(6)}']"
       assert_select "button", text: "Discard session run"
@@ -541,6 +542,73 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
       as: :json
     assert_response :unprocessable_entity
     assert_equal requested_order, @builder_session.unspoken_speakers.pluck(:id)
+  end
+
+  test "facilitators can add any Builder to the back of the live queue" do
+    User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
+    zero_random = Object.new.tap { |random| random.define_singleton_method(:rand) { |*| 0 } }
+    @builder_session.start!(facilitator: @facilitator, random: zero_random)
+    completed_speaker = @builder_session.current_speaker_attendance
+    @builder_session.finish_current_speaker!
+    completed_speaker.update!(status: "absent")
+    current_speaker = @builder_session.current_speaker_attendance
+    sign_in_as(@facilitator)
+
+    get builder_session_path(@builder_session)
+    assert_select ".attendance-panel:last-of-type .attendance-row", text: /#{Regexp.escape(completed_speaker.display_name)}/ do
+      assert_select "form[action='#{queue_speaker_builder_session_path(@builder_session)}'] button", text: "Add to queue"
+    end
+
+    post queue_speaker_builder_session_path(@builder_session), params: {
+      attendance_id: completed_speaker.id,
+      run_started_at: @builder_session.run_token
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal "Builder added to the queue.", flash[:notice]
+    assert_equal current_speaker, @builder_session.reload.current_speaker_attendance
+    assert_equal completed_speaker, @builder_session.unspoken_speakers.last
+    assert_equal "present", completed_speaker.reload.status
+  end
+
+  test "adding a Builder to an empty live queue starts their turn" do
+    @builder_session.start!(facilitator: @facilitator)
+    builder_attendance = @builder_session.attendances.find_by!(user: @builder)
+    @builder_session.attendances.update_all(speaker_state: "skipped", speaker_ended_at: Time.current)
+    sign_in_as(@facilitator)
+
+    post queue_speaker_builder_session_path(@builder_session), params: {
+      attendance_id: builder_attendance.id,
+      run_started_at: @builder_session.run_token
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal builder_attendance, @builder_session.reload.current_speaker_attendance
+    assert_empty @builder_session.unspoken_speakers
+  end
+
+  test "facilitators can push the current speaker to the back of the live queue" do
+    User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
+    @builder_session.start!(facilitator: @facilitator)
+    current_speaker = @builder_session.current_speaker_attendance
+    next_speaker = @builder_session.unspoken_speakers.first
+    sign_in_as(@facilitator)
+
+    get builder_session_path(@builder_session)
+    assert_select "form[action='#{push_speaker_back_builder_session_path(@builder_session)}']" do
+      assert_select "input[name='speaker_id'][value='#{current_speaker.id}']"
+      assert_select "button", text: "Push to back"
+    end
+
+    post push_speaker_back_builder_session_path(@builder_session), params: {
+      speaker_id: current_speaker.id,
+      run_started_at: @builder_session.run_token
+    }
+
+    assert_redirected_to builder_session_path(@builder_session)
+    assert_equal "Speaker pushed to the back of the queue.", flash[:notice]
+    assert_equal next_speaker, @builder_session.reload.current_speaker_attendance
+    assert_equal current_speaker, @builder_session.unspoken_speakers.last
   end
 
   test "Builders see a static queue while Administrators may reorder it" do
