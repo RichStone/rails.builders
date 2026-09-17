@@ -85,6 +85,13 @@ module GoogleWorkspace
       end
     end
 
+    def declined_attendee_emails(calendar_id:, event_id:)
+      event = service.get_event(calendar_id, event_id, fields: "attendees(email,responseStatus)")
+      Array(event.attendees).filter_map do |attendee|
+        attendee.email.to_s.downcase if attendee.response_status == "declined"
+      end
+    end
+
     private
 
     attr_reader :connection, :service

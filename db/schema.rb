@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_143000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_150000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -210,6 +210,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_143000) do
 
   create_table "session_reminders", force: :cascade do |t|
     t.integer "builder_session_id", null: false
+    t.datetime "calendar_declined_at"
     t.datetime "created_at", null: false
     t.datetime "scheduled_starts_at", null: false
     t.datetime "sent_at"

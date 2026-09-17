@@ -226,4 +226,26 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
 
     assert_equal "none", service.event_patch_calls.first[:send_updates]
   end
+
+  test "returns only attendees who explicitly declined an event" do
+    service = FakeService.new(events: {
+      "weekly-session" => Calendar::Event.new(attendees: [
+        Calendar::EventAttendee.new(email: "DECLINED@example.com", response_status: "declined"),
+        Calendar::EventAttendee.new(email: "accepted@example.com", response_status: "accepted"),
+        Calendar::EventAttendee.new(email: "tentative@example.com", response_status: "tentative"),
+        Calendar::EventAttendee.new(email: "neutral@example.com", response_status: "needsAction")
+      ])
+    })
+    client = GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service)
+
+    assert_equal [ "declined@example.com" ], client.declined_attendee_emails(
+      calendar_id: "sessions@group.calendar.google.com",
+      event_id: "weekly-session"
+    )
+    assert_equal [ {
+      calendar_id: "sessions@group.calendar.google.com",
+      event_id: "weekly-session",
+      fields: "attendees(email,responseStatus)"
+    } ], service.event_get_calls
+  end
 end
