@@ -14,6 +14,7 @@ class User < ApplicationRecord
   end
 
   has_many :products, dependent: :destroy
+  has_many :session_reminder_deliveries, class_name: "SessionReminder", dependent: :destroy
   has_many :builder_session_attendances, dependent: :nullify
   has_many :next_session_promises, dependent: :destroy
   has_many :authored_peer_feedbacks, class_name: "PeerFeedback", foreign_key: :author_id, dependent: :destroy
@@ -37,6 +38,7 @@ class User < ApplicationRecord
   validates :slack_desired_state, inclusion: { in: SLACK_DESIRED_STATES }
   validates :clickfunnels_sync_status, inclusion: { in: CLICKFUNNELS_SYNC_STATUSES }
   validates :waitlist_rank, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :session_reminder_hours, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 168 }
   validates :newsletter_requested_ip, length: { maximum: 45 }, allow_nil: true
   validates :newsletter_user_agent, length: { maximum: 500 }, allow_nil: true
   validates :newsletter_consent_version, length: { maximum: 50 }, allow_nil: true
@@ -69,6 +71,14 @@ class User < ApplicationRecord
   def removed? = enrollment_status == "removed"
   def publicly_visible? = public_profile? && public_profile_approved?
   def waitlist_eligible? = verified? && enrollment_status.in?(WAITLIST_ELIGIBLE_STATUSES)
+  def receives_enrollment_notifications? = notifications_enabled? && enrollment_notifications?
+  def receives_product_updates? = notifications_enabled? && product_update_notifications?
+
+  def session_reminder_due?(builder_session, at: Time.current)
+    notifications_enabled? && session_reminders? && verified? && !removed? && (active? || facilitator?) &&
+      builder_session.state == "ready" && builder_session.scheduled_starts_at > at &&
+      builder_session.scheduled_starts_at <= at + session_reminder_hours.hours
+  end
 
   def complete_verification!
     program = Program.current

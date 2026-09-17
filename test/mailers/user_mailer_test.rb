@@ -1,6 +1,24 @@
 require "test_helper"
 
 class UserMailerTest < ActionMailer::TestCase
+  test "enrollment emails queued before opting out respect current preferences while sign-in still works" do
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 1.day.from_now)
+    UserMailer.enrollment_status(user).deliver_later
+    UserMailer.offer_reminder(user).deliver_later
+    user.update!(enrollment_notifications: false)
+
+    assert_no_emails { perform_enqueued_jobs }
+
+    user.update!(enrollment_notifications: true, notifications_enabled: false)
+    assert_no_emails do
+      UserMailer.enrollment_status(user).deliver_now
+      UserMailer.offer_reminder(user).deliver_now
+    end
+    assert_emails 1 do
+      UserMailer.verification(user, "requested-link").deliver_now
+    end
+  end
+
   test "verification delivers the secure action in both parts" do
     user = User.create!(email: "builder@example.com")
     url = Rails.application.routes.url_helpers.verify_email_url(token: "verification-token", host: "example.com")

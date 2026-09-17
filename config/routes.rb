@@ -39,6 +39,7 @@ Rails.application.routes.draw do
     end
   end
   resource :profile, only: %i[edit update destroy]
+  resource :notification_preferences, path: "notifications", only: %i[show update]
   resources :products, only: %i[create update destroy] do
     patch :focus, on: :member
   end

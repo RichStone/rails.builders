@@ -25,6 +25,8 @@ class RegistrationTest < ApplicationSystemTestCase
       assert_no_text "Join the waitlist"
       all(".readiness-item label").each(&:click)
       assert_text "Join the waitlist"
+      # Wait for the entrance animation so the label does not move during the click.
+      assert_selector ".membership-activation", style: { opacity: "1" }
       find(".membership-activation label").click
       assert_text "Ready to join the waitlist?"
       click_button "Put me on the list"
@@ -65,6 +67,7 @@ class RegistrationTest < ApplicationSystemTestCase
       assert_no_text "I’m an Active Builder"
       all(".readiness-item label").each(&:click)
       assert_text "I’m an Active Builder"
+      assert_selector ".membership-activation", style: { opacity: "1" }
       find(".membership-activation label").click
       assert_text "Ready to become an Active Builder?"
       click_button "I’m ready — let’s build"

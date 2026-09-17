@@ -79,6 +79,17 @@ class GoogleCalendarAttendeeJobTest < ActiveJob::TestCase
     assert_not_includes @connection.last_error_code, "secret"
   end
 
+  test "enrollment opt-out suppresses the requested Calendar invitation email" do
+    @builder.update!(enrollment_notifications: false)
+    client = FakeClient.new([], nil)
+    job = StubbedJob.new
+    job.client = client
+
+    job.perform(@connection.id, @builder.id, true)
+
+    assert_equal false, client.calls.sole.fetch(:send_notification)
+  end
+
   test "does not invite someone who is no longer an active Builder when the job runs" do
     @builder.update!(enrollment_status: "withdrawn")
     client = FakeClient.new([], nil)

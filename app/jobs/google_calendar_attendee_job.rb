@@ -13,7 +13,7 @@ class GoogleCalendarAttendeeJob < ApplicationJob
       starts_at: Time.current,
       ends_at: connection.program.countdown_ends_at,
       email: user.email,
-      send_notification:
+      send_notification: send_notification && user.receives_enrollment_notifications?
     )
   rescue GoogleWorkspace::AuthorizationRequired, Google::Apis::AuthorizationError, Signet::AuthorizationError => error
     record_failure(connection, "reauthorization_required", error)

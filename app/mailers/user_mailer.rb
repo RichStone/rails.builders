@@ -13,6 +13,9 @@ class UserMailer < ApplicationMailer
   end
 
   def enrollment_status(user, status = user.enrollment_status, waitlist_position = user.waitlist_position)
+    user.reload if user.persisted?
+    return unless user.receives_enrollment_notifications?
+
     @user = user
     @status = status
     @waitlist_position = waitlist_position
@@ -23,10 +26,19 @@ class UserMailer < ApplicationMailer
 
   def offer_reminder(user)
     @user = user
-    return unless user.reload.offered?
+    return unless user.reload.offered? && user.receives_enrollment_notifications?
 
     @url = dashboard_url
     mail(to: user.email, subject: "24 hours left to confirm your Rails Builders seat")
+  end
+
+  def session_reminder(user, builder_session)
+    return unless user.reload.session_reminder_due?(builder_session.reload)
+
+    @builder_session = builder_session
+    @session_time = format_session_time(builder_session)
+    @url = builder_session_url(builder_session)
+    mail(to: user.email, subject: "Reminder: #{builder_session.title}")
   end
 
   private

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_13_203000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_031000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -208,6 +208,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_203000) do
     t.index ["main_facilitator_id"], name: "index_programs_on_main_facilitator_id"
   end
 
+  create_table "session_reminders", force: :cascade do |t|
+    t.integer "builder_session_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "scheduled_starts_at", null: false
+    t.datetime "sent_at"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["builder_session_id"], name: "index_session_reminders_on_builder_session_id"
+    t.index ["user_id", "builder_session_id", "scheduled_starts_at"], name: "idx_on_user_id_builder_session_id_scheduled_starts__7010df008c", unique: true
+    t.index ["user_id"], name: "index_session_reminders_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.boolean "administrator", default: false, null: false
     t.string "clickfunnels_contact_id"
@@ -215,6 +227,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_203000) do
     t.string "clickfunnels_sync_status", default: "not_requested", null: false
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.boolean "enrollment_notifications", default: true, null: false
     t.string "enrollment_status", default: "unverified", null: false
     t.boolean "facilitator", default: false, null: false
     t.string "name"
@@ -224,10 +237,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_203000) do
     t.string "newsletter_requested_ip"
     t.integer "newsletter_token_version", default: 0, null: false
     t.string "newsletter_user_agent"
+    t.boolean "notifications_enabled", default: true, null: false
     t.datetime "offer_expires_at"
     t.boolean "og", default: false, null: false
+    t.boolean "product_update_notifications", default: true, null: false
     t.boolean "public_profile", default: false, null: false
     t.boolean "public_profile_approved", default: false, null: false
+    t.integer "session_reminder_hours", default: 8, null: false
+    t.boolean "session_reminders", default: true, null: false
     t.integer "sign_in_token_version", default: 0, null: false
     t.string "slack_desired_state", default: "absent", null: false
     t.string "slack_status", default: "manual_pending", null: false
@@ -259,4 +276,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_13_203000) do
   add_foreign_key "program_calendar_connections", "programs"
   add_foreign_key "program_calendar_connections", "users", column: "facilitator_id"
   add_foreign_key "programs", "users", column: "main_facilitator_id"
+  add_foreign_key "session_reminders", "builder_sessions"
+  add_foreign_key "session_reminders", "users"
 end
