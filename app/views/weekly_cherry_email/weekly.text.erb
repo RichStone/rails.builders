@@ -38,9 +38,7 @@ Review the last session -> <%= @session_url %>
 <% end %>
 
 <%= @next_time ? "The next session is on #{@next_time}." : "Next session time: to be confirmed." %>
-<% unless @attended %>
 <%= @next_meet_url ? "Google Meet: #{@next_meet_url}" : "The Google Meet link will be available on the session page." %>
-<% end %>
 
 Sincerely yours,
 Rich and Otto Labot
