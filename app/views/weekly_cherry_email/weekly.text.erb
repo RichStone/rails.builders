@@ -1,4 +1,13 @@
-THE WEEKLY RUBY CHERRY · <%= @session_date %>
+THE WEEKLY BUILDERS CHERRY · <%= @session_date %>
+
+<% if @warning_notice.present? %>
+<%= @warning_notice %>
+
+<% end %>
+<% if @info_notice.present? %>
+<%= @info_notice %>
+
+<% end %>
 
 Hey <%= @recipient_name %>,
 
@@ -11,6 +20,10 @@ No explicit next-session promise was captured for you this week.
 <% @feedback.each do |item| %>
 
 <%= item.fetch(:emoji) %> <%= item.fetch(:name) %> → you: <%= item.fetch(:body) %>
+<% end %>
+<% @mentions.each do |mention| %>
+
+<%= mention %>
 <% end %>
 <% else %>
 <%= @absence_warning %>
@@ -29,7 +42,7 @@ The Builders didn't mention you this time.
 <% end %>
 
 <% if @attended %>
-🍒 TL;DR
+TL;DR
 <% @tldr.each do |line| %>
 <%= line %>
 <% end %>

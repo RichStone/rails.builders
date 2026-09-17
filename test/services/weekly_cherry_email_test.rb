@@ -59,8 +59,8 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       email = render_for(recipient)
       html = Nokogiri::HTML.fragment(email.fetch(:html))
       assert_empty html.css("h1")
-      assert_includes html.text, "The Weekly Ruby Cherry ·"
-      assert_includes email.fetch(:text), "THE WEEKLY RUBY CHERRY ·"
+      assert_includes html.text, "The Weekly Builders Cherry ·"
+      assert_includes email.fetch(:text), "THE WEEKLY BUILDERS CHERRY ·"
       assert_not_includes email.fetch(:text), "A little momentum"
       assert_includes html.text, "Hey #{recipient.name},"
 
@@ -130,9 +130,42 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_includes render_for(@builder).fetch(:text), "Next session time: to be confirmed"
   end
 
+  test "edition notices precede the greeting in both variants and escape supplied text" do
+    [ @builder, @absentee, @facilitator ].each do |recipient|
+      email = WeeklyCherryEmail.new(builder_session: @session, recipient: recipient, subject: "This week", tldr: [ "A useful lesson." ], warning_notice: "⚠️ Still working on it <script>oops</script> 😬", info_notice: "📆 A guest hosts next week.").render
+      html = Nokogiri::HTML.fragment(email.fetch(:html))
+      notices = html.css("[data-edition-notice]")
+      assert_equal [ "warning", "info" ], notices.map { |node| node["data-edition-notice"] }
+      assert_includes notices.first["style"], "#fff4ce"
+      assert_includes notices.last["style"], "#e8f2ff"
+      assert_empty html.css("script")
+      assert_includes notices.first.text, "<script>oops</script>"
+      assert_operator html.text.index("Still working"), :<, html.text.index("A guest hosts")
+      assert_operator html.text.index("A guest hosts"), :<, html.text.index("Hey #{recipient.name}")
+      assert_operator email.fetch(:text).index("Still working"), :<, email.fetch(:text).index("A guest hosts")
+      assert_operator email.fetch(:text).index("A guest hosts"), :<, email.fetch(:text).index("Hey #{recipient.name}")
+    end
+    assert_empty Nokogiri::HTML.fragment(render_for(@builder).fetch(:html)).css("[data-edition-notice]")
+  end
+
+  test "attendees can receive unattributed feedback without inventing a builder account" do
+    email = WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Test the smallest useful change." ], mentions: [ "Builder X recommended <b>checking token output</b>; attribution is uncertain." ]).render
+    assert_includes email.fetch(:text), "Builder X recommended"
+    assert_includes email.fetch(:html), "Builder X recommended &lt;b&gt;checking token output&lt;/b&gt;"
+    assert_not_includes email.fetch(:text), "🍒"
+    assert_not_includes email.fetch(:html), "🍒"
+  end
+
+  test "rejects malformed or oversized edition notices" do
+    [ 123, "", "x" * 1_001 ].each do |notice|
+      assert_raises(ArgumentError) { WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Useful." ], warning_notice: notice).render }
+      assert_raises(ArgumentError) { WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Useful." ], info_notice: notice).render }
+    end
+  end
+
   private
 
   def render_for(user)
-    WeeklyCherryEmail.new(builder_session: @session, recipient: user, subject: "Sharper offers, five customers, ship the page", tldr: [ "💎 Put the outcome first.", "🍒 Five useful conversations beat another feature." ]).render
+    WeeklyCherryEmail.new(builder_session: @session, recipient: user, subject: "Sharper offers, five customers, ship the page", tldr: [ "Put the outcome first.", "Five useful conversations beat another feature." ]).render
   end
 end

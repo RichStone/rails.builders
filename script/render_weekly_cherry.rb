@@ -10,7 +10,9 @@ emails = input.fetch("emails").map do |copy|
     recipient: recipient,
     subject: copy.fetch("subject"),
     tldr: copy.fetch("tldr", []),
-    mentions: copy.fetch("mentions", [])
+    mentions: copy.fetch("mentions", []),
+    warning_notice: input["warning_notice"],
+    info_notice: input["info_notice"]
   ).render
 end
 abort "Duplicate recipients are not allowed" unless emails.map { |email| email.fetch(:to) }.uniq.length == emails.length
