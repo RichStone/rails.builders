@@ -50,6 +50,7 @@ export default class extends Controller {
     if (!response?.ok) return
 
     const state = await response.json()
+    if (!this.element.isConnected) return
     if (document.querySelector("[data-speaker-order-saving='true']")) return
     if (state.version < this.versionValue) return
     if (state.version !== this.versionValue || state.state !== this.stateValue || state.paused !== this.pausedValue) {

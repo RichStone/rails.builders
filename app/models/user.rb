@@ -14,6 +14,7 @@ class User < ApplicationRecord
   end
 
   has_many :products, dependent: :destroy
+  has_many :session_reminder_deliveries, class_name: "SessionReminder", dependent: :destroy
   has_many :builder_session_attendances, dependent: :nullify
   has_many :next_session_promises, dependent: :destroy
   has_many :authored_peer_feedbacks, class_name: "PeerFeedback", foreign_key: :author_id, dependent: :destroy
@@ -22,6 +23,8 @@ class User < ApplicationRecord
   has_many :calendar_connections, class_name: "ProgramCalendarConnection", foreign_key: :facilitator_id, dependent: :restrict_with_error
   has_many :facilitated_programs, class_name: "Program", foreign_key: :main_facilitator_id, dependent: :restrict_with_error
   has_one_attached :avatar
+
+  attr_accessor :send_calendar_notification
 
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :name, :testimonial, with: ->(value) { value.strip }
@@ -35,6 +38,7 @@ class User < ApplicationRecord
   validates :slack_desired_state, inclusion: { in: SLACK_DESIRED_STATES }
   validates :clickfunnels_sync_status, inclusion: { in: CLICKFUNNELS_SYNC_STATUSES }
   validates :waitlist_rank, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :session_reminder_hours, numericality: { only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: 168 }
   validates :newsletter_requested_ip, length: { maximum: 45 }, allow_nil: true
   validates :newsletter_user_agent, length: { maximum: 500 }, allow_nil: true
   validates :newsletter_consent_version, length: { maximum: 50 }, allow_nil: true
@@ -46,6 +50,7 @@ class User < ApplicationRecord
 
   before_validation :set_slack_desired_state
   before_validation :clear_public_profile_approval_without_opt_in
+  after_update_commit :enqueue_calendar_invitation, if: :saved_change_to_enrollment_status?
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
   after_update_commit :capture_enrollment_conversion, if: :saved_change_to_enrollment_status?
   before_destroy :prevent_last_verified_administrator_deletion
@@ -55,6 +60,7 @@ class User < ApplicationRecord
   scope :offered, -> { where(enrollment_status: "offered") }
   scope :waitlisted, -> { where(enrollment_status: "waitlisted") }
   scope :publicly_visible, -> { where(public_profile: true, public_profile_approved: true) }
+  scope :avatar_first, -> { left_joins(:avatar_attachment).order(ActiveStorage::Attachment.arel_table[:id].eq(nil)) }
 
   def verified? = verified_at.present?
   def active? = enrollment_status == "active"
@@ -65,6 +71,14 @@ class User < ApplicationRecord
   def removed? = enrollment_status == "removed"
   def publicly_visible? = public_profile? && public_profile_approved?
   def waitlist_eligible? = verified? && enrollment_status.in?(WAITLIST_ELIGIBLE_STATUSES)
+  def receives_enrollment_notifications? = notifications_enabled? && enrollment_notifications?
+  def receives_product_updates? = notifications_enabled? && product_update_notifications?
+
+  def session_reminder_due?(builder_session, at: Time.current)
+    notifications_enabled? && session_reminders? && verified? && !removed? && (active? || facilitator?) &&
+      builder_session.state == "ready" && builder_session.scheduled_starts_at > at &&
+      builder_session.scheduled_starts_at <= at + session_reminder_hours.hours
+  end
 
   def complete_verification!
     program = Program.current
@@ -73,11 +87,7 @@ class User < ApplicationRecord
       update!(verified_at: Time.current) unless verified?
 
       if enrollment_status == "unverified"
-        if og? && program.og_priority? && program.seat_available?
-          issue_offer!
-        else
-          clear_seat_and_queue!(status: "inactive")
-        end
+        clear_seat_and_queue!(status: "inactive")
       end
     end
 
@@ -165,7 +175,8 @@ class User < ApplicationRecord
     verified? && !active? && !removed? && (offered? || facilitator? || program.seat_available?)
   end
 
-  def promote_to_active!
+  def promote_to_active!(send_calendar_notification: false)
+    self.send_calendar_notification = send_calendar_notification
     program = Program.current
     program.with_lock do
       with_lock do
@@ -326,7 +337,7 @@ class User < ApplicationRecord
 
   def deliver_enrollment_notifications
     program = Program.current
-    immediately_promotable = waitlisted? && !program.promotions_paused? && program.seat_available? && (!program.og_priority? || og?)
+    immediately_promotable = waitlisted? && !program.promotions_paused? && program.seat_available?
     return if immediately_promotable
 
     UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later
@@ -335,6 +346,16 @@ class User < ApplicationRecord
       FacilitatorMailer.enrollment_status(facilitator, self, enrollment_status).deliver_later
     end
     UserMailer.offer_reminder(self).deliver_later(wait_until: offer_expires_at - 24.hours) if offered? && offer_expires_at > 24.hours.from_now
+  end
+
+  def enqueue_calendar_invitation
+    return unless active?
+
+    connection = Program.current.calendar_connection
+    return unless connection&.status == "connected"
+
+    notification_requested = !!ActiveModel::Type::Boolean.new.cast(send_calendar_notification)
+    GoogleCalendarAttendeeJob.perform_later(connection.id, id, notification_requested)
   end
 
   def capture_enrollment_conversion

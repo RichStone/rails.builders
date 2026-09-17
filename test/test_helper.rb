@@ -15,6 +15,7 @@ module ActiveSupport
 
     setup do
       Rails.cache.clear
+      SessionReminder.delete_all
       PeerFeedback.delete_all
       NextSessionPromise.delete_all
       BuilderSessionChatLog.delete_all

@@ -2,7 +2,7 @@ class Facilitator::ProfileReviewsController < ApplicationController
   before_action :require_facilitator
 
   def index
-    @builders = User.where(public_profile: true).includes(:products).order(:name, :email)
+    @builders = User.where(public_profile: true).avatar_first.with_attached_avatar.includes(:products).order(:name, :email)
   end
 
   def update

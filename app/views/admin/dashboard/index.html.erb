@@ -1,6 +1,6 @@
 <main class="admin-page">
   <p class="eyebrow">Control room</p>
-  <h1>Rails Builders administration</h1>
+  <h1>Rails.Builders administration</h1>
 
   <%= render "signup_monitoring" %>
 
@@ -13,12 +13,11 @@
       <span class="program-time-zone"><%= @program.schedule_zone.name %></span>
       <%= form.label :capacity %><%= form.number_field :capacity, min: 1 %>
       <%= form.label :main_facilitator_id, "Main facilitator" %><%= form.collection_select :main_facilitator_id, User.where(facilitator: true).order(:name, :email), :id, ->(user) { user.name.presence || user.email }, include_blank: "Not assigned" %>
-      <label class="check-row"><%= form.check_box :og_priority %><span>OG Priority</span></label>
       <div class="admin-check-with-help">
         <label class="check-row"><%= form.check_box :promotions_paused %><span>Pause waitlist promotion</span></label>
         <details class="info-tip">
           <summary aria-label="About pausing waitlist promotion"><span aria-hidden="true">?</span></summary>
-          <p>After you check this and click Update program, people on the waitlist will not receive Seat Offers, even when seats are available. Existing offers and confirmed seats are unchanged, and Promote waitlist does nothing. Uncheck this and update the program to resume promotion. Newly verified OG Builders can still receive direct offers while OG Priority is on.</p>
+          <p>After you check this and click Update program, people on the waitlist will not receive Seat Offers, even when seats are available. Existing offers and confirmed seats are unchanged, and Promote waitlist does nothing. Uncheck this and update the program to resume promotion.</p>
         </details>
       </div>
       <div class="format-points-field"><%= form.label :format_points, "Session format points (one per line)" %><%= form.text_area :format_points, rows: 10 %></div>
@@ -61,7 +60,12 @@
                 <div><dt>Slack</dt><dd><%= user.slack_status.humanize %></dd></div>
                 <div><dt>Newsletter</dt><dd><%= user.clickfunnels_sync_status.humanize %></dd></div>
               </dl>
-              <%= link_to "Manage builder →", edit_admin_user_path(user) %>
+              <div class="admin-builder-actions">
+                <%= link_to "Manage builder →", edit_admin_user_path(user) %>
+                <%= button_to admin_user_path(user), method: :delete, class: "admin-builder-delete", title: "Delete Builder", aria: { label: "Delete #{user.email}" }, form: { class: "admin-builder-delete-form", data: { turbo_confirm: "Permanently delete this Builder?" } } do %>
+                  <span aria-hidden="true">🗑</span>
+                <% end %>
+              </div>
             </article>
           <% end %>
         </div>

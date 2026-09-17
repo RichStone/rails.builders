@@ -7,7 +7,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     @user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active", og: true)
   end
 
-  test "the public page shows published builders and keeps private OGs anonymous" do
+  test "the public page shows published builders and keeps private builders anonymous" do
     public_builder = User.create!(email: "public@example.com", name: "Public Builder", og: true)
     public_builder.products.create!(name: "Tiny App", url: "https://example.com", focus: true)
     public_builder.update!(public_profile: true, public_profile_approved: true)
@@ -31,7 +31,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select "h1", /Build in public with other Rails.Builders/
     assert_select "#how-it-works"
     assert_select "#active-builders"
-    assert_select "#og-builders"
+    assert_select "#past-builders"
     assert_select ".builder-card", minimum: 2
     assert_select "#active-builders .builder-card.private-card h4", count: 1 do |headings|
       assert_match(/\A\S+ \S+ \S+\z/, headings.first.text.strip)
@@ -46,10 +46,28 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "same-origin", response.headers["Referrer-Policy"]
   end
 
+  test "the public page puts builders with images first in a builder group" do
+    @user.update!(name: "A Builder Without Image")
+    @user.products.create!(name: "No Image App", url: "https://no-image.example", focus: true)
+    @user.update!(public_profile: true, public_profile_approved: true)
+    builder_with_image = User.create!(email: "image@example.com", name: "Z Builder With Image", verified_at: Time.current, enrollment_status: "active")
+    builder_with_image.products.create!(name: "Image App", url: "https://image.example", focus: true)
+    builder_with_image.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "avatar.png",
+      content_type: "image/png"
+    )
+    builder_with_image.update!(public_profile: true, public_profile_approved: true)
+
+    get root_path
+
+    assert_equal [ "Z Builder With Image", "A Builder Without Image" ], css_select("#active-builders .builder-card h4").map { |heading| heading.text.strip }
+  end
+
   test "the public page describes the weekly group and emits social metadata" do
     get root_path
 
-    title = "Rails Builders Group — Continuous r-AI-ls.Builders Edition"
+    title = "Rails.Builders Group — Continuous r-AI-ls.Builders Edition"
     description = "A focused group of Builders who love ship useful products on Rails."
 
     assert_select "title", text: title
@@ -63,6 +81,13 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".steps article:nth-child(3)", text: /learn from each other/
     assert_select ".steps article:nth-child(4)", text: /Session history, Slack chat and transcripts/
     assert_no_match(/bi-?weekly/i, response.body)
+  end
+
+  test "the public page uses current membership language without legacy labels" do
+    get root_path
+
+    assert_no_match(/\bOGs?\b/, response.body)
+    assert_select "#past-builders h3", text: "Past Builders"
   end
 
   test "the site serves its red ruby favicon" do
@@ -258,7 +283,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       assert_select "h4", text: "Waiting Builder"
       assert_select "h4", text: "Builder in stealth", count: 0
     end
-    assert_select "#og-builders h4", text: "Waiting Builder", count: 0
+    assert_select "#past-builders h4", text: "Waiting Builder", count: 0
     assert_not_includes response.body, "Hidden Builder"
 
     get dashboard_path
@@ -272,9 +297,9 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".builders-section .group-title > span", count: 0
     [
       [ "active", "Active Builders", "⚡", "1 building now" ],
-      [ "waitlisted", "Waitlisted Builders", "⏳", "Signed up, non-OG - opening up soon" ],
+      [ "waitlisted", "Waitlisted Builders", "⏳", "Signed up and waiting for an open seat" ],
       [ "inactive", "Still prepping for the Build", "🛠️", "Signed up, but not yet ready to commit to the Build" ],
-      [ "og", "The OGs", "🔥", "They started the Build back in 2025" ]
+      [ "past", "Past Builders", "🔥", "They built with the group before the current cohort" ]
     ].each do |id, title, icon, tooltip|
       assert_select "##{id}-builders .group-title" do
         assert_select "h3", text: title
@@ -300,7 +325,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       assert_select ".builder-card", count: 5
       assert_select ".private-label", text: "Still prepping for the Build · profile private", count: 5
     end
-    assert_select "#og-builders .builder-card", count: 0
+    assert_select "#past-builders .builder-card", count: 0
     assert_not_includes response.body, "inactive@example.com"
   end
 
@@ -362,6 +387,31 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
     assert @user.reload.public_profile?
     assert_not @user.public_profile_approved?
+  end
+
+  test "replacing a profile picture clears facilitator approval" do
+    @user.products.create!(name: "Approved App", url: "https://approved.example", focus: true)
+    @user.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "original-avatar.png",
+      content_type: "image/png"
+    )
+    @user.update!(name: "Approved Builder", public_profile: true, public_profile_approved: true)
+    sign_in_as(@user)
+
+    avatar = Rack::Test::UploadedFile.new(
+      StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      "image/png",
+      true,
+      original_filename: "replacement-avatar.png"
+    )
+
+    patch profile_path, params: { user: { avatar: } }
+
+    assert_redirected_to dashboard_path
+    assert @user.reload.public_profile?
+    assert_not @user.public_profile_approved?
+    assert_equal "replacement-avatar.png", @user.avatar.filename.to_s
   end
 
   test "public profile opt-out does not change enrollment or desired Slack membership" do

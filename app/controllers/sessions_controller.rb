@@ -74,10 +74,11 @@ class SessionsController < ApplicationController
     event = first_verification ? "registration_verified" : "sign_in_completed"
     ProductAnalytics.capture(event)
     SignupAbuse.record(event)
+    return_to_notifications = session[:return_to_notifications]
     reset_session
     session[:user_id] = user.id
     ClickfunnelsNewsletterJob.perform_later(user.id) if user.newsletter_confirmed_at?
-    redirect_to dashboard_path, notice: "Email verified. Welcome to Rails Builders."
+    redirect_to(return_to_notifications ? notification_preferences_path : dashboard_path, notice: "Email verified. Welcome to Rails.Builders.")
   rescue ActionController::ParameterMissing, ActiveSupport::MessageVerifier::InvalidSignature, ActiveRecord::RecordNotFound
     SignupAbuse.record(:invalid_verification)
     redirect_to sign_in_path, alert: "That sign-in link is invalid or has expired. Please request a new one."

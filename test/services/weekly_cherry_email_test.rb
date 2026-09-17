@@ -54,6 +54,26 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_not_includes email.fetch(:html), "Your promise"
   end
 
+  test "email openings skip the decorative headline and attendee review links use the requested label" do
+    [ @builder, @absentee ].each do |recipient|
+      email = render_for(recipient)
+      html = Nokogiri::HTML.fragment(email.fetch(:html))
+      assert_empty html.css("h1")
+      assert_includes html.text, "The Weekly Ruby Cherry ·"
+      assert_includes email.fetch(:text), "THE WEEKLY RUBY CHERRY ·"
+      assert_not_includes email.fetch(:text), "A little momentum"
+      assert_includes html.text, "Hey #{recipient.name},"
+
+      link = html.at_css("a[href='https://rails.builders/sessions/#{@session.id}']")
+      if recipient == @builder
+        assert_equal "Review the last session ->", link.text
+        assert_includes email.fetch(:text), "Review the last session -> https://rails.builders/sessions/#{@session.id}"
+      else
+        assert_nil link
+      end
+    end
+  end
+
   test "consecutive absences reset on attendance and ignore cancelled sessions" do
     older = @program.builder_sessions.create!(google_event_id: "older", title: "Older", state: "completed", scheduled_starts_at: 9.days.ago, scheduled_ends_at: 9.days.ago + 1.hour, time_zone: "Europe/Berlin")
     older.attendances.create!(user: @absentee, display_name: "Absent", role: "builder", status: "absent")
@@ -62,6 +82,20 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_includes render_for(@absentee).fetch(:text), "1st missed session in a row"
     older.update!(state: "cancelled")
     assert_includes render_for(@absentee).fetch(:text), "1st missed session in a row"
+  end
+
+  test "attendees get the next session Meet link or its honest unavailable fallback" do
+    @next_session.update!(meet_url: "https://meet.google.com/abc-defg-hij")
+    email = render_for(@builder)
+    assert_includes email.fetch(:text), "Google Meet: https://meet.google.com/abc-defg-hij"
+    html = Nokogiri::HTML.fragment(email.fetch(:html))
+    assert_equal "https://meet.google.com/abc-defg-hij", html.at_css("a[href='https://meet.google.com/abc-defg-hij']").text
+
+    @next_session.update!(meet_url: nil)
+    email = render_for(@builder)
+    assert_includes email.fetch(:text), "The Google Meet link will be available on the session page."
+    assert_includes email.fetch(:html), "The Google Meet link will be available on the session page."
+    assert_not_includes email.fetch(:html), "https://meet.google.com/"
   end
 
   test "absentee mentions are escaped and replace the no-mention sentence" do

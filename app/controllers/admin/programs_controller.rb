@@ -14,7 +14,7 @@ class Admin::ProgramsController < Admin::BaseController
     @program.with_lock { @program.update!(attributes) }
     facilitator_changed = @program.main_facilitator_id != old_main_facilitator_id
     disconnect_calendar_after_facilitator_handoff if facilitator_changed
-    @program.promote_waitlist! unless @program.og_priority?
+    @program.promote_waitlist!
     notice = facilitator_changed ? "Program updated. Reconnect the Sessions calendar for the new main facilitator." : "Program updated."
     redirect_to admin_root_path, notice:
   end
@@ -36,7 +36,7 @@ class Admin::ProgramsController < Admin::BaseController
   end
 
   def program_params
-    attributes = params.require(:program).permit(:name, :starts_on, :starts_at_time, :ends_on, :ends_at_time, :capacity, :format_points, :readiness_points, :og_priority, :promotions_paused, :main_facilitator_id)
+    attributes = params.require(:program).permit(:name, :starts_on, :starts_at_time, :ends_on, :ends_at_time, :capacity, :format_points, :readiness_points, :promotions_paused, :main_facilitator_id)
     assign_boundary_time(attributes, :starts_at)
     assign_boundary_time(attributes, :ends_at)
     attributes

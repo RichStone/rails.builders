@@ -26,7 +26,7 @@ class GoogleCalendarSyncTest < ActiveSupport::TestCase
       facilitator: @facilitator,
       google_account_email: "facilitator@looplabs.cc",
       google_calendar_id: "continuous@group.calendar.google.com",
-      google_calendar_name: "Rails Builders — Continuous",
+      google_calendar_name: "Rails.Builders — Continuous",
       oauth_token_json: '{"refresh_token":"refresh-secret"}',
       status: "connected"
     )

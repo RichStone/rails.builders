@@ -4,13 +4,16 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
   Calendar = Google::Apis::CalendarV3
 
   class FakeService
-    attr_reader :calendar_list_calls, :event_calls
+    attr_reader :calendar_list_calls, :event_calls, :event_get_calls, :event_patch_calls
 
-    def initialize(calendar_pages: [], event_pages: [])
+    def initialize(calendar_pages: [], event_pages: [], events: {})
       @calendar_pages = calendar_pages
       @event_pages = event_pages
+      @events = events
       @calendar_list_calls = []
       @event_calls = []
+      @event_get_calls = []
+      @event_patch_calls = []
     end
 
     def get_calendar_list(calendar_id, fields:)
@@ -29,6 +32,15 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
       @event_calls << options.merge(calendar_id: calendar_id)
       @event_pages.fetch(@event_calls.length - 1)
     end
+
+    def get_event(calendar_id, event_id, **options)
+      @event_get_calls << options.merge(calendar_id:, event_id:)
+      @events.fetch(event_id)
+    end
+
+    def patch_event(calendar_id, event_id, event, **options)
+      @event_patch_calls << options.merge(calendar_id:, event_id:, event:)
+    end
   end
 
   test "returns only owned secondary calendars and normalizes the connected account" do
@@ -39,7 +51,7 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
           Calendar::CalendarListEntry.new(
             id: "sessions@group.calendar.google.com",
             summary: "Old name",
-            summary_override: "Rails Builders Sessions",
+            summary_override: "Rails.Builders Sessions",
             time_zone: "Europe/Madrid",
             data_owner: "OTTO@LOOPLABS.CC",
             access_role: "owner"
@@ -70,7 +82,7 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
     assert_equal "otto@looplabs.cc", client.account_email
     assert_equal [ {
       id: "sessions@group.calendar.google.com",
-      name: "Rails Builders Sessions",
+      name: "Rails.Builders Sessions",
       time_zone: "Europe/Madrid",
       data_owner: "otto@looplabs.cc"
     } ], client.owned_secondary_calendars
@@ -130,5 +142,88 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
     assert service.event_calls.all? { |call| call[:single_events] && call[:show_deleted] }
     assert service.event_calls.all? { |call| call[:time_min] == starts_at.iso8601 && call[:time_max] == ends_at.iso8601 }
     assert service.event_calls.all? { |call| call[:fields] == GoogleWorkspace::CalendarClient::EVENT_FIELDS }
+  end
+
+  test "adds an attendee once per upcoming event series and optionally notifies guests" do
+    starts_at = Time.utc(2026, 9, 13)
+    ends_at = Time.utc(2026, 12, 18)
+    service = FakeService.new(
+      event_pages: [
+        Calendar::Events.new(items: [
+          Calendar::Event.new(
+            id: "series-instance-1",
+            recurring_event_id: "series",
+            status: "confirmed",
+            start: Calendar::EventDateTime.new(date_time: starts_at + 1.day),
+            end: Calendar::EventDateTime.new(date_time: starts_at + 1.day + 1.hour)
+          ),
+          Calendar::Event.new(
+            id: "series-instance-2",
+            recurring_event_id: "series",
+            status: "confirmed",
+            start: Calendar::EventDateTime.new(date_time: starts_at + 8.days),
+            end: Calendar::EventDateTime.new(date_time: starts_at + 8.days + 1.hour)
+          ),
+          Calendar::Event.new(
+            id: "already-invited",
+            status: "confirmed",
+            start: Calendar::EventDateTime.new(date_time: starts_at + 2.days),
+            end: Calendar::EventDateTime.new(date_time: starts_at + 2.days + 1.hour)
+          )
+        ])
+      ],
+      events: {
+        "series" => Calendar::Event.new(
+          etag: "series-v1",
+          attendees: [ Calendar::EventAttendee.new(email: "facilitator@example.com", response_status: "accepted") ]
+        ),
+        "already-invited" => Calendar::Event.new(attendees: [ Calendar::EventAttendee.new(email: "BUILDER@example.com") ])
+      }
+    )
+    client = GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service)
+
+    added = client.add_attendee_to_upcoming_events(
+      calendar_id: "sessions@group.calendar.google.com",
+      starts_at:,
+      ends_at:,
+      email: "builder@example.com",
+      send_notification: true
+    )
+
+    assert_equal 1, added
+    assert_equal %w[already-invited series], service.event_get_calls.map { |call| call[:event_id] }.sort
+    assert service.event_get_calls.all? { |call| call[:fields] == "attendees,etag" }
+    assert_equal 1, service.event_patch_calls.size
+    patch = service.event_patch_calls.first
+    assert_equal "series", patch[:event_id]
+    assert_equal "all", patch[:send_updates]
+    assert_equal({ "If-Match" => "series-v1" }, patch[:options].header)
+    assert_equal %w[builder@example.com facilitator@example.com], patch[:event].attendees.map(&:email).sort
+    assert_equal "accepted", patch[:event].attendees.find { |attendee| attendee.email == "facilitator@example.com" }.response_status
+  end
+
+  test "can add an attendee without sending guest notifications" do
+    starts_at = Time.utc(2026, 9, 13)
+    service = FakeService.new(
+      event_pages: [ Calendar::Events.new(items: [
+        Calendar::Event.new(
+          id: "session",
+          status: "confirmed",
+          start: Calendar::EventDateTime.new(date_time: starts_at + 1.day),
+          end: Calendar::EventDateTime.new(date_time: starts_at + 1.day + 1.hour)
+        )
+      ]) ],
+      events: { "session" => Calendar::Event.new(etag: "session-v1") }
+    )
+
+    GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service).add_attendee_to_upcoming_events(
+      calendar_id: "sessions@group.calendar.google.com",
+      starts_at:,
+      ends_at: starts_at + 1.month,
+      email: "builder@example.com",
+      send_notification: false
+    )
+
+    assert_equal "none", service.event_patch_calls.first[:send_updates]
   end
 end

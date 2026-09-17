@@ -28,6 +28,9 @@ production:
   maintain_active_builder_sessions:
     class: BuilderSessionMaintenanceJob
     schedule: every minute
+  send_session_reminders:
+    class: SessionReminderJob
+    schedule: every minute
   import_google_meet_transcripts:
     class: GoogleMeetTranscriptImportJob
     schedule: every 5 minutes
