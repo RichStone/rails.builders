@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_031000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_143000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -243,7 +243,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_031000) do
     t.boolean "product_update_notifications", default: true, null: false
     t.boolean "public_profile", default: false, null: false
     t.boolean "public_profile_approved", default: false, null: false
-    t.integer "session_reminder_hours", default: 8, null: false
+    t.integer "session_reminder_hours", default: 36, null: false
     t.boolean "session_reminders", default: true, null: false
     t.integer "sign_in_token_version", default: 0, null: false
     t.string "slack_desired_state", default: "absent", null: false

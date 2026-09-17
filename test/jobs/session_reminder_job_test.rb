@@ -13,11 +13,11 @@ class SessionReminderJobTest < ActiveJob::TestCase
     )
   end
 
-  test "the default reminder sends once at eight hours before the session with its time and links" do
-    travel_to Time.utc(2026, 9, 17, 7, 29) do
+  test "the default reminder sends once at 36 hours before the session with its time and links" do
+    travel_to Time.utc(2026, 9, 16, 3, 29) do
       assert_no_emails { SessionReminderJob.perform_now }
     end
-    travel_to Time.utc(2026, 9, 17, 7, 30) do
+    travel_to Time.utc(2026, 9, 16, 3, 30) do
       assert_emails(1) { SessionReminderJob.perform_now }
       assert_no_emails { SessionReminderJob.perform_now }
     end
@@ -41,7 +41,7 @@ class SessionReminderJobTest < ActiveJob::TestCase
     end
     travel_to Time.utc(2026, 9, 17, 13, 35) do
       assert_emails(1) { SessionReminderJob.perform_now }
-      @user.update!(session_reminder_hours: 8)
+      @user.update!(session_reminder_hours: 36)
       assert_no_emails { SessionReminderJob.perform_now }
     end
   end
@@ -75,16 +75,16 @@ class SessionReminderJobTest < ActiveJob::TestCase
   end
 
   test "rescheduling uses the new start time and permits a reminder for the changed session" do
-    travel_to Time.utc(2026, 9, 17, 7, 30) do
+    travel_to Time.utc(2026, 9, 16, 3, 30) do
       @session.update!(scheduled_starts_at: Time.utc(2026, 9, 17, 16, 30), scheduled_ends_at: Time.utc(2026, 9, 17, 18, 0))
       assert_no_emails { SessionReminderJob.perform_now }
     end
-    travel_to Time.utc(2026, 9, 17, 8, 30) do
+    travel_to Time.utc(2026, 9, 16, 4, 30) do
       assert_emails(1) { SessionReminderJob.perform_now }
       @session.update!(scheduled_starts_at: Time.utc(2026, 9, 24, 15, 30), scheduled_ends_at: Time.utc(2026, 9, 24, 17, 0))
       assert_no_emails { SessionReminderJob.perform_now }
     end
-    travel_to Time.utc(2026, 9, 24, 7, 30) do
+    travel_to Time.utc(2026, 9, 23, 3, 30) do
       assert_emails(1) { SessionReminderJob.perform_now }
       assert_no_emails { SessionReminderJob.perform_now }
     end

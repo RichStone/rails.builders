@@ -25,7 +25,7 @@
       </label>
       <%= form.label :session_reminder_hours, "Remind me this many hours before the session" %>
       <%= form.number_field :session_reminder_hours, min: 1, max: 168, step: 1, required: true, aria: { describedby: "reminder-timing-help" } %>
-      <small id="reminder-timing-help">Default: 8 hours. Choose between 1 and 168 hours (one week). Changes apply to reminders that haven’t been sent yet.</small>
+      <small id="reminder-timing-help">Default: 36 hours. Choose between 1 and 168 hours (one week). Changes apply to reminders that haven’t been sent yet.</small>
       <% if current_user.facilitator? %>
         <label class="check-row">
           <%= form.check_box :product_update_notifications %>

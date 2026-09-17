@@ -14,7 +14,8 @@ class NotificationPreferencesTest < ActionDispatch::IntegrationTest
     assert_select "input[name='user[notifications_enabled]'][checked]"
     assert_select "input[name='user[enrollment_notifications]'][checked]"
     assert_select "input[name='user[session_reminders]'][checked]"
-    assert_select "input[name='user[session_reminder_hours]'][value='8']"
+    assert_select "input[name='user[session_reminder_hours]'][value='36']"
+    assert_select "#reminder-timing-help", /Default: 36 hours/
     assert_select "input[name='user[product_update_notifications]']", count: 0
 
     patch notification_preferences_path, params: { user: {
@@ -52,7 +53,7 @@ class NotificationPreferencesTest < ActionDispatch::IntegrationTest
       patch notification_preferences_path, params: { user: { session_reminder_hours: hours, notifications_enabled: "0" } }
       assert_response :unprocessable_content
       assert_select "[role='alert']", /Session reminder hours/
-      assert_equal 8, @user.reload.session_reminder_hours
+      assert_equal 36, @user.reload.session_reminder_hours
       assert @user.notifications_enabled?
     end
   end
