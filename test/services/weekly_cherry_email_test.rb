@@ -54,6 +54,24 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_not_includes email.fetch(:html), "Your promise"
   end
 
+  test "email openings skip the decorative headline and attendee review links use the requested label" do
+    [ @builder, @absentee ].each do |recipient|
+      email = render_for(recipient)
+      html = Nokogiri::HTML.fragment(email.fetch(:html))
+      assert_empty html.css("h1")
+      assert_not_includes email.fetch(:text), "A little momentum"
+      assert_includes html.text, "Hey #{recipient.name},"
+
+      link = html.at_css("a[href='https://rails.builders/sessions/#{@session.id}']")
+      if recipient == @builder
+        assert_equal "Review the last session ->", link.text
+        assert_includes email.fetch(:text), "Review the last session -> https://rails.builders/sessions/#{@session.id}"
+      else
+        assert_nil link
+      end
+    end
+  end
+
   test "consecutive absences reset on attendance and ignore cancelled sessions" do
     older = @program.builder_sessions.create!(google_event_id: "older", title: "Older", state: "completed", scheduled_starts_at: 9.days.ago, scheduled_ends_at: 9.days.ago + 1.hour, time_zone: "Europe/Berlin")
     older.attendances.create!(user: @absentee, display_name: "Absent", role: "builder", status: "absent")
