@@ -29,7 +29,8 @@ class UserMailerTest < ActionMailer::TestCase
     mail = UserMailer.verification(user, "verification-token")
 
     assert_equal [ "builder@example.com" ], mail.to
-    assert_equal "Your Rails Builders sign-in link", mail.subject
+    assert_equal "Your Rails.Builders sign-in link", mail.subject
+    assert_equal "Rails.Builders", Mail::Address.new(mail[:from].decoded).display_name
     assert_equal "multipart/alternative", mail.mime_type
     assert_includes mail.html_part.body.decoded, url
     assert_includes mail.text_part.body.decoded, url
@@ -67,7 +68,7 @@ class UserMailerTest < ActionMailer::TestCase
     mail = UserMailer.enrollment_status(user)
 
     assert_equal [ "builder@example.com" ], mail.to
-    assert_equal "A Rails Builders seat is yours to confirm", mail.subject
+    assert_equal "A Rails.Builders seat is yours to confirm", mail.subject
     assert_match(/confirm your Seat within 72 hours/i, mail.html_part.body.decoded)
     assert_match(/confirm your Seat within 72 hours/i, mail.text_part.body.decoded)
     assert_includes mail.html_part.body.decoded, "complete the readiness checklist"
@@ -83,7 +84,7 @@ class UserMailerTest < ActionMailer::TestCase
     mail = UserMailer.offer_reminder(user)
 
     assert_equal [ "builder@example.com" ], mail.to
-    assert_equal "24 hours left to confirm your Rails Builders seat", mail.subject
+    assert_equal "24 hours left to confirm your Rails.Builders seat", mail.subject
     assert_includes mail.html_part.body.decoded, url
     assert_includes mail.text_part.body.decoded, url
   end
@@ -104,8 +105,8 @@ class UserMailerTest < ActionMailer::TestCase
     assert_equal "Confirm the Loop Labs newsletter", mail.subject
     assert_includes mail.html_part.body.decoded, url
     assert_includes mail.text_part.body.decoded, url
-    assert_includes mail.html_part.body.decoded, "separate from your Rails Builders registration"
-    assert_includes mail.text_part.body.decoded, "separate from your Rails Builders registration"
+    assert_includes mail.html_part.body.decoded, "separate from your Rails.Builders registration"
+    assert_includes mail.text_part.body.decoded, "separate from your Rails.Builders registration"
   end
 
   test "waitlist outcome explains the position" do
@@ -116,7 +117,7 @@ class UserMailerTest < ActionMailer::TestCase
     mail = UserMailer.enrollment_status(user)
 
     assert_equal [ "builder@example.com" ], mail.to
-    assert_equal "You’re on the Rails Builders waitlist", mail.subject
+    assert_equal "You’re on the Rails.Builders waitlist", mail.subject
     assert_includes mail.html_part.body.decoded, "#1"
     assert_includes mail.text_part.body.decoded, "#1"
     assert_includes mail.html_part.body.decoded, "We’ll email you when a Seat becomes available"
@@ -140,7 +141,7 @@ class UserMailerTest < ActionMailer::TestCase
 
     mail = UserMailer.enrollment_status(user)
 
-    assert_equal "Your Rails Builders account is ready", mail.subject
+    assert_equal "Your Rails.Builders account is ready", mail.subject
     assert_includes mail.html_part.body.decoded, "complete the readiness checklist"
     assert_includes mail.text_part.body.decoded, "complete the readiness checklist"
     assert_includes mail.html_part.body.decoded, "not on the waitlist yet"
@@ -151,7 +152,7 @@ class UserMailerTest < ActionMailer::TestCase
     program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 9, 3), ends_on: Date.new(2026, 12, 17), capacity: 9)
     program.builder_sessions.create!(
       google_event_id: "next-session",
-      title: "Rails Builders",
+      title: "Rails.Builders",
       scheduled_starts_at: Time.utc(2026, 9, 17, 15, 30),
       scheduled_ends_at: Time.utc(2026, 9, 17, 17, 0),
       time_zone: "Europe/Amsterdam"
@@ -161,7 +162,7 @@ class UserMailerTest < ActionMailer::TestCase
     travel_to Time.utc(2026, 9, 13, 12) do
       mail = UserMailer.enrollment_status(user)
 
-      assert_equal "Your Rails Builders seat is confirmed", mail.subject
+      assert_equal "Your Rails.Builders seat is confirmed", mail.subject
       assert_includes mail.html_part.body.decoded, "officially an Active Builder"
       assert_includes mail.text_part.body.decoded, "officially an Active Builder"
       assert_includes mail.html_part.body.decoded, "Google Calendar invite"
@@ -175,10 +176,10 @@ class UserMailerTest < ActionMailer::TestCase
 
   test "closed enrollment outcomes preserve their next-step guidance" do
     outcomes = {
-      "declined" => [ "You declined your Rails Builders seat", "won’t be added back automatically" ],
-      "expired" => [ "Your Rails Builders offer expired", "Seat has moved to the next builder" ],
-      "withdrawn" => [ "Your Rails Builders seat was released", "place is open for the next builder" ],
-      "unverified" => [ "Your Rails Builders status changed", "current status is Unverified" ]
+      "declined" => [ "You declined your Rails.Builders seat", "won’t be added back automatically" ],
+      "expired" => [ "Your Rails.Builders offer expired", "Seat has moved to the next builder" ],
+      "withdrawn" => [ "Your Rails.Builders seat was released", "place is open for the next builder" ],
+      "unverified" => [ "Your Rails.Builders status changed", "current status is Unverified" ]
     }
     user = User.create!(email: "builder@example.com")
 
@@ -195,13 +196,13 @@ class UserMailerTest < ActionMailer::TestCase
     user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "left_waitlist")
 
     left_mail = UserMailer.enrollment_status(user)
-    assert_equal "You left the Rails Builders waitlist", left_mail.subject
+    assert_equal "You left the Rails.Builders waitlist", left_mail.subject
     assert_includes left_mail.html_part.body.decoded, "join the end of the waitlist again"
     assert_includes left_mail.text_part.body.decoded, "join the end of the waitlist again"
 
     user.update!(enrollment_status: "removed")
     removed_mail = UserMailer.enrollment_status(user)
-    assert_equal "Your Rails Builders enrollment was removed", removed_mail.subject
+    assert_equal "Your Rails.Builders enrollment was removed", removed_mail.subject
     assert_includes removed_mail.html_part.body.decoded, "Administrator must reinstate"
     assert_includes removed_mail.text_part.body.decoded, "Administrator must reinstate"
   end

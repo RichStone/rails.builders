@@ -7,7 +7,7 @@ class SessionReminderJobTest < ActiveJob::TestCase
     @user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active")
     @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 9, 3), ends_on: Date.new(2026, 12, 17))
     @session = @program.builder_sessions.create!(
-      google_event_id: "weekly-session", title: "Weekly Rails Builders",
+      google_event_id: "weekly-session", title: "Weekly Rails.Builders",
       scheduled_starts_at: Time.utc(2026, 9, 17, 15, 30),
       scheduled_ends_at: Time.utc(2026, 9, 17, 17, 0), time_zone: "Europe/Amsterdam"
     )
@@ -25,7 +25,7 @@ class SessionReminderJobTest < ActiveJob::TestCase
     mail = ActionMailer::Base.deliveries.last
     assert_equal [ @user.email ], mail.to
     [ mail.html_part.body.decoded, mail.text_part.body.decoded ].each do |body|
-      assert_includes body, "Weekly Rails Builders"
+      assert_includes body, "Weekly Rails.Builders"
       assert_includes body, "Thursday, 17 September at 17:30 CEST"
       assert_includes body, "Europe/Amsterdam"
       assert_includes body, "http://example.com/sessions/#{@session.id}"

@@ -1,4 +1,4 @@
-<% content_for :title, "#{@builder_session.title} — Rails Builders" %>
+<% content_for :title, "#{@builder_session.title} — Rails.Builders" %>
 
 <main class="session-page <%= "is-live" if @builder_session.active? %>">
   <%= link_to "← All sessions", builder_sessions_path, class: "back-link" %>
@@ -7,7 +7,7 @@
     <% display_state = { "connection" => "Pre-core", "builder_updates" => "Core session" }.fetch(@builder_session.state, @builder_session.state.humanize) %>
     <p class="eyebrow"><%= display_state %></p>
     <h1><%= @builder_session.title %></h1>
-    <p><%= @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone).strftime("%A %d %B · %H:%M %Z") %> · Facilitated by <%= @builder_session.assigned_facilitator&.name || Program.current.main_facilitator&.name || "Rails Builders" %></p>
+    <p><%= @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone).strftime("%A %d %B · %H:%M %Z") %> · Facilitated by <%= @builder_session.assigned_facilitator&.name || Program.current.main_facilitator&.name || "Rails.Builders" %></p>
     <% if @builder_session.description.present? %><p class="session-description"><%= @builder_session.description %></p><% end %>
     <% if @builder_session.location.present? %><p class="session-location"><strong>Location:</strong> <%= @builder_session.location %></p><% end %>
     <% if @builder_session.meeting_code && @builder_session.joinable? %>

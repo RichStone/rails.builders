@@ -272,7 +272,7 @@ class AdminTest < ActionDispatch::IntegrationTest
       facilitator: @admin,
       google_account_email: @admin.email,
       google_calendar_id: "sessions@group.calendar.google.com",
-      google_calendar_name: "Rails Builders Sessions",
+      google_calendar_name: "Rails.Builders Sessions",
       oauth_token_json: "{}",
       status: "connected"
     )
@@ -333,7 +333,7 @@ class AdminTest < ActionDispatch::IntegrationTest
 
     get edit_admin_user_path(@builder)
     assert_select "select[name='user[enrollment_status]']", count: 0
-    assert_select "form[action='#{remove_admin_user_path(@builder)}']", text: /Remove from Rails Builders/
+    assert_select "form[action='#{remove_admin_user_path(@builder)}']", text: /Remove from Rails\.Builders/
 
     post remove_admin_user_path(@builder)
     assert_redirected_to edit_admin_user_path(@builder)

@@ -27,7 +27,7 @@ class FacilitatorMailerTest < ActionMailer::TestCase
     mail = FacilitatorMailer.product_digest(facilitator, [ product.id ], Date.new(2026, 8, 16))
 
     assert_equal [ "facilitator@example.com" ], mail.to
-    assert_equal "Rails Builders product updates for 16 August", mail.subject
+    assert_equal "Rails.Builders product updates for 16 August", mail.subject
     assert_equal "multipart/alternative", mail.mime_type
     assert_includes mail.html_part.body.decoded, "Useful App"
     assert_includes mail.text_part.body.decoded, "Useful App"

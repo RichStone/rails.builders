@@ -11,7 +11,7 @@ class ResendWebhooksTest < ActionDispatch::IntegrationTest
   end
 
   test "signed bounce events are counted once without logging recipient or subject" do
-    payload = { type: "email.bounced", data: { from: "Rails Builders <hello@rails.builders>", to: [ "private@example.com" ], subject: "Private email subject" } }.to_json
+    payload = { type: "email.bounced", data: { from: "Rails.Builders <hello@rails.builders>", to: [ "private@example.com" ], subject: "Private email subject" } }.to_json
     logs = StringIO.new
     original_logger = Rails.logger
     Rails.logger = ActiveSupport::Logger.new(logs)
@@ -50,6 +50,16 @@ class ResendWebhooksTest < ActionDispatch::IntegrationTest
     post "/webhooks/resend", params: huge_payload, headers: signed_headers(huge_payload)
     assert_response :content_too_large
     assert_equal 0, SignupAbuse.counts.values.sum
+  end
+
+  test "callbacks with previous and quoted sender names are still counted" do
+    [ "Rails Builders <hello@rails.builders>", '"Rails.Builders" <hello@rails.builders>' ].each_with_index do |sender, index|
+      payload = { type: "email.bounced", data: { from: sender } }.to_json
+      post "/webhooks/resend", params: payload, headers: signed_headers(payload, id: "msg_sender_#{index}")
+      assert_response :no_content
+    end
+
+    assert_equal 2, SignupAbuse.counts.fetch(:email_bounced)
   end
 
   test "unrelated senders and unrequested events are acknowledged without counting" do

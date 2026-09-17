@@ -43,7 +43,7 @@
     </ol>
   </section>
 
-  <div class="dashboard-head"><div><p class="eyebrow">Rails Builders</p>
+  <div class="dashboard-head"><div><p class="eyebrow">Rails.Builders</p>
     <% if current_user.offered? %><h1>Your seat is ready.</h1><p>Confirm by <%= current_user.offer_expires_at.to_fs(:long) %>. Your profile can wait.</p>
     <% elsif current_user.active? %><h1>You’re an active builder.</h1><p>Your seat in <%= @program.name %> is confirmed.</p>
     <% elsif current_user.waitlisted? %><h1>You’re on the waitlist.</h1><p>You’re in the queue for <%= @program.name %>.</p>
@@ -51,7 +51,7 @@
     <% elsif current_user.left_waitlist? %><h1>You left the waitlist.</h1><p>You can join the end of the queue again whenever the timing is right.</p>
     <% elsif current_user.removed? %><h1>Your enrollment was removed.</h1><p>An Administrator can restore your eligibility without granting a Seat.</p>
     <% elsif current_user.enrollment_status.in?(%w[declined expired withdrawn]) %><h1>Your seat is open.</h1><p>You’re not currently active or waiting. Join again whenever the timing is right.</p>
-    <% else %><h1>Welcome back.</h1><p>Your Rails Builders account is ready.</p><% end %>
+    <% else %><h1>Welcome back.</h1><p>Your Rails.Builders account is ready.</p><% end %>
   </div><span class="status-pill"><%= current_user.enrollment_status.humanize %></span></div>
 
   <% if current_user.offered? %><div class="action-panel"><h2>Your turn is open</h2><p>Your pending offer holds one of the <%= @program.capacity %> seats for 72 hours. Complete the readiness check below to claim it.</p><%= button_to "Decline this turn", decline_offer_path, class: "button button-quiet" %></div><% end %>

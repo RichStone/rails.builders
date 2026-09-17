@@ -1,4 +1,4 @@
-<% content_for :title, "Rails Builders Group — Continuous r-AI-ls.Builders Edition" %>
+<% content_for :title, "Rails.Builders Group — Continuous r-AI-ls.Builders Edition" %>
 <% content_for :description, "A focused group of Builders who love ship useful products on Rails." %>
 
 <main>
@@ -164,7 +164,7 @@
   </section>
 
   <section id="builders" class="section builders-section" data-controller="viewport-nudge">
-    <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails Builders.</h2><p>Profiles appear only when a builder chooses to publish and a facilitator approves. Private profiles stay anonymous until their builders step into the spotlight.</p></div>
+    <div class="section-heading"><p class="eyebrow">The people behind the commits</p><h2>Meet the Rails.Builders.</h2><p>Profiles appear only when a builder chooses to publish and a facilitator approves. Private profiles stay anonymous until their builders step into the spotlight.</p></div>
 
     <div id="active-builders" class="builder-group">
       <%= render "builder_group_title", title: "Active Builders", icon: "⚡", tooltip: "#{@active_builders.size} building now" %>
@@ -196,6 +196,6 @@
   </section>
 
   <section class="final-cta">
-    <div class="ruby-mark">◆</div><p class="eyebrow">Your next commit could use company</p><h2>Come build the thing.</h2><p>One email gets you started. We’ll tell you exactly where you stand.</p><%= link_to "Join Rails Builders", sign_in_path, class: "button button-light", data: { analytics_placement: "footer" } %>
+    <div class="ruby-mark">◆</div><p class="eyebrow">Your next commit could use company</p><h2>Come build the thing.</h2><p>One email gets you started. We’ll tell you exactly where you stand.</p><%= link_to "Join Rails.Builders", sign_in_path, class: "button button-light", data: { analytics_placement: "footer" } %>
   </section>
 </main>

@@ -30,7 +30,7 @@ class UserEnrollmentNotificationsTest < ActiveJob::TestCase
       builder.accept_offer!
     end
 
-    operational_mail = ActionMailer::Base.deliveries.select { |mail| mail.subject.start_with?("Rails Builders:") }
+    operational_mail = ActionMailer::Base.deliveries.select { |mail| mail.subject.start_with?("Rails.Builders:") }
     recipient_counts = operational_mail.flat_map(&:to).tally
     facilitator_mail = operational_mail.select { |mail| mail.to == [ facilitator.email ] }
 
@@ -38,10 +38,10 @@ class UserEnrollmentNotificationsTest < ActiveJob::TestCase
     assert_equal 4, recipient_counts[dual_role.email]
     assert_equal 4, recipient_counts[administrator.email]
     assert_equal [
-      "Rails Builders: builder@example.com is now Active",
-      "Rails Builders: builder@example.com is now Inactive",
-      "Rails Builders: builder@example.com is now Offered",
-      "Rails Builders: builder@example.com is now Waitlisted"
+      "Rails.Builders: builder@example.com is now Active",
+      "Rails.Builders: builder@example.com is now Inactive",
+      "Rails.Builders: builder@example.com is now Offered",
+      "Rails.Builders: builder@example.com is now Waitlisted"
     ], facilitator_mail.map(&:subject).sort
     assert facilitator_mail.all?(&:multipart?)
     assert facilitator_mail.all? { |mail| mail.html_part.body.decoded.include?(builder.email) }

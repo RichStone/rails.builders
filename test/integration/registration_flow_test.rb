@@ -387,8 +387,8 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
 
     assert user.reload.offered?
     subjects = ActionMailer::Base.deliveries.map(&:subject)
-    assert_not_includes subjects, "You’re on the Rails Builders waitlist"
-    assert_equal 1, subjects.count("A Rails Builders seat is yours to confirm")
+    assert_not_includes subjects, "You’re on the Rails.Builders waitlist"
+    assert_equal 1, subjects.count("A Rails.Builders seat is yours to confirm")
   end
 
   private

@@ -12,7 +12,7 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
       facilitator:,
       google_account_email: facilitator.email,
       google_calendar_id: "sessions@group.calendar.google.com",
-      google_calendar_name: "Rails Builders Sessions",
+      google_calendar_name: "Rails.Builders Sessions",
       oauth_token_json: "{}",
       status: "connected"
     )

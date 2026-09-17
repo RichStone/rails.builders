@@ -20,9 +20,9 @@ module ApplicationHelper
 
   def public_session_facilitator_name(builder_session)
     facilitator = builder_session.assigned_facilitator
-    return "Rails Builders" unless facilitator&.publicly_visible?
+    return "Rails.Builders" unless facilitator&.publicly_visible?
 
-    facilitator.name.presence || "Rails Builders"
+    facilitator.name.presence || "Rails.Builders"
   end
 
   def public_session_title(builder_session)

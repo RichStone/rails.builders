@@ -60,7 +60,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "[data-public-sessions]", text: /Product teardown/
-    assert_select "[data-public-sessions]", text: /Facilitated by Rails Builders/
+    assert_select "[data-public-sessions]", text: /Facilitated by Rails\.Builders/
     assert_select "[data-public-sessions]", text: /60-minute core session/
     assert_select "[data-public-sessions]", text: /90 minutes/, count: 0
     assert_not_includes response.body, "Main Facilitator"
@@ -79,7 +79,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_select ".live-session-banner", text: /Live now/
-    assert_select ".live-session-banner", text: /Facilitated by Rails Builders/
+    assert_select ".live-session-banner", text: /Facilitated by Rails\.Builders/
     assert_select ".live-session-banner a", count: 0
     public_sessions = css_select("[data-public-sessions]").to_s
     assert_not_includes public_sessions, "abc-defg-hij"

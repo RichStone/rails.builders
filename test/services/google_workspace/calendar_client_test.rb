@@ -51,7 +51,7 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
           Calendar::CalendarListEntry.new(
             id: "sessions@group.calendar.google.com",
             summary: "Old name",
-            summary_override: "Rails Builders Sessions",
+            summary_override: "Rails.Builders Sessions",
             time_zone: "Europe/Madrid",
             data_owner: "OTTO@LOOPLABS.CC",
             access_role: "owner"
@@ -82,7 +82,7 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
     assert_equal "otto@looplabs.cc", client.account_email
     assert_equal [ {
       id: "sessions@group.calendar.google.com",
-      name: "Rails Builders Sessions",
+      name: "Rails.Builders Sessions",
       time_zone: "Europe/Madrid",
       data_owner: "otto@looplabs.cc"
     } ], client.owned_secondary_calendars

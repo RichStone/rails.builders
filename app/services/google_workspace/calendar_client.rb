@@ -100,7 +100,7 @@ module GoogleWorkspace
     end
 
     def configure(client)
-      client.client_options.application_name = "Rails Builders"
+      client.client_options.application_name = "Rails.Builders"
       client.client_options.open_timeout_sec = 5
       client.client_options.read_timeout_sec = 20
       client.client_options.send_timeout_sec = 20

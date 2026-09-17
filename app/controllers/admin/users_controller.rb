@@ -34,7 +34,7 @@ class Admin::UsersController < Admin::BaseController
 
   def remove
     changed = @user.remove_from_program!
-    redirect_to edit_admin_user_path(@user), notice: changed ? "Builder removed from Rails Builders." : "Builder was already removed."
+    redirect_to edit_admin_user_path(@user), notice: changed ? "Builder removed from Rails.Builders." : "Builder was already removed."
   end
 
   def reinstate

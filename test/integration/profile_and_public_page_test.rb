@@ -67,7 +67,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   test "the public page describes the weekly group and emits social metadata" do
     get root_path
 
-    title = "Rails Builders Group — Continuous r-AI-ls.Builders Edition"
+    title = "Rails.Builders Group — Continuous r-AI-ls.Builders Edition"
     description = "A focused group of Builders who love ship useful products on Rails."
 
     assert_select "title", text: title

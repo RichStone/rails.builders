@@ -4,7 +4,7 @@
     <%= form.label :avatar, "Bio or company picture" %>
     <% if current_user.avatar.attached? %><div class="avatar-preview"><%= image_tag current_user.avatar.variant(resize_to_limit: [320, 320], saver: { strip: true }), alt: "Current profile picture" %><p><strong>Current picture</strong><br>Choose a new file only if you want to replace it.</p></div><% end %>
     <%= form.file_field :avatar, accept: "image/png,image/jpeg,image/webp" %>
-    <%= form.label :testimonial, "What would you say about Rails Builders?" %><%= form.text_area :testimonial, rows: 4, maxlength: 2000, placeholder: "A short, honest note…" %>
+    <%= form.label :testimonial, "What would you say about Rails.Builders?" %><%= form.text_area :testimonial, rows: 4, maxlength: 2000, placeholder: "A short, honest note…" %>
     <fieldset><legend>Focus product</legend><%= fields_for :product, @product do |product_fields| %><%= product_fields.label :name, "App name" %><%= product_fields.text_field :name, maxlength: 120 %><%= product_fields.label :url, "App URL" %><%= product_fields.url_field :url, maxlength: 2048, placeholder: "https://" %><% end %></fieldset>
     <label class="check-row publication"><%= form.check_box :public_profile %><span><strong>Ask to show my profile publicly on rails.builders</strong><small>A facilitator reviews your picture, name, testimonial, and product links before publication. Email stays private.</small></span></label>
     <%= form.submit "Save profile", class: "button button-primary" %>

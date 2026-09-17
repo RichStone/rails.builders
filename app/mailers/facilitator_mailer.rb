@@ -6,7 +6,7 @@ class FacilitatorMailer < ApplicationMailer
     @status = status
     mail(
       to: facilitator.email,
-      subject: "Rails Builders: #{user.email} is now #{status.humanize}"
+      subject: "Rails.Builders: #{user.email} is now #{status.humanize}"
     )
   end
 
@@ -18,7 +18,7 @@ class FacilitatorMailer < ApplicationMailer
     @url = facilitator_profile_reviews_url
     mail(
       to: facilitator.email,
-      subject: "Rails Builders product updates for #{@day.strftime("%-d %B")}"
+      subject: "Rails.Builders product updates for #{@day.strftime("%-d %B")}"
     )
   end
 end

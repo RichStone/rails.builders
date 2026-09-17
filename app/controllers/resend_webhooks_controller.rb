@@ -8,6 +8,14 @@ class ResendWebhooksController < ActionController::Metal
     "email.failed" => :email_failed
   }.freeze
 
+  # Keep callbacks for messages sent before the display name changed.
+  SENDERS = [
+    "hello@rails.builders",
+    "Rails Builders <hello@rails.builders>",
+    "Rails.Builders <hello@rails.builders>",
+    '"Rails.Builders" <hello@rails.builders>'
+  ].freeze
+
   def create
     secret = ENV["RESEND_WEBHOOK_SECRET"]
     return head(:service_unavailable) if secret.blank?
@@ -22,7 +30,7 @@ class ResendWebhooksController < ActionController::Metal
 
     reason = EVENTS[event["type"]]
     sender = event["data"].is_a?(Hash) && event["data"]["from"]
-    return head(:no_content) unless reason && [ "hello@rails.builders", "Rails Builders <hello@rails.builders>" ].include?(sender)
+    return head(:no_content) unless reason && SENDERS.include?(sender)
 
     event_key = "resend-webhook:#{Digest::SHA256.hexdigest(request.headers['svix-id'])}"
     unless Rails.cache.write(event_key, true, expires_in: 72.hours, unless_exist: true)
