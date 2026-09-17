@@ -6,12 +6,14 @@ class WeeklyCherryEmail
     (User.active.order(:id).to_a + [ facilitator ]).compact.uniq(&:id)
   end
 
-  def initialize(builder_session:, recipient:, subject:, tldr: [], mentions: [], cherry_cid: "weekly-cherry")
+  def initialize(builder_session:, recipient:, subject:, tldr: [], mentions: [], warning_notice: nil, info_notice: nil, cherry_cid: "weekly-cherry")
     @builder_session = builder_session
     @recipient = recipient
     @subject = subject
     @tldr = tldr
     @mentions = mentions
+    @warning_notice = warning_notice
+    @info_notice = info_notice
     @cherry_cid = cherry_cid
   end
 
@@ -35,6 +37,8 @@ class WeeklyCherryEmail
       feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: item.author.name.presence || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
       tldr: @tldr,
       mentions: @mentions,
+      warning_notice: @warning_notice,
+      info_notice: @info_notice,
       absence_warning: attended ? nil : absence_warning,
       next_time: next_time,
       next_meet_url: next_session&.meet_url.presence&.then { |url| url if GoogleWorkspace::MeetLink.canonical?(url) },
@@ -77,6 +81,7 @@ class WeeklyCherryEmail
     raise ArgumentError, "Use a short, single-line subject" unless @subject.is_a?(String) && @subject.present? && @subject.length <= 180 && !@subject.match?(/[\r\n]/)
     raise ArgumentError, "Use up to four concise TL;DR items" unless @tldr.is_a?(Array) && @tldr.length.in?((attended ? 1 : 0)..4) && @tldr.all? { |line| line.is_a?(String) && line.present? && line.length <= 500 }
     raise ArgumentError, "Use up to five evidenced mentions" unless @mentions.is_a?(Array) && @mentions.length <= 5 && @mentions.all? { |line| line.is_a?(String) && line.present? && line.length <= 700 }
+    raise ArgumentError, "Use concise plain-text edition notices" unless [ @warning_notice, @info_notice ].all? { |notice| notice.nil? || (notice.is_a?(String) && notice.present? && notice.length <= 1_000) }
     raise ArgumentError, "Invalid image content ID" unless @cherry_cid.is_a?(String) && @cherry_cid.match?(/\A[a-zA-Z0-9_.@-]{1,100}\z/)
   end
 end

@@ -33,7 +33,7 @@ class AdminCalendarConnectionsTest < ActionDispatch::IntegrationTest
       [
         {
           id: "otto-builder-sessions@group.calendar.google.com",
-          name: "Rails Builders Sessions",
+          name: "Rails.Builders Sessions",
           time_zone: "Europe/Madrid",
           data_owner: "otto@looplabs.cc"
         }
@@ -82,7 +82,7 @@ class AdminCalendarConnectionsTest < ActionDispatch::IntegrationTest
           get admin_calendar_connection_path
           assert_response :success
           assert_equal "no-store", response.headers["Cache-Control"]
-          assert_select "option[value='otto-builder-sessions@group.calendar.google.com']", text: "Rails Builders Sessions"
+          assert_select "option[value='otto-builder-sessions@group.calendar.google.com']", text: "Rails.Builders Sessions"
 
           assert_enqueued_with(job: GoogleCalendarSyncJob, args: [ connection.id ]) do
             patch admin_calendar_connection_path, params: { calendar_id: "otto-builder-sessions@group.calendar.google.com" }
@@ -91,7 +91,7 @@ class AdminCalendarConnectionsTest < ActionDispatch::IntegrationTest
 
         assert_redirected_to admin_root_path
         assert_equal "connected", connection.reload.status
-        assert_equal "Rails Builders Sessions", connection.google_calendar_name
+        assert_equal "Rails.Builders Sessions", connection.google_calendar_name
         assert_equal "Europe/Madrid", connection.google_calendar_time_zone
       end
     end

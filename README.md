@@ -1,6 +1,6 @@
-# Rails Builders
+# Rails.Builders
 
-The Rails Builders home, enrollment queue, and small membership tool. It runs on Rails 8.1 with SQLite, Hotwire, Active Storage, and the Solid adapters—no Node runtime or front-end framework required.
+The Rails.Builders home, enrollment queue, and small membership tool. It runs on Rails 8.1 with SQLite, Hotwire, Active Storage, and the Solid adapters—no Node runtime or front-end framework required.
 
 ## Local setup
 
@@ -54,6 +54,12 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 
 `bin/ci` runs the full local pipeline, including a seed replant after the test suite.
 
+## Notification preferences
+
+Builders manage email preferences at `/notifications`, linked from the signed-in navigation and every email footer. Existing and new accounts have notifications enabled by default. The master switch pauses enrollment notifications, session reminders, and Facilitator product digests while preserving each category choice. Requested sign-in links and newsletter confirmations still send; the separate Loop Labs newsletter and Google Calendar reminders retain their own settings.
+
+`SessionReminderJob` runs every minute in production. Verified Active Builders and Facilitators receive a reminder 36 hours before a ready session by default, configurable from 1 to 168 hours. Each delivery checks current preferences, eligibility, session timing, and the attendee's latest Google Calendar response; an explicit decline suppresses the reminder while accepted, tentative, and unanswered invitations still receive it. Missed runs catch up only before the session starts. A delivery record prevents repeat sends or Calendar checks for the same Builder, session, and scheduled start; a changed start time permits a fresh reminder. Failed Calendar checks and sends are reported and retried on the next run. As with other mail delivery, a process failure after the provider accepts an email but before its delivery record commits can cause a retry.
+
 ## Production deployment
 
 Production runs as one Kamal web role. Puma also runs Solid Queue, and the four
@@ -98,7 +104,7 @@ an older workflow run refuses to replace a newer commit from `main`.
 ## Email and integrations
 
 - `RESEND_API_KEY` is required for production delivery of transactional email through Resend. The `rails.builders` sending domain must be verified in Resend.
-- Production ClickFunnels configuration lives under `clickfunnels` in encrypted Rails credentials: `api_token`, `base_url`, `workspace_id`, `newsletter_tag_id`, and optional `newsletter_tag_public_id`. The newsletter job runs only after a person separately opts in, confirms the newsletter email, and verifies their Rails Builders email. Missing production configuration is visible to Administrators without breaking registration.
+- Production ClickFunnels configuration lives under `clickfunnels` in encrypted Rails credentials: `api_token`, `base_url`, `workspace_id`, `newsletter_tag_id`, and optional `newsletter_tag_public_id`. The newsletter job runs only after a person separately opts in, confirms the newsletter email, and verifies their Rails.Builders email. Missing production configuration is visible to Administrators without breaking registration.
 - Development and test make no ClickFunnels requests by default and record `skipped_local`. A deliberate local smoke run may set `CLICKFUNNELS_SMOKE_TEST_PROFILE=test-only`; that mode is bound to the isolated Test Only workspace and rejects every other profile. Pass its token through the inherited descriptor named by `CLICKFUNNELS_API_TOKEN_FD` so it never enters a project file, command argument, or exported environment variable.
 - `HONEYBADGER_API_KEY` enables production error reporting. The optional
   [host metrics bundle](ops/monitoring/RUNBOOK.md) uses the same project to
@@ -151,12 +157,12 @@ Create a Google Cloud OAuth web client, enable the Google Calendar API and Googl
 https://rails.builders/admin/calendar_connection/callback
 ```
 
-Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, or add `google_workspace.client_id` and `google_workspace.client_secret` to encrypted Rails credentials. If `APP_HOST` is not `rails.builders`, register the matching HTTPS callback. Configure the OAuth consent screen and complete Google’s verification requirements before production use. The integration requests read-only Calendar-list access, read-only access to events on calendars the account owns, and read-only access to Meet spaces the account can access; application queries are narrowed to the selected Program calendar and its synced Meet links. The connected Google email must exactly match the main facilitator’s Rails Builders email, and only secondary calendars owned by that account can be selected.
+Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`, or add `google_workspace.client_id` and `google_workspace.client_secret` to encrypted Rails credentials. If `APP_HOST` is not `rails.builders`, register the matching HTTPS callback. Configure the OAuth consent screen and complete Google’s verification requirements before production use. The integration requests read-only Calendar-list access, attendee-editing access to events on calendars the account owns, and read-only access to Meet spaces the account can access; application queries are narrowed to the selected Program calendar and its synced Meet links. The connected Google email must exactly match the main facilitator’s Rails.Builders email, and only secondary calendars owned by that account can be selected. Existing Calendar connections must be reauthorized once after attendee access is deployed.
 
 For a live local smoke test, create a separate OAuth web client and run `bin/worktree info` to find this worktree's port. Register the exact redirect URI `http://localhost:<PORT>/admin/calendar_connection/callback`—an authorized JavaScript origin is not needed—and put that client's ID and secret in the ignored `.env.development`. Start and finish the OAuth flow in the same browser profile so the Administrator session and OAuth state remain available to the callback. Development does not run the hourly recurring schedule; use **Sync now** in Administration when testing subsequent Calendar changes.
 
-Turn on Meet transcription or automatic transcription for the recurring meeting in Google Workspace. The read-only Rails Builders integration imports the resulting artifact but does not change the meeting’s transcription settings.
+Turn on Meet transcription or automatic transcription for the recurring meeting in Google Workspace. Rails.Builders imports the resulting artifact through read-only Meet access and does not change the meeting’s transcription settings.
 
-Calendar sync runs hourly and can also be queued by a facilitator or Administrator. Active-session maintenance runs every minute. Google Meet transcript import uses adaptive retries from the five-minute recurring job and stops after a final attempt at 24 hours. OAuth tokens, Meet links, Google transcript resource identifiers, and transcript content are encrypted in the application database.
+Calendar sync runs hourly and can also be queued by a facilitator or Administrator. When a facilitator or Administrator promotes someone directly to Active Builder, the app queues their verified email for addition to each unique upcoming event or recurring series on the selected Calendar. The promotion form can ask Google to send an update, but Google may notify all event guests rather than only the new Builder. Active-session maintenance runs every minute. Google Meet transcript import uses adaptive retries from the five-minute recurring job and stops after a final attempt at 24 hours. OAuth tokens, Meet links, Google transcript resource identifiers, and transcript content are encrypted in the application database.
 
 Slack membership is deliberately manual in v1. Administrators can track its status for each builder. Sessions include Calendar-backed scheduling, shared live timers, attendance, speaker order, and read-only transcripts. Three Strikes remains outside v1.

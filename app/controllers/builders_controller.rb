@@ -3,7 +3,7 @@ class BuildersController < ApplicationController
   before_action :set_builder, only: %i[show promote]
 
   def index
-    @builders = User.where.not(verified_at: nil).order(:name, :email)
+    @builders = User.where.not(verified_at: nil).avatar_first.order(:name, :email)
   end
 
   def show
@@ -11,8 +11,12 @@ class BuildersController < ApplicationController
   end
 
   def promote
-    if @builder.promote_to_active!
-      redirect_to builder_path(@builder), notice: "Builder promoted to Active Builder."
+    send_calendar_notification = ActiveModel::Type::Boolean.new.cast(params[:send_calendar_notification])
+    if @builder.promote_to_active!(send_calendar_notification:)
+      connection = Program.current.calendar_connection
+      notice = "Builder promoted to Active Builder."
+      notice += " Calendar update queued." if connection&.status == "connected"
+      redirect_to builder_path(@builder), notice:
     else
       redirect_to builder_path(@builder), alert: @builder.errors.full_messages.to_sentence
     end

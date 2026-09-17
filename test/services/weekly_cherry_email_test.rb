@@ -54,6 +54,26 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_not_includes email.fetch(:html), "Your promise"
   end
 
+  test "email openings skip the decorative headline and attendee review links use the requested label" do
+    [ @builder, @absentee ].each do |recipient|
+      email = render_for(recipient)
+      html = Nokogiri::HTML.fragment(email.fetch(:html))
+      assert_empty html.css("h1")
+      assert_includes html.text, "The Weekly Builders Cherry ·"
+      assert_includes email.fetch(:text), "THE WEEKLY BUILDERS CHERRY ·"
+      assert_not_includes email.fetch(:text), "A little momentum"
+      assert_includes html.text, "Hey #{recipient.name},"
+
+      link = html.at_css("a[href='https://rails.builders/sessions/#{@session.id}']")
+      if recipient == @builder
+        assert_equal "Review the last session ->", link.text
+        assert_includes email.fetch(:text), "Review the last session -> https://rails.builders/sessions/#{@session.id}"
+      else
+        assert_nil link
+      end
+    end
+  end
+
   test "consecutive absences reset on attendance and ignore cancelled sessions" do
     older = @program.builder_sessions.create!(google_event_id: "older", title: "Older", state: "completed", scheduled_starts_at: 9.days.ago, scheduled_ends_at: 9.days.ago + 1.hour, time_zone: "Europe/Berlin")
     older.attendances.create!(user: @absentee, display_name: "Absent", role: "builder", status: "absent")
@@ -62,6 +82,20 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_includes render_for(@absentee).fetch(:text), "1st missed session in a row"
     older.update!(state: "cancelled")
     assert_includes render_for(@absentee).fetch(:text), "1st missed session in a row"
+  end
+
+  test "attendees get the next session Meet link or its honest unavailable fallback" do
+    @next_session.update!(meet_url: "https://meet.google.com/abc-defg-hij")
+    email = render_for(@builder)
+    assert_includes email.fetch(:text), "Google Meet: https://meet.google.com/abc-defg-hij"
+    html = Nokogiri::HTML.fragment(email.fetch(:html))
+    assert_equal "https://meet.google.com/abc-defg-hij", html.at_css("a[href='https://meet.google.com/abc-defg-hij']").text
+
+    @next_session.update!(meet_url: nil)
+    email = render_for(@builder)
+    assert_includes email.fetch(:text), "The Google Meet link will be available on the session page."
+    assert_includes email.fetch(:html), "The Google Meet link will be available on the session page."
+    assert_not_includes email.fetch(:html), "https://meet.google.com/"
   end
 
   test "absentee mentions are escaped and replace the no-mention sentence" do
@@ -96,9 +130,42 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_includes render_for(@builder).fetch(:text), "Next session time: to be confirmed"
   end
 
+  test "edition notices precede the greeting in both variants and escape supplied text" do
+    [ @builder, @absentee, @facilitator ].each do |recipient|
+      email = WeeklyCherryEmail.new(builder_session: @session, recipient: recipient, subject: "This week", tldr: [ "A useful lesson." ], warning_notice: "⚠️ Still working on it <script>oops</script> 😬", info_notice: "📆 A guest hosts next week.").render
+      html = Nokogiri::HTML.fragment(email.fetch(:html))
+      notices = html.css("[data-edition-notice]")
+      assert_equal [ "warning", "info" ], notices.map { |node| node["data-edition-notice"] }
+      assert_includes notices.first["style"], "#fff4ce"
+      assert_includes notices.last["style"], "#e8f2ff"
+      assert_empty html.css("script")
+      assert_includes notices.first.text, "<script>oops</script>"
+      assert_operator html.text.index("Still working"), :<, html.text.index("A guest hosts")
+      assert_operator html.text.index("A guest hosts"), :<, html.text.index("Hey #{recipient.name}")
+      assert_operator email.fetch(:text).index("Still working"), :<, email.fetch(:text).index("A guest hosts")
+      assert_operator email.fetch(:text).index("A guest hosts"), :<, email.fetch(:text).index("Hey #{recipient.name}")
+    end
+    assert_empty Nokogiri::HTML.fragment(render_for(@builder).fetch(:html)).css("[data-edition-notice]")
+  end
+
+  test "attendees can receive unattributed feedback without inventing a builder account" do
+    email = WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Test the smallest useful change." ], mentions: [ "Builder X recommended <b>checking token output</b>; attribution is uncertain." ]).render
+    assert_includes email.fetch(:text), "Builder X recommended"
+    assert_includes email.fetch(:html), "Builder X recommended &lt;b&gt;checking token output&lt;/b&gt;"
+    assert_not_includes email.fetch(:text), "🍒"
+    assert_not_includes email.fetch(:html), "🍒"
+  end
+
+  test "rejects malformed or oversized edition notices" do
+    [ 123, "", "x" * 1_001 ].each do |notice|
+      assert_raises(ArgumentError) { WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Useful." ], warning_notice: notice).render }
+      assert_raises(ArgumentError) { WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Useful." ], info_notice: notice).render }
+    end
+  end
+
   private
 
   def render_for(user)
-    WeeklyCherryEmail.new(builder_session: @session, recipient: user, subject: "Sharper offers, five customers, ship the page", tldr: [ "💎 Put the outcome first.", "🍒 Five useful conversations beat another feature." ]).render
+    WeeklyCherryEmail.new(builder_session: @session, recipient: user, subject: "Sharper offers, five customers, ship the page", tldr: [ "Put the outcome first.", "Five useful conversations beat another feature." ]).render
   end
 end

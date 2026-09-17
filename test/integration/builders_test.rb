@@ -1,4 +1,5 @@
 require "test_helper"
+require "base64"
 
 class BuildersTest < ActionDispatch::IntegrationTest
   setup do
@@ -38,10 +39,16 @@ class BuildersTest < ActionDispatch::IntegrationTest
   test "a Facilitator finds and promotes any verified Builder from the Builder page" do
     @program.update!(capacity: 1)
     @builder.update!(enrollment_status: "offered", offer_expires_at: 2.days.from_now, waitlist_rank: nil, waitlist_joined_at: nil)
+    @builder.avatar.attach(
+      io: StringIO.new(Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+      filename: "avatar.png",
+      content_type: "image/png"
+    )
     sign_in_as(@facilitator)
 
     get builders_path
     assert_select "a[href='#{builder_path(@builder)}']", text: "Waiting Builder"
+    assert_equal builder_path(@builder), css_select("main section.product-list h2 a").first["href"]
 
     get builder_path(@builder)
     assert_select "form[action='#{promote_builder_path(@builder)}']", text: "Promote to Active Builder"
@@ -51,6 +58,33 @@ class BuildersTest < ActionDispatch::IntegrationTest
     assert_redirected_to builder_path(@builder)
     assert @builder.reload.active?
     assert_nil @builder.offer_expires_at
+  end
+
+  test "promotion can add the Builder to Google Calendar and send guest notifications" do
+    @program.update!(main_facilitator: @facilitator)
+    connection = @program.create_calendar_connection!(
+      facilitator: @facilitator,
+      google_account_email: @facilitator.email,
+      google_calendar_id: "sessions@group.calendar.google.com",
+      google_calendar_name: "Rails.Builders Sessions",
+      oauth_token_json: "{}",
+      status: "connected"
+    )
+    sign_in_as(@facilitator)
+
+    get builder_path(@builder)
+
+    assert_select "form[action='#{promote_builder_path(@builder)}']" do
+      assert_select "input[name='send_calendar_notification'][type='checkbox']:not([checked])"
+      assert_select "small", text: /notify all guests/
+    end
+
+    assert_enqueued_with(job: GoogleCalendarAttendeeJob, args: [ connection.id, @builder.id, true ]) do
+      post promote_builder_path(@builder), params: { send_calendar_notification: "1" }
+    end
+
+    assert_redirected_to builder_path(@builder)
+    assert_equal "Builder promoted to Active Builder. Calendar update queued.", flash[:notice]
   end
 
   test "a regular Builder cannot inspect or promote other Builders" do

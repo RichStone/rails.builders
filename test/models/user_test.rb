@@ -31,20 +31,19 @@ class UserTest < ActiveSupport::TestCase
       name: "Continuous",
       starts_on: Date.new(2026, 8, 20),
       ends_on: Date.new(2026, 12, 17),
-      capacity: 10,
-      og_priority: true
+      capacity: 10
     )
   end
 
-  test "verified OG receives a 72 hour offer during OG Priority" do
+  test "a returning participant starts inactive until completing readiness" do
     user = User.create!(email: "builder@example.com", og: true)
 
     travel_to(Time.zone.local(2026, 8, 9, 12)) { user.complete_verification! }
 
     assert user.verified?
-    assert_equal "offered", user.enrollment_status
-    assert_equal Time.zone.local(2026, 8, 12, 12), user.offer_expires_at
-    assert_equal 1, @program.reload.occupied_seats
+    assert user.inactive?
+    assert_nil user.offer_expires_at
+    assert_equal 0, @program.reload.occupied_seats
   end
 
   test "enrollment conversions are emitted from committed state changes" do
@@ -61,7 +60,7 @@ class UserTest < ActiveSupport::TestCase
     assert_equal %w[waitlist_joined seat_offer_received membership_started], captured
   end
 
-  test "opening general admission does not enroll inactive registrations" do
+  test "promoting the waitlist does not enroll inactive registrations" do
     first = User.create!(email: "first@example.com")
     second = User.create!(email: "second@example.com")
     travel_to(Time.zone.local(2026, 8, 9, 10)) { first.complete_verification! }
@@ -71,15 +70,13 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "inactive", second.reload.enrollment_status
     assert_empty @program.ordered_waitlist
 
-    @program.open_waitlist!
+    @program.promote_waitlist!
 
     assert first.reload.inactive?
     assert second.reload.inactive?
-    assert_not @program.reload.og_priority?
   end
 
-  test "a non-OG registering after general admission opens needs readiness before receiving capacity" do
-    @program.update!(og_priority: false)
+  test "a new registration needs readiness before receiving capacity" do
     user = User.create!(email: "new@example.com")
 
     user.complete_verification!
@@ -90,8 +87,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "recipient confirms a current offer without completing a profile" do
-    user = User.create!(email: "builder@example.com", og: true)
-    user.complete_verification!
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 72.hours.from_now)
 
     assert user.accept_offer!
     assert_equal "active", user.reload.enrollment_status
@@ -111,7 +107,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "expired offer promotes the queue and requires explicit re-entry" do
-    @program.update!(capacity: 1, og_priority: false)
+    @program.update!(capacity: 1)
     first = User.create!(email: "first@example.com")
     second = User.create!(email: "second@example.com")
     first.complete_verification!
@@ -131,7 +127,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "repeated verification does not extend an offer" do
-    user = User.create!(email: "builder@example.com", og: true)
+    user = User.create!(email: "builder@example.com", enrollment_status: "offered", offer_expires_at: Time.zone.local(2026, 8, 12, 12))
     travel_to(Time.zone.local(2026, 8, 9, 12)) { user.complete_verification! }
     original_expiry = user.offer_expires_at
 
@@ -141,7 +137,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "deleting an active account releases capacity and promotes the queue" do
-    @program.update!(capacity: 1, og_priority: false)
+    @program.update!(capacity: 1)
     active = User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active")
     waiting = User.create!(email: "waiting@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
 
@@ -151,7 +147,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "turning active membership off releases one seat and cannot turn it directly on" do
-    @program.update!(capacity: 3, og_priority: false)
+    @program.update!(capacity: 3)
     active = User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active")
     first = User.create!(email: "first@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: 2.hours.ago, waitlist_rank: 1)
     second = User.create!(email: "second@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: 1.hour.ago, waitlist_rank: 2)
@@ -169,7 +165,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "waitlist participation joins at the end and leaves idempotently" do
-    @program.update!(capacity: 1, og_priority: false)
+    @program.update!(capacity: 1)
     User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active")
     User.create!(email: "waiting@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: 2.hours.ago, waitlist_rank: 4)
     user = User.create!(email: "returning@example.com", verified_at: Time.current, enrollment_status: "withdrawn")
@@ -194,22 +190,27 @@ class UserTest < ActiveSupport::TestCase
     assert_not user.update_waitlist_participation!(joined: false), "repeated switch-off must be harmless"
   end
 
-  test "waitlist opt-in promotes only an OG while OG Priority is active" do
-    @program.update!(capacity: 1, og_priority: true)
+  test "waitlist promotion follows queue order for returning and new participants" do
+    @program.update!(capacity: 1, promotions_paused: true)
     regular = User.create!(email: "regular@example.com", verified_at: Time.current, enrollment_status: "withdrawn")
-    og = User.create!(email: "og@example.com", verified_at: Time.current, enrollment_status: "withdrawn", og: true)
+    returning = User.create!(email: "returning@example.com", verified_at: Time.current, enrollment_status: "withdrawn", og: true)
 
     assert regular.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION)
     assert regular.reload.waitlisted?
 
-    assert og.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION)
-    assert og.reload.offered?
-    assert regular.reload.waitlisted?
+    assert returning.update_waitlist_participation!(joined: true, readiness: READINESS_CONFIRMATION)
+    assert returning.reload.waitlisted?
+
+    @program.update!(promotions_paused: false)
+    @program.promote_waitlist!
+
+    assert regular.reload.offered?
+    assert returning.reload.waitlisted?
     assert_equal 1, @program.reload.occupied_seats
   end
 
   test "waitlist opt-in issues at most one offer" do
-    @program.update!(capacity: 3, og_priority: false)
+    @program.update!(capacity: 3)
     first = User.create!(email: "first@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: 1.hour.ago, waitlist_rank: 1)
     joining = User.create!(email: "joining@example.com", verified_at: Time.current, enrollment_status: "left_waitlist")
 
@@ -221,7 +222,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "administrator removal releases one seat and reinstatement only restores eligibility" do
-    @program.update!(capacity: 3, og_priority: false)
+    @program.update!(capacity: 3)
     user = User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active", slack_desired_state: "present")
     first = User.create!(email: "first@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: 2.hours.ago, waitlist_rank: 1)
     second = User.create!(email: "second@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: 1.hour.ago, waitlist_rank: 2)
@@ -241,7 +242,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "administrator removal handles offered and waitlisted builders" do
-    @program.update!(capacity: 1, og_priority: false, promotions_paused: true)
+    @program.update!(capacity: 1, promotions_paused: true)
     offered = User.create!(email: "offered@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     waitlisted = User.create!(email: "waiting@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
 

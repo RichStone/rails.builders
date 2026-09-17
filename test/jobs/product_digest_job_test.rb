@@ -21,7 +21,7 @@ class ProductDigestJobTest < ActiveJob::TestCase
 
     mail = ActionMailer::Base.deliveries.last
     assert_equal [ facilitator.email ], mail.to
-    assert_equal "Rails Builders product updates for 16 August", mail.subject
+    assert_equal "Rails.Builders product updates for 16 August", mail.subject
     assert_match "Created: New App", mail.body.encoded
     assert_match "Updated: Updated App", mail.body.encoded
     assert_match "Ruby Builder", mail.body.encoded

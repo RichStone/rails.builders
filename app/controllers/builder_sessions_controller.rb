@@ -1,7 +1,7 @@
 class BuilderSessionsController < ApplicationController
   before_action :require_session_member
-  before_action :require_session_operator, only: %i[sync_calendar start cancel_start pause resume advance next_speaker finish attendance speaker_order timing]
-  before_action :set_builder_session, only: %i[show join start cancel_start pause resume advance next_speaker finish attendance speaker_order timing heartbeat]
+  before_action :require_session_operator, only: %i[sync_calendar start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance speaker_order timing]
+  before_action :set_builder_session, only: %i[show join start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance speaker_order timing heartbeat]
   before_action :queue_stale_calendar_sync, only: :index
 
   def index
@@ -86,6 +86,25 @@ class BuilderSessionsController < ApplicationController
     completed = speaker_id && params[:run_started_at].present? &&
       @builder_session.finish_current_speaker!(expected_speaker_id: speaker_id, expected_started_at: params[:run_started_at])
     redirect_to @builder_session, (completed ? { notice: "Speaker completed." } : { alert: "That speaker had already been completed." })
+  end
+
+  def push_speaker_back
+    speaker_id = Integer(params[:speaker_id], exception: false)
+    pushed = speaker_id && params[:run_started_at].present? && @builder_session.push_current_speaker_to_back!(
+      expected_speaker_id: speaker_id,
+      expected_started_at: params[:run_started_at]
+    )
+    redirect_to @builder_session,
+      (pushed ? { notice: "Speaker pushed to the back of the queue." } : { alert: "That speaker could not be pushed back." })
+  end
+
+  def queue_speaker
+    queued = params[:run_started_at].present? && @builder_session.queue_speaker!(
+      attendance_id: params[:attendance_id],
+      expected_started_at: params[:run_started_at]
+    )
+    redirect_to @builder_session,
+      (queued ? { notice: "Builder added to the queue." } : { alert: "That Builder could not be added to the queue." })
   end
 
   def finish

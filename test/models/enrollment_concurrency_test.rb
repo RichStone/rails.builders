@@ -7,7 +7,7 @@ class EnrollmentConcurrencyTest < ActiveSupport::TestCase
     Product.delete_all
     User.delete_all
     Program.delete_all
-    @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 1, og_priority: false)
+    @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 1)
   end
 
   teardown do

@@ -8,7 +8,14 @@
     <h2>Enrollment</h2>
     <p>Status: <strong><%= @builder.enrollment_status.humanize %></strong></p>
     <% if @builder.promotable_to_active? %>
-      <%= button_to "Promote to Active Builder", promote_builder_path(@builder), class: "button button-primary", data: { turbo_confirm: "Promote this Builder directly to Active Builder?" } %>
+      <%= form_with url: promote_builder_path(@builder), class: "stacked-form", data: { turbo_confirm: "Promote this Builder directly to Active Builder?" } do |form| %>
+        <% if @program.calendar_connection&.status == "connected" %>
+          <label class="check-row"><%= form.check_box :send_calendar_notification, checked: false %><span><strong>Send a Google Calendar update</strong><small>Optional. Google may notify all guests, not only this Builder.</small></span></label>
+        <% elsif @program.calendar_connection %>
+          <p>Reconnect Google Calendar before promotion to add this Builder to upcoming sessions.</p>
+        <% end %>
+        <%= form.button "Promote to Active Builder", class: "button button-primary" %>
+      <% end %>
     <% elsif @builder.active? %>
       <p>This Builder is active.</p>
     <% elsif @builder.removed? %>
