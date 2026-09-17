@@ -83,7 +83,7 @@ class GoogleCalendarSync
 
     session.assign_attributes(
       assigned_facilitator: program.main_facilitator,
-      title: event[:title].presence || "Rails Builders Session",
+      title: event[:title].presence || "Rails.Builders Session",
       description: event[:description],
       location: event[:location],
       meet_url: GoogleWorkspace::MeetLink.url(event[:meet_url]),

@@ -5,8 +5,17 @@
 
   <% @builders.each do |builder| %>
     <section id="builder-<%= builder.id %>" class="product-list">
-      <h2><%= builder.name %></h2>
-      <p><%= builder.email %> · <%= builder.enrollment_status.humanize %></p>
+      <div class="profile-review-heading">
+        <% if builder.avatar.attached? %>
+          <%= image_tag builder.avatar.variant(resize_to_fill: [320, 320], saver: { strip: true }), class: "profile-review-avatar", alt: builder.name %>
+        <% else %>
+          <span class="profile-review-avatar profile-review-avatar-empty" aria-label="No image uploaded for <%= builder.name %>">No image</span>
+        <% end %>
+        <div>
+          <h2><%= builder.name %></h2>
+          <p><%= builder.email %> · <%= builder.enrollment_status.humanize %></p>
+        </div>
+      </div>
       <% if builder.testimonial.present? %><blockquote>“<%= builder.testimonial %>”</blockquote><% end %>
       <ul>
         <% builder.products.each do |product| %>

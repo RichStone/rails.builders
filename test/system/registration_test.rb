@@ -6,6 +6,9 @@ class RegistrationTest < ApplicationSystemTestCase
   end
 
   test "visitor verifies an email, confirms readiness, and sees an exact waitlist position" do
+    Program.current.update!(capacity: 1)
+    User.create!(email: "occupying@example.com", verified_at: Time.current, enrollment_status: "active")
+
     visit root_path
     assert_text "Build in public with other Rails.Builders"
     click_link "Claim your place"
@@ -22,6 +25,8 @@ class RegistrationTest < ApplicationSystemTestCase
       assert_no_text "Join the waitlist"
       all(".readiness-item label").each(&:click)
       assert_text "Join the waitlist"
+      # Wait for the entrance animation so the label does not move during the click.
+      assert_selector ".membership-activation", style: { opacity: "1" }
       find(".membership-activation label").click
       assert_text "Ready to join the waitlist?"
       click_button "Put me on the list"
@@ -55,13 +60,14 @@ class RegistrationTest < ApplicationSystemTestCase
   end
 
   test "offered builder unlocks Active Builder status with the readiness checklist" do
-    user = User.create!(email: "og-ready@example.com", og: true)
+    user = User.create!(email: "ready@example.com", enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     visit verify_email_path(token: user.generate_token_for(:email_verification))
 
     within(".membership-panel") do
       assert_no_text "I’m an Active Builder"
       all(".readiness-item label").each(&:click)
       assert_text "I’m an Active Builder"
+      assert_selector ".membership-activation", style: { opacity: "1" }
       find(".membership-activation label").click
       assert_text "Ready to become an Active Builder?"
       click_button "I’m ready — let’s build"
