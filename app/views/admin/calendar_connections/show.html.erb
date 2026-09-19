@@ -1,6 +1,6 @@
 <% content_for :title, "Connect Sessions calendar — Rails.Builders" %>
 
-<main class="narrow-page">
+<div class="narrow-page">
   <%= link_to "← Administration", admin_root_path, class: "back-link" %>
   <p class="eyebrow">Google Calendar</p>
   <h1>Choose the Sessions calendar</h1>
@@ -16,4 +16,4 @@
     <p class="fine-print">Create a secondary Google Calendar owned by this account, then reload this page.</p>
     <%= link_to "Check again", admin_calendar_connection_path, class: "button button-quiet" %>
   <% end %>
-</main>
+</div>

@@ -1,4 +1,4 @@
-<main class="narrow-page"><p class="eyebrow">Your corner of rails.builders</p><h1>Profile & products</h1><p>Your email <strong><%= current_user.email %></strong> stays private.</p>
+<div class="narrow-page"><p class="eyebrow">Your corner of rails.builders</p><h1>Profile & products</h1><p>Your email <strong><%= current_user.email %></strong> stays private.</p>
   <%= form_with model: current_user, url: profile_path, class: "stacked-form profile-form" do |form| %>
     <%= form.label :name %><%= form.text_field :name, maxlength: 100, placeholder: "Your name" %>
     <%= form.label :avatar, "Bio or company picture" %>
@@ -12,4 +12,4 @@
   <% if current_user.products.any? %><section class="product-list"><h2>All products</h2><% current_user.products.each do |product| %><%= form_with model: product, class: "stacked-form compact-product-form" do |form| %><%= form.label :name, "App name" %><%= form.text_field :name, maxlength: 120 %><%= form.label :url, "App URL" %><%= form.url_field :url, maxlength: 2048 %><div class="button-row"><%= form.submit "Save product", class: "button button-quiet" %><% unless product.focus? %><%= link_to "Make focus", focus_product_path(product), data: { turbo_method: :patch } %><% else %><span class="status-pill">Focus product</span><% end %><%= link_to "Remove", product_path(product), class: "text-danger", data: { turbo_method: :delete, turbo_confirm: "Remove this product?" } %></div><% end %><% end %></section><% end %>
   <section class="product-list product-list-disabled"><h2>Add another product</h2><fieldset class="stacked-form" disabled><label for="paused_product_name">App name</label><input id="paused_product_name" type="text"><label for="paused_product_url">App URL</label><input id="paused_product_url" type="url" placeholder="https://"><button type="button" class="button button-quiet">Add product</button></fieldset><p>We want you to focus on one main product for now during the sessions. 😉</p></section>
   <section class="danger-zone"><h2>Delete my account</h2><p>This permanently removes your profile, products, image, seat, and private card.</p><%= button_to "Delete my account", profile_path, method: :delete, class: "text-danger", data: { turbo_confirm: "Permanently delete your account?" } %></section>
-</main>
+</div>

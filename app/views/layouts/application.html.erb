@@ -27,6 +27,7 @@
   </head>
   <% analytics_page = product_analytics_page %>
   <body<% if analytics_page %> data-posthog-token="<%= Rails.configuration.x.posthog.token %>" data-posthog-host="<%= Rails.configuration.x.posthog.host %>" data-posthog-route="<%= analytics_page.fetch(:route) %>" data-posthog-path="<%= analytics_page.fetch(:path) %>"<% end %>>
+    <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <%= link_to root_path, class: "brand" do %>
         <%= render "layouts/brand_lockup" %>
@@ -49,11 +50,13 @@
       </nav>
     </header>
 
-    <% flash.each do |type, message| %>
-      <div class="flash <%= type %>" role="status"><%= message %></div>
-    <% end %>
+    <main id="main" tabindex="-1">
+      <% flash.each do |type, message| %>
+        <div class="flash <%= type %>" role="status"><%= message %></div>
+      <% end %>
 
-    <%= yield %>
+      <%= yield %>
+    </main>
 
     <footer class="site-footer">
       <span class="footer-brand"><%= render "layouts/brand_lockup" %></span>

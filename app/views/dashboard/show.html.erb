@@ -1,4 +1,4 @@
-<main class="dashboard-page">
+<div class="dashboard-page">
   <section class="cohort-strip dashboard-program" data-controller="countdown" data-countdown-start-value="<%= @program.countdown_starts_at.iso8601 %>" data-countdown-finish-value="<%= @program.countdown_ends_at.iso8601 %>">
     <div>
       <p class="eyebrow"><%= @program.started? ? "Current program" : "Next program" %></p>
@@ -94,4 +94,4 @@
     </div>
   <% end %>
   <% if current_user.facilitator? %><div class="action-panel"><h2>Profile publication</h2><p>Review builders who have asked to appear publicly.</p><%= link_to "Review profiles", facilitator_profile_reviews_path, class: "button button-quiet" %></div><% end %>
-</main>
+</div>

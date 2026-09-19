@@ -1,6 +1,6 @@
 <% content_for :title, "#{@builder_session.title} — Rails.Builders" %>
 
-<main class="session-page <%= "is-live" if @builder_session.active? %>">
+<div class="session-page <%= "is-live" if @builder_session.active? %>">
   <%= link_to "← All sessions", builder_sessions_path, class: "back-link" %>
 
   <header class="session-detail-heading">
@@ -316,4 +316,4 @@
       <% end %>
     <% end %>
   <% end %>
-</main>
+</div>

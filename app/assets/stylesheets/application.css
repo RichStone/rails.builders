@@ -20,6 +20,8 @@ h1, h2, h3, h4 { margin: 0; font-family: "Space Grotesk", sans-serif; line-heigh
 p { margin: 0 0 1em; }
 button, input, textarea, select { font: inherit; }
 
+.skip-link { position: absolute; z-index: 100; top: 12px; left: 12px; padding: 10px 16px; border-radius: 999px; color: white; background: var(--ruby); font-weight: 700; text-decoration: none; transform: translateY(-160%); }
+.skip-link:focus, .skip-link:focus-visible { transform: translateY(0); outline: 3px solid var(--coral); outline-offset: 3px; }
 .site-header { position: relative; z-index: 10; max-width: 1240px; height: 82px; margin: auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; }
 .brand,.footer-brand { display: flex; gap: 9px; align-items: center; }
 .brand { font-family: "Space Grotesk", sans-serif; text-decoration: none; }

@@ -7,6 +7,27 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     @user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active", og: true)
   end
 
+  test "the application layout exposes a skip-to-content control and one main landmark" do
+    get root_path
+
+    assert_response :success
+    assert_select "body > a.skip-link[href='#main']", text: "Skip to content", count: 1
+    assert_select "body > a.skip-link ~ .site-header .brand", count: 1
+    assert_select "main#main[tabindex='-1']", count: 1
+    assert_select "main main", count: 0
+    assert_select "main#main .hero h1", text: /Build in public with other Rails.Builders/
+    assert_select "main#main ~ .site-footer", count: 1
+  end
+
+  test "the sign-in page keeps its page shell under the layout-owned main landmark" do
+    get sign_in_path
+
+    assert_response :success
+    assert_select "main#main", count: 1
+    assert_select "main main", count: 0
+    assert_select "main#main .auth-page .auth-card h1", text: "One email. No password."
+  end
+
   test "the public page shows published builders and keeps private builders anonymous" do
     public_builder = User.create!(email: "public@example.com", name: "Public Builder", og: true)
     public_builder.products.create!(name: "Tiny App", url: "https://example.com", focus: true)

@@ -1,4 +1,4 @@
-<main class="auth-page"><section class="auth-card">
+<div class="auth-page"><section class="auth-card">
   <p class="eyebrow">Join or come back</p><h1>One email. No password.</h1><p>We’ll send a secure link that verifies your address and signs you in.</p>
   <%= form_with url: sign_in_path, class: "stacked-form", data: (Turnstile.enabled? ? { controller: "turnstile", turnstile_site_key_value: Turnstile.site_key, action: "turbo:before-cache@document->turnstile#beforeCache turbo:submit-end->turnstile#submitted" } : {}) do |form| %>
     <%= form.hidden_field :form_token, value: @form_token %>
@@ -17,4 +17,4 @@
     <%= form.submit "Email me a secure link", class: "button button-primary", disabled: Turnstile.enabled?, data: { turnstile_target: "submit" } %>
   <% end %>
   <p class="fine-print">By continuing, you agree to the <%= link_to "privacy policy", privacy_path %>. Essential Rails.Builders emails are part of operating your account.</p>
-</section></main>
+</section></div>
