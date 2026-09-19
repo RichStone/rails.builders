@@ -352,8 +352,8 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
         assert_selector ".live-session-stage h2", text: /#{Regexp.escape(second_builder.name)}|#{Regexp.escape(@facilitator.name)}/
       end
 
-      find("summary", text: "Cancel session").click
-      click_button "Discard session run"
+      find(".cancel-session > summary").send_keys(:enter)
+      within(".cancel-session[open]") { click_button "Discard session run" }
 
       assert_text "Mistaken session start discarded."
       assert_selector ".session-detail-heading .eyebrow", text: /Ready/i
