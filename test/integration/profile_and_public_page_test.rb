@@ -19,10 +19,18 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       assert_select ".brand-name", text: "Rails.Builders"
       assert_select ".brand-est", text: "--- Est. 2025 ---"
     end
+    links = css_select(".site-header nav > a")
+    assert_equal [ "How To", "The Builders", "Sign In", "Join" ], links.map { |link| link.text.strip }
+    assert_equal [
+      root_path(anchor: "how-it-works"),
+      root_path(anchor: "builders"),
+      sign_in_path,
+      sign_in_path
+    ], links.map { |link| link["href"] }
     assert_select ".site-header nav" do
-      assert_select "a[href='#{root_path(anchor: "how-it-works")}']", text: "How To"
       assert_select ".nav-divider", text: "·"
-      assert_select "a[href='#{root_path(anchor: "builders")}']", text: "Current Builders"
+      assert_select "a.button.button-small[href='#{sign_in_path}']", text: "Join", count: 1
+      assert_select "a.button", text: "Sign In", count: 0
     end
     assert_select ".site-footer .footer-brand" do
       assert_select ".brand-name", text: "Rails.Builders"

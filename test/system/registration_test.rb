@@ -11,7 +11,7 @@ class RegistrationTest < ApplicationSystemTestCase
 
     visit root_path
     assert_text "Build in public with other Rails.Builders"
-    click_link "Claim your place"
+    within(".site-header") { click_link "Join" }
     fill_in "Email address", with: "browser@example.com"
     travel 3.seconds
     click_button "Email me a secure link"

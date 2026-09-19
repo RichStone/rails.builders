@@ -43,8 +43,9 @@
         <% else %>
           <%= link_to "How To", root_path(anchor: "how-it-works") %>
           <span class="nav-divider" aria-hidden="true">·</span>
-          <%= link_to "Current Builders", root_path(anchor: "builders") %>
-          <%= link_to "Join or sign in", sign_in_path, class: "button button-small", data: { analytics_placement: "header" } %>
+          <%= link_to "The Builders", root_path(anchor: "builders") %>
+          <%= link_to "Sign In", sign_in_path %>
+          <%= link_to "Join", sign_in_path, class: "button button-small", data: { analytics_placement: "header" } %>
         <% end %>
       </nav>
     </header>
