@@ -74,6 +74,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     click_button "Next"
     assert_selector ".live-phase", text: /Hangout/i
     find("summary", text: "Finish session").click
+    assert_button "Confirm finish session"
     click_button "Confirm finish session"
     assert_text(/session complete/i)
     assert_text "Processing transcript"
