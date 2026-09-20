@@ -87,4 +87,6 @@ Return a concise private audit summary:
 - Dependabot PR numbers and actions taken or safe reasons for skipping them;
 - any unavailable checks and the smallest next action.
 
+Every mentioned issue, finding, blocker, skipped check, unavailable integration, or unresolved item must include at least one complete sentence of sanitized context explaining what was observed and why it matters. Never refer only to "previously reported findings" or similar shorthand; restate enough context for each report to stand on its own.
+
 An all-clear should be short. Never include raw command output, raw logs, secrets, PII, internal addresses, or provider/account identifiers.
