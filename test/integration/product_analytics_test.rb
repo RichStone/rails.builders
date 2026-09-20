@@ -41,6 +41,18 @@ class ProductAnalyticsIntegrationTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, user.email
   end
 
+  test "join and sign in use distinct normalized analytics pages" do
+    [ join_path, "/join/", "/join.html" ].each do |path|
+      get path, params: { email: "private@example.com", joining: "false" }
+      assert_select "body[data-posthog-route='join'][data-posthog-path='/join']"
+      assert_select "form[action='#{join_path}'] input[type='checkbox'][name='newsletter_opt_in']"
+    end
+
+    get sign_in_path, params: { email: "private@example.com", joining: "true" }
+    assert_select "body[data-posthog-route='sign_in'][data-posthog-path='/sign-in']"
+    assert_select "input[name='newsletter_opt_in']", count: 0
+  end
+
   test "registration and sign-in outcomes are emitted only after success" do
     captured = []
     replacement = ->(event) { captured << event; true }
@@ -50,9 +62,11 @@ class ProductAnalyticsIntegrationTest < ActionDispatch::IntegrationTest
       user = User.find_by!(email: "new@example.com")
       post verify_email_path, params: { token: user.generate_token_for(:email_verification) }
 
+      delete sign_out_path
       post sign_in_path, params: sign_in_params(email: "new@example.com")
       post verify_email_path, params: { token: user.reload.generate_token_for(:email_verification) }
 
+      delete sign_out_path
       post sign_in_path, params: sign_in_params(email: "not-an-email")
     end
 

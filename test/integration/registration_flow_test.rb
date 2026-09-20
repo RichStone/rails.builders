@@ -5,6 +5,49 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
   end
 
+  test "sign in has no newsletter option and ignores a submitted newsletter opt-in" do
+    user = User.create!(email: "returning@example.com", verified_at: Time.current)
+    form = sign_in_params(email: user.email, newsletter_opt_in: "1")
+
+    assert_select ".auth-card .eyebrow", text: "Welcome back"
+    assert_select "input[name='newsletter_opt_in']", count: 0
+    assert_select "a[href='#{join_path}']", text: "New here? Join Rails.Builders"
+    assert_enqueued_emails 1 do
+      post sign_in_path, params: form
+    end
+    assert_nil user.reload.newsletter_requested_at
+    follow_redirect!
+    assert_select "a[href='#{sign_in_path}']", text: "Use a different email"
+  end
+
+  test "join offers an unchecked newsletter choice and keeps its flow when changing email" do
+    form = sign_in_params(path: join_path, email: "joining@example.com")
+    assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
+    assert_select ".auth-card .eyebrow", text: "Join Rails.Builders"
+    assert_select "form[action='#{join_path}']"
+    assert_select "input[type='checkbox'][name='newsletter_opt_in']:not([checked])"
+    assert_select "a[href='#{sign_in_path}']", text: "Already have an account? Sign in"
+
+    assert_enqueued_emails 1 do
+      post join_path, params: form
+    end
+    assert_nil User.find_by!(email: "joining@example.com").newsletter_requested_at
+    assert_redirected_to check_email_path(join: "1")
+    follow_redirect!
+    assert_select "a[href='#{join_path}']", text: "Use a different email"
+  end
+
+  test "signed-in builders following join or sign in go to their dashboard" do
+    user = User.create!(email: "signed-in@example.com", verified_at: Time.current)
+    post verify_email_path, params: { token: user.generate_token_for(:email_verification) }
+
+    [ join_path, sign_in_path ].each do |path|
+      get path
+      assert_redirected_to dashboard_path
+    end
+  end
+
   test "a filled honeypot creates no account and queues neither confirmation" do
     assert_no_difference "User.count" do
       assert_no_enqueued_emails do
@@ -37,22 +80,23 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "an unusually fast submission preserves input and can be retried after waiting" do
-    get sign_in_path
+    get join_path
     token = html_document.at_css("input[name='form_token']")["value"]
     assert_no_enqueued_emails do
-      post sign_in_path, params: { email: "quick@example.com", newsletter_opt_in: "1", form_token: token }
+      post join_path, params: { email: "quick@example.com", newsletter_opt_in: "1", form_token: token }
     end
     assert_response :unprocessable_content
     assert_select ".alert", text: /Please wait a moment/
     assert_select "input[name='email'][value='quick@example.com']"
     assert_select "input[name='newsletter_opt_in'][checked]"
+    assert_select "form[action='#{join_path}']"
 
     fresh_token = html_document.at_css("input[name='form_token']")["value"]
     travel 3.seconds
     assert_enqueued_emails 2 do
-      post sign_in_path, params: { email: "quick@example.com", newsletter_opt_in: "1", form_token: fresh_token }
+      post join_path, params: { email: "quick@example.com", newsletter_opt_in: "1", form_token: fresh_token }
     end
-    assert_redirected_to check_email_path
+    assert_redirected_to check_email_path(join: "1")
   end
 
   test "form tokens cannot be forged transferred to another session or used after expiry" do
@@ -93,7 +137,7 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
       [ "bot@example.com", returning.email ].each do |email|
         assert_no_difference "User.count" do
           assert_no_enqueued_emails do
-            post sign_in_path, params: sign_in_params(email: email, newsletter_opt_in: "1", "cf-turnstile-response": "invalid-token")
+            post join_path, params: sign_in_params(path: join_path, email: email, newsletter_opt_in: "1", "cf-turnstile-response": "invalid-token")
           end
         end
         assert_response :unprocessable_content
@@ -182,9 +226,10 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "sign-in requests are throttled per email address" do
-    5.times do
-      post sign_in_path, params: sign_in_params(email: "target@example.com")
-      assert_redirected_to check_email_path
+    5.times do |index|
+      path = index.even? ? join_path : sign_in_path
+      post path, params: sign_in_params(path: path, email: "target@example.com")
+      assert_response :redirect
     end
 
     post sign_in_path, params: sign_in_params(email: " TARGET@example.com ")
@@ -238,16 +283,16 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
 
   test "repeated submissions send one pair of emails and preserve the original sign-in link" do
     assert_enqueued_emails 2 do
-      post sign_in_path, params: sign_in_params(email: "repeat@example.com", newsletter_opt_in: "1")
+      post join_path, params: sign_in_params(path: join_path, email: "repeat@example.com", newsletter_opt_in: "1")
     end
     user = User.find_by!(email: "repeat@example.com")
     token = user.generate_token_for(:email_verification)
     newsletter_token = user.generate_token_for(:newsletter_confirmation)
 
     assert_no_enqueued_emails do
-      post sign_in_path, params: sign_in_params(email: " REPEAT@example.com ", newsletter_opt_in: "1")
+      post join_path, params: sign_in_params(path: join_path, email: " REPEAT@example.com ", newsletter_opt_in: "1")
     end
-    assert_redirected_to check_email_path
+    assert_redirected_to check_email_path(join: "1")
 
     post verify_email_path, params: { token: token }
     assert_redirected_to dashboard_path
@@ -256,14 +301,14 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "requesting another sign-in link does not repeatedly send newsletter confirmations" do
-    post sign_in_path, params: sign_in_params(email: "newsletter@example.com", newsletter_opt_in: "1")
+    post join_path, params: sign_in_params(path: join_path, email: "newsletter@example.com", newsletter_opt_in: "1")
     user = User.find_by!(email: "newsletter@example.com")
     sign_in_token = user.generate_token_for(:email_verification)
     newsletter_token = user.generate_token_for(:newsletter_confirmation)
     travel 2.minutes
 
     assert_enqueued_emails 1 do
-      post sign_in_path, params: sign_in_params(email: user.email, newsletter_opt_in: "1")
+      post join_path, params: sign_in_params(path: join_path, email: user.email, newsletter_opt_in: "1")
     end
 
     post verify_email_path, params: { token: sign_in_token }
@@ -333,7 +378,7 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
 
   test "newsletter consent sends a separate confirmation and does not subscribe immediately" do
     assert_emails 2 do
-      post sign_in_path, params: sign_in_params(email: "reader@example.com", newsletter_opt_in: "1")
+      post join_path, params: sign_in_params(path: join_path, email: "reader@example.com", newsletter_opt_in: "1")
     end
 
     user = User.find_by!(email: "reader@example.com")

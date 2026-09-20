@@ -29,6 +29,7 @@ class ApplicationController < ActionController::Base
 
   def product_analytics_page
     return unless Rails.configuration.x.posthog.enabled
+    return { route: "join", path: "/join" } if controller_path == "sessions" && action_name == "new" && request.path_parameters[:joining] == true
 
     PRODUCT_ANALYTICS_ROUTES["#{controller_path}##{action_name}"]
   end

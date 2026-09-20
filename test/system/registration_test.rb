@@ -12,6 +12,8 @@ class RegistrationTest < ApplicationSystemTestCase
     visit root_path
     assert_text "Build in public with other Rails.Builders"
     within(".site-header") { click_link "Join" }
+    assert_current_path join_path
+    assert_unchecked_field "newsletter_opt_in"
     fill_in "Email address", with: "browser@example.com"
     travel 3.seconds
     click_button "Email me a secure link"
@@ -54,9 +56,24 @@ class RegistrationTest < ApplicationSystemTestCase
     within("#readiness") do
       assert_no_link "Bring me in 🤝"
       all(".readiness-item label").each(&:click)
-      assert_link "Bring me in 🤝"
+      assert_link "Bring me in 🤝", href: join_path
       assert_selector ".readiness-confetti", minimum: 1
     end
+  end
+
+  test "visitor can switch between sign in and join without a newsletter option on sign in" do
+    visit root_path
+    within(".site-header") { click_link "Sign In" }
+    assert_current_path sign_in_path
+    assert_no_selector "input[name='newsletter_opt_in']", visible: :all
+
+    click_link "New here? Join Rails.Builders"
+    assert_current_path join_path
+    assert_unchecked_field "newsletter_opt_in"
+
+    click_link "Already have an account? Sign in"
+    assert_current_path sign_in_path
+    assert_no_selector "input[name='newsletter_opt_in']", visible: :all
   end
 
   test "offered builder unlocks Active Builder status with the readiness checklist" do

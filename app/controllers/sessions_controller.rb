@@ -4,6 +4,7 @@ class SessionsController < ApplicationController
   NEWSLETTER_CONSENT_VERSION = "2026-08-16"
 
   before_action :no_store
+  before_action -> { @joining = request.path_parameters[:joining] == true }, only: %i[new create]
   rate_limit to: 20, within: 5.minutes, by: -> { abuse_identity(request.remote_ip) }, name: "ip", with: -> { throttle_sign_in(:ip_rate_limit, 5.minutes) }, only: :create
   rate_limit to: 60, within: 1.hour, by: -> { abuse_identity(request.remote_ip) }, name: "ip_hour", with: -> { throttle_sign_in(:ip_rate_limit, 1.hour) }, only: :create
   rate_limit to: 150, within: 1.day, by: -> { abuse_identity(request.remote_ip) }, name: "ip_day", with: -> { throttle_sign_in(:ip_rate_limit, 1.day) }, only: :create
@@ -14,6 +15,8 @@ class SessionsController < ApplicationController
   rate_limit to: 10, within: 1.day, by: -> { abuse_identity(normalized_email) }, name: "email_day", with: -> { throttle_sign_in(:email_rate_limit, 1.day) }, only: :create
 
   def new
+    return redirect_to dashboard_path if current_user
+
     prepare_sign_in_form
   end
 
@@ -23,11 +26,11 @@ class SessionsController < ApplicationController
     if @user.valid?
       unless Rails.cache.write(mail_cooldown_key(@user.email), true, expires_in: 1.minute, unless_exist: true)
         SignupAbuse.record(:mail_cooldown)
-        return redirect_to check_email_path, notice: "Check your inbox for your secure sign-in link."
+        return redirect_to check_email_path(join: ("1" if @joining)), notice: "Check your inbox for your secure sign-in link."
       end
 
       @user.save!
-      request_newsletter if params[:newsletter_opt_in] == "1" && @user.newsletter_confirmed_at.nil?
+      request_newsletter if @joining && params[:newsletter_opt_in] == "1" && @user.newsletter_confirmed_at.nil?
       token = @user.with_lock do
         @user.increment!(:sign_in_token_version)
         @user.generate_token_for(:email_verification)
@@ -37,7 +40,7 @@ class SessionsController < ApplicationController
       ProductAnalytics.capture(event)
       SignupAbuse.record(event)
       session[:development_verification_token] = token if Rails.env.development?
-      redirect_to check_email_path, notice: "Check your inbox for your secure sign-in link."
+      redirect_to check_email_path(join: ("1" if @joining)), notice: "Check your inbox for your secure sign-in link."
     else
       flash.now[:alert] = @user.errors.full_messages.to_sentence
       prepare_sign_in_form
@@ -46,6 +49,7 @@ class SessionsController < ApplicationController
   end
 
   def check_email
+    @joining = params[:join] == "1"
     @development_token = session.delete(:development_verification_token) if Rails.env.development?
   end
 
@@ -95,7 +99,7 @@ class SessionsController < ApplicationController
     return if params[:website].blank?
 
     SignupAbuse.record(:honeypot)
-    redirect_to check_email_path, notice: "Check your inbox for your secure sign-in link."
+    redirect_to check_email_path(join: ("1" if @joining)), notice: "Check your inbox for your secure sign-in link."
   end
 
   def prepare_sign_in_form

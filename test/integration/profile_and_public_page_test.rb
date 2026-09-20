@@ -25,13 +25,14 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       root_path(anchor: "how-it-works"),
       root_path(anchor: "builders"),
       sign_in_path,
-      sign_in_path
+      join_path
     ], links.map { |link| link["href"] }
     assert_select ".site-header nav" do
       assert_select ".nav-divider", text: "·"
-      assert_select "a.button.button-small[href='#{sign_in_path}']", text: "Join", count: 1
+      assert_select "a.button.button-small[href='#{join_path}']", text: "Join", count: 1
       assert_select "a.button", text: "Sign In", count: 0
     end
+    assert_equal [ join_path ] * 5, css_select("a[data-analytics-placement]").map { |link| link["href"] }
     assert_select ".site-footer .footer-brand" do
       assert_select ".brand-name", text: "Rails.Builders"
       assert_select ".brand-est", text: "--- Est. 2025 ---"
@@ -147,7 +148,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       assert_select "h2", text: /How the Continuous r-AI-ls.Builders Edition works/
       assert_select "[data-program-format-target='item'][hidden]", count: 2
       assert_select "button[data-action='program-format#start']"
-      assert_select "a[href='#{sign_in_path}']", text: "I love it 🤝"
+      assert_select "a[href='#{join_path}']", text: "I love it 🤝"
     end
   end
 
@@ -162,7 +163,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       assert_select "input[data-readiness-checklist-target='checkbox']", count: 2
       assert_select ".readiness-smallprint", text: /give Rich a ping/
       assert_select "[data-readiness-checklist-target='unlock'][hidden]", text: /That’s all you need!/
-      assert_select "[data-readiness-checklist-target='unlock'][hidden] a[href='#{sign_in_path}']", text: "Bring me in 🤝"
+      assert_select "[data-readiness-checklist-target='unlock'][hidden] a[href='#{join_path}']", text: "Bring me in 🤝"
     end
   end
 

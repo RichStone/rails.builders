@@ -8,6 +8,8 @@ Rails.application.routes.draw do
   mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
 
   root "home#index"
+  get "join", to: "sessions#new", defaults: { joining: true }
+  post "join", to: "sessions#create", defaults: { joining: true }
   get "sign-in", to: "sessions#new"
   post "sign-in", to: "sessions#create"
   get "check-email", to: "sessions#check_email"
