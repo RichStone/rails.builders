@@ -175,7 +175,7 @@ GEM
       os (>= 0.9, < 2.0)
       pstore (~> 0.1)
       signet (>= 0.16, < 2.a)
-    honeybadger (6.9.1)
+    honeybadger (6.9.2)
       logger
       ostruct
     httparty (0.24.2)
