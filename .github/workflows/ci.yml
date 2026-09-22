@@ -126,11 +126,12 @@ jobs:
       - name: Run System Tests
         env:
           RAILS_ENV: test
+          RAILS_SYSTEM_TESTING_SCREENSHOT_HTML: "1"
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test:system
 
-      - name: Keep screenshots from failed system tests
+      - name: Keep screenshots and HTML from failed system tests
         uses: actions/upload-artifact@v7
         if: failure()
         with:

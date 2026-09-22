@@ -37,6 +37,7 @@ Rails.application.routes.draw do
       post :queue_speaker
       post :finish
       patch :attendance
+      patch :facilitator
       patch :speaker_order
       patch :timing
       patch :heartbeat

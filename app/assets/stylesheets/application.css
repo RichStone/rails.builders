@@ -19,6 +19,7 @@ a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 4px; 
 h1, h2, h3, h4 { margin: 0; font-family: "Space Grotesk", sans-serif; line-height: 1.05; letter-spacing: -.045em; }
 p { margin: 0 0 1em; }
 button, input, textarea, select { font: inherit; }
+.start-session-form select { min-height: 48px; max-width: 100%; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: white; }
 
 .site-header { position: relative; z-index: 10; max-width: 1240px; height: 82px; margin: auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; }
 .brand,.footer-brand { display: flex; gap: 9px; align-items: center; }

@@ -50,5 +50,12 @@
 <% end %>
 <p style="font-size: 16px; line-height: 26px;"><%= @next_time ? "The next session is on #{@next_time}." : "Next session time: to be confirmed." %></p>
 <p style="font-size: 16px; line-height: 26px;"><% if @next_meet_url %>Google Meet: <a href="<%= @next_meet_url %>" style="color: #a40f32; font-weight: 700;"><%= @next_meet_url %></a><% else %>The Google Meet link will be available on the session page.<% end %></p>
+<% if @skipping_next_session %>
+  <p style="font-size: 16px; line-height: 26px;"><strong>You’re marked as skipping this session.</strong></p>
+  <p style="font-size: 16px; line-height: 26px;"><%= @return_time ? "Your next session is on #{@return_time}." : "Your next session after the ones you’re skipping: to be confirmed." %></p>
+  <% if @return_time %>
+    <p style="font-size: 16px; line-height: 26px;"><% if @return_meet_url %>Google Meet: <a href="<%= @return_meet_url %>" style="color: #a40f32; font-weight: 700;"><%= @return_meet_url %></a><% else %>The Google Meet link will be available on the session page.<% end %></p>
+  <% end %>
+<% end %>
 <p style="margin: 24px 0 0; font-size: 16px; line-height: 26px;">Sincerely yours,<br><strong>Rich and Otto Labot</strong></p>
 <img src="cid:<%= @cherry_cid %>" width="160" height="160" alt="The Weekly Builders Cherry: a ruby gem and a red cherry" style="display: block; width: 160px; height: 160px; margin: 24px auto 0; border: 0;">

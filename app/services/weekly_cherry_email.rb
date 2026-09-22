@@ -22,26 +22,32 @@ class WeeklyCherryEmail
     attended = @builder_session.attendances.exists?(user: @recipient, status: "present")
     validate!(attended: attended)
     promise = @builder_session.next_session_promises.find_by(user: @recipient) if attended
-    next_session = @builder_session.program.builder_sessions.where(state: "ready")
+    upcoming_sessions = @builder_session.program.builder_sessions.where(state: "ready")
       .where("scheduled_starts_at > ?", [ @builder_session.scheduled_starts_at, Time.current ].max)
-      .order(:scheduled_starts_at).first
-    next_time = if next_session
-      "#{next_session.scheduled_starts_at.in_time_zone(next_session.time_zone).strftime('%A, %-d %B at %H:%M %Z')} (#{next_session.time_zone})"
+      .order(:scheduled_starts_at)
+    next_session = upcoming_sessions.first
+    skipping_next_session = next_session&.attendances&.exists?(user: @recipient, status: "absent")
+    if skipping_next_session
+      skipped_session_ids = BuilderSessionAttendance.where(user: @recipient, status: "absent").select(:builder_session_id)
+      return_session = upcoming_sessions.where.not(id: skipped_session_ids).first
     end
     assigns = {
-      recipient_name: @recipient.name.presence || "Builder",
+      recipient_name: @recipient.name.to_s.split.first || "Builder",
       session_date: @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone).strftime("%-d %B %Y"),
       session_url: "https://rails.builders/sessions/#{@builder_session.id}",
       attended: attended,
       promise: promise&.body,
-      feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: item.author.name.presence || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
+      feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: item.author.name.to_s.split.first || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
       tldr: @tldr,
       mentions: @mentions,
       warning_notice: @warning_notice,
       info_notice: @info_notice,
       absence_warning: attended ? nil : absence_warning,
-      next_time: next_time,
-      next_meet_url: next_session&.meet_url.presence&.then { |url| url if GoogleWorkspace::MeetLink.canonical?(url) },
+      next_time: session_time(next_session),
+      next_meet_url: session_meet_url(next_session),
+      skipping_next_session: skipping_next_session,
+      return_time: session_time(return_session),
+      return_meet_url: session_meet_url(return_session),
       cherry_cid: @cherry_cid
     }
     renderer = ApplicationController.renderer.new(http_host: "rails.builders", https: true)
@@ -54,6 +60,16 @@ class WeeklyCherryEmail
   end
 
   private
+
+  def session_time(session)
+    return unless session
+
+    "#{session.scheduled_starts_at.in_time_zone(session.time_zone).strftime('%A, %-d %B at %H:%M %Z')} (#{session.time_zone})"
+  end
+
+  def session_meet_url(session)
+    session&.meet_url.presence&.then { |url| url if GoogleWorkspace::MeetLink.canonical?(url) }
+  end
 
   def absence_warning
     count = 0

@@ -25,7 +25,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
       email: "other-facilitator@example.com",
       name: "Other Facilitator",
       facilitator: true,
-      enrollment_status: "active",
+      enrollment_status: "inactive",
       verified_at: Time.current
     )
     @program = Program.create!(
@@ -74,6 +74,20 @@ class BuilderSessionTest < ActiveSupport::TestCase
     assert_equal 60.minutes.to_i, @builder_session.timer_duration_seconds
   end
 
+  test "explicitly absent facilitators cannot supply promises or authored feedback" do
+    @builder_session.start!(facilitator: @facilitator)
+    @builder_session.mark_absent!(@facilitator)
+    @builder_session.finish!
+
+    assert_not @builder_session.participated?(@facilitator)
+    promise = @builder_session.next_session_promises.build(user: @facilitator, body: "Ship a prototype.")
+    assert_not promise.valid?
+    assert_includes promise.errors[:user], "must have participated in the session"
+    feedback = @builder_session.peer_feedbacks.build(author: @facilitator, recipient: @builder, body: "Try a prototype.", sentiment: "idea", source: "transcript", source_key: "absent-facilitator")
+    assert_not feedback.valid?
+    assert_includes feedback.errors[:author], "must have participated in the session"
+  end
+
   test "starting immediately includes the facilitator in the core speaker budget" do
     second_builder = User.create!(email: "second@example.com", name: "Second Builder", enrollment_status: "active", verified_at: Time.current)
     third_builder = User.create!(email: "third@example.com", name: "Third Builder", enrollment_status: "active", verified_at: Time.current)
@@ -92,8 +106,8 @@ class BuilderSessionTest < ActiveSupport::TestCase
 
     @builder_session.mark_absent!(@facilitator)
 
-    assert_equal "present", facilitator_attendance.reload.status
-    assert_includes %w[speaking queued], facilitator_attendance.speaker_state
+    assert_equal "absent", facilitator_attendance.reload.status
+    assert_not_includes %w[speaking queued], facilitator_attendance.speaker_state
   end
 
   test "starting randomizes the attending speaker order" do
@@ -205,7 +219,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
     assert cancelled
     assert_equal "ready", @builder_session.state
     assert_equal scheduled_attributes, @builder_session.attributes.slice(*scheduled_attributes.keys)
-    assert_equal @facilitator, @builder_session.assigned_facilitator
+    assert_equal @other_facilitator, @builder_session.assigned_facilitator
     assert_nil @builder_session.facilitator_name_snapshot
     assert_nil @builder_session.started_at
     assert_nil @builder_session.builder_updates_started_at
@@ -216,7 +230,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
     assert_equal 0, @builder_session.pre_core_duration_seconds
     assert_equal 0, @builder_session.hangout_duration_seconds
     assert_nil @builder_session.finish_reason
-    assert_equal [ [ "Builder", "absent" ], [ "Second Builder", "present" ] ],
+    assert_equal [ [ "Builder", "absent" ], [ "Facilitator", "present" ], [ "Other Facilitator", "present" ], [ "Second Builder", "present" ] ],
       @builder_session.attendances.order(:display_name).pluck(:display_name, :status)
     @builder_session.attendances.each do |attendance|
       assert_nil attendance.arrived_at
@@ -607,7 +621,7 @@ class BuilderSessionTest < ActiveSupport::TestCase
 
     assert_nil @builder_session.reload.assigned_facilitator_id
     assert_equal "Former Facilitator", @builder_session.facilitator_name_snapshot
-    attendance = @builder_session.attendances.find_by!(role: "facilitator")
+    attendance = @builder_session.attendances.find_by!(role: "facilitator", user_id: nil)
     assert_nil attendance.user_id
     assert_equal "Former Builder", attendance.display_name
   end

@@ -1,7 +1,7 @@
 class BuilderSessionsController < ApplicationController
   before_action :require_session_member
-  before_action :require_session_operator, only: %i[sync_calendar start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance speaker_order timing]
-  before_action :set_builder_session, only: %i[show join start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance speaker_order timing heartbeat]
+  before_action :require_session_operator, only: %i[sync_calendar start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing]
+  before_action :set_builder_session, only: %i[show join start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing heartbeat]
   before_action :queue_stale_calendar_sync, only: :index
 
   def index
@@ -45,7 +45,7 @@ class BuilderSessionsController < ApplicationController
     return redirect_to(@builder_session, alert: "Choose valid session phase lengths.") unless valid_durations
 
     @builder_session.start!(
-      facilitator: current_user,
+      facilitator: @builder_session.assigned_facilitator || current_user,
       duration_seconds: core_minutes.minutes.to_i,
       pre_core_duration_seconds: pre_core_minutes.minutes.to_i,
       hangout_duration_seconds: hangout_minutes.minutes.to_i
@@ -125,6 +125,18 @@ class BuilderSessionsController < ApplicationController
       format.html { redirect_to @builder_session }
       format.turbo_stream { render turbo_stream: turbo_stream.refresh(request_id: nil, scroll: :preserve) }
     end
+  end
+
+  def facilitator
+    @builder_session.with_lock do
+      unless @builder_session.state == "ready"
+        return redirect_to @builder_session, alert: "Only upcoming sessions can change their facilitator."
+      end
+
+      facilitator = User.where(facilitator: true).where.not(verified_at: nil).where.not(enrollment_status: "removed").find(params[:facilitator_id])
+      @builder_session.update!(assigned_facilitator: facilitator)
+    end
+    redirect_to @builder_session, notice: "Session facilitator updated."
   end
 
   def speaker_order
