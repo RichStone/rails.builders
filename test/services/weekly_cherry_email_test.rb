@@ -20,6 +20,42 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_equal 3, WeeklyCherryEmail.recipients_for(@session).length
   end
 
+  test "greetings use first names for attendees absentees and facilitators" do
+    [ @builder, @absentee, @facilitator ].each do |recipient|
+      recipient.update!(name: "Ada Lovelace")
+      email = render_for(recipient)
+      assert_includes email.fetch(:text), "Hey Ada,"
+      assert_includes email.fetch(:html), "Hey Ada,"
+      assert_not_includes email.fetch(:text), "Hey Ada Lovelace,"
+    end
+  end
+
+  test "feedback author labels use first names" do
+    @facilitator.update!(name: "Ada Lovelace")
+    @session.peer_feedbacks.create!(author: @facilitator, recipient: @builder, body: "Test the onboarding.", sentiment: "idea", source: "transcript", source_key: "onboarding")
+    email = render_for(@builder)
+    assert_includes email.fetch(:text), "Ada → you:"
+    assert_includes email.fetch(:html), "Ada → you"
+    assert_not_includes email.fetch(:text), "Ada Lovelace"
+  end
+
+  test "a planned absence shows the skipped session and the next session not marked absent" do
+    @next_session.update!(scheduled_starts_at: Time.utc(2030, 1, 10, 16), scheduled_ends_at: Time.utc(2030, 1, 10, 17), meet_url: "https://meet.google.com/aaa-bbbb-ccc")
+    following = @program.builder_sessions.create!(google_event_id: "following-cherry", title: "Following week", scheduled_starts_at: Time.utc(2030, 1, 17, 16), scheduled_ends_at: Time.utc(2030, 1, 17, 17), time_zone: "Europe/Berlin", meet_url: "https://meet.google.com/ddd-eeee-fff")
+    [ @builder, @absentee, @facilitator ].each do |recipient|
+      @next_session.attendances.create!(user: recipient, display_name: recipient.name, role: "builder", status: "absent")
+      email = render_for(recipient)
+      assert_includes email.fetch(:text), "Thursday, 10 January at 17:00 CET"
+      assert_includes email.fetch(:text), "You’re marked as skipping this session."
+      assert_includes email.fetch(:text), "Your next session is on Thursday, 17 January at 17:00 CET"
+      assert_includes email.fetch(:html), "You’re marked as skipping this session."
+      assert_includes email.fetch(:html), following.meet_url
+    end
+
+    following.attendances.create!(user: @builder, display_name: @builder.name, role: "builder", status: "absent")
+    assert_includes render_for(@builder).fetch(:text), "Your next session after the ones you’re skipping: to be confirmed."
+  end
+
   test "renders attendee promise and only feedback received without sending mail" do
     @session.next_session_promises.create!(user: @builder, body: "Speak to five customers.")
     @session.peer_feedbacks.create!(author: @facilitator, recipient: @builder, body: "Show the price before the call.", sentiment: "idea", source: "transcript", source_key: "price")
@@ -149,9 +185,9 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
   end
 
   test "attendees can receive unattributed feedback without inventing a builder account" do
-    email = WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Test the smallest useful change." ], mentions: [ "Builder X recommended <b>checking token output</b>; attribution is uncertain." ]).render
-    assert_includes email.fetch(:text), "Builder X recommended"
-    assert_includes email.fetch(:html), "Builder X recommended &lt;b&gt;checking token output&lt;/b&gt;"
+    email = WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Test the smallest useful change." ], mentions: [ "Unidentified Builder recommended <b>checking token output</b>; attribution is uncertain." ]).render
+    assert_includes email.fetch(:text), "Unidentified Builder recommended"
+    assert_includes email.fetch(:html), "Unidentified Builder recommended &lt;b&gt;checking token output&lt;/b&gt;"
     assert_not_includes email.fetch(:text), "🍒"
     assert_not_includes email.fetch(:html), "🍒"
   end

@@ -116,6 +116,41 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_text "She narrowed the launch again."
   end
 
+  test "a substitute leads while the main facilitator is absent" do
+    User.create!(email: "substitute@example.com", name: "Substitute Facilitator", facilitator: true, enrollment_status: "active", verified_at: Time.current)
+    sign_in_as(@facilitator)
+    visit builder_session_path(@builder_session)
+
+    within(".attendance-row", text: "Session Facilitator") do
+      click_button "Mark not attending"
+      assert_button "Confirm attendance"
+    end
+    select "Substitute Facilitator", from: "Facilitator for this session"
+    click_button "Save facilitator"
+    assert_selector ".session-detail-heading", text: "Facilitated by Substitute Facilitator"
+    assert_selector ".attendance-row", text: /Session Facilitator.*Not attending/m
+    page.save_screenshot(Rails.root.join("tmp/screenshots/facilitator-absence-ready.png"))
+
+    configure_session(core: 30)
+    click_button "Start session"
+    assert_selector ".live-phase", text: /Core session/i
+    within("ul.attendance-list .attendance-row", text: "Session Facilitator") do
+      assert_text "Absent"
+      click_button "Mark present"
+    end
+    within("ul.attendance-list .attendance-row", text: "Session Facilitator") do
+      assert_button "Mark absent"
+      click_button "Mark absent"
+    end
+    within("ul.attendance-list .attendance-row", text: "Session Facilitator") do
+      assert_button "Mark present"
+    end
+    assert_no_selector ".live-session-stage h2", text: "Session Facilitator"
+    assert_no_selector ".speaker-queue", text: "Session Facilitator"
+    assert_selector ".session-detail-heading", text: "Facilitated by Substitute Facilitator"
+    page.save_screenshot(Rails.root.join("tmp/screenshots/facilitator-absence-live.png"))
+  end
+
   test "attendance corrections preserve the viewport" do
     started_at = 2.hours.ago
     @builder_session.update!(

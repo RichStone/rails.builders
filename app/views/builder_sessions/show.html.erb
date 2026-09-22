@@ -27,6 +27,11 @@
       <h2>Ready when the room is.</h2>
       <p>The Calendar event supplies the core default. Choose each phase before starting.</p>
       <% if session_operator? %>
+        <%= form_with url: facilitator_builder_session_path(@builder_session), method: :patch, class: "start-session-form" do |form| %>
+          <%= form.label :facilitator_id, "Facilitator for this session" %>
+          <%= form.collection_select :facilitator_id, User.where(facilitator: true).where.not(verified_at: nil).where.not(enrollment_status: "removed").order(:name, :email), :id, :name, selected: @builder_session.assigned_facilitator_id || @builder_session.program.main_facilitator_id %>
+          <%= form.submit "Save facilitator", class: "button button-quiet" %>
+        <% end %>
         <% unless Time.current.between?(@builder_session.scheduled_starts_at - 30.minutes, @builder_session.scheduled_starts_at + 30.minutes) %>
           <p class="form-warning">This is outside the scheduled start window. Starting is still allowed, and a mistaken start can be discarded from the live controls.</p>
         <% end %>
@@ -43,7 +48,7 @@
     </section>
 
     <section class="attendance-panel">
-      <div class="section-heading"><p class="eyebrow">Expected attendance</p><h2>Active Builders</h2></div>
+      <div class="section-heading"><p class="eyebrow">Expected attendance</p><h2>Builders and facilitators</h2></div>
       <ul class="attendance-list">
         <% @builder_session.ready_attendances.each do |attendance| %>
           <% attending = attendance.status == "present" %>
@@ -180,9 +185,9 @@
         <% @builder_session.attendances.order(Arel.sql("CASE role WHEN 'facilitator' THEN 0 ELSE 1 END"), :speaker_position, :display_name).each do |attendance| %>
           <li class="attendance-row">
             <div><strong><%= attendance.display_name %></strong><span><%= attendance.role.humanize %> · <%= attendance.status.humanize %><%= " · #{attendance.speaker_state.humanize}" if attendance.speaker_state %></span></div>
-            <% if session_operator? && attendance.role != "facilitator" %>
+            <% if session_operator? %>
               <div class="attendance-actions">
-                <% if @builder_session.state == "builder_updates" && !attendance.speaker_state.in?(%w[queued speaking]) %>
+                <% if @builder_session.state == "builder_updates" && attendance.role == "builder" && !attendance.speaker_state.in?(%w[queued speaking]) %>
                   <%= button_to "Add to queue", queue_speaker_builder_session_path(@builder_session), params: { attendance_id: attendance.id, run_started_at: run_token }, class: "attendance-toggle" %>
                 <% end %>
                 <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present", run_started_at: run_token }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") if attendance.user_id %>

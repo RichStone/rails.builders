@@ -53,5 +53,13 @@ Review the last session -> <%= @session_url %>
 <%= @next_time ? "The next session is on #{@next_time}." : "Next session time: to be confirmed." %>
 <%= @next_meet_url ? "Google Meet: #{@next_meet_url}" : "The Google Meet link will be available on the session page." %>
 
+<% if @skipping_next_session %>
+You’re marked as skipping this session.
+<%= @return_time ? "Your next session is on #{@return_time}." : "Your next session after the ones you’re skipping: to be confirmed." %>
+<% if @return_time %>
+<%= @return_meet_url ? "Google Meet: #{@return_meet_url}" : "The Google Meet link will be available on the session page." %>
+<% end %>
+<% end %>
+
 Sincerely yours,
 Rich and Otto Labot

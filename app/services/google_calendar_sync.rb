@@ -82,7 +82,7 @@ class GoogleCalendarSync
     end
 
     session.assign_attributes(
-      assigned_facilitator: program.main_facilitator,
+      assigned_facilitator: session.assigned_facilitator || program.main_facilitator,
       title: event[:title].presence || "Rails.Builders Session",
       description: event[:description],
       location: event[:location],

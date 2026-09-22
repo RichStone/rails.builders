@@ -151,6 +151,34 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_nil @builder_session.attendances.find_by!(user: @builder).arrived_at
   end
 
+  test "a replacement facilitator preserves the absent scheduled facilitator through start and cancellation" do
+    replacement = User.create!(email: "replacement@example.com", name: "Replacement Facilitator", facilitator: true, enrollment_status: "active", verified_at: Time.current)
+    @facilitator.update!(enrollment_status: "withdrawn")
+    sign_in_as(replacement)
+
+    get builder_session_path(@builder_session)
+    assert_select ".attendance-row", text: /Main Facilitator.*Attending/m
+    assert_select ".attendance-row", text: /Replacement Facilitator.*Attending/m
+
+    patch attendance_builder_session_path(@builder_session), params: { user_id: @facilitator.id, status: "absent" }
+    follow_redirect!
+    assert_select ".attendance-row", text: /Main Facilitator.*Not attending/m
+
+    patch facilitator_builder_session_path(@builder_session), params: { facilitator_id: replacement.id }
+    follow_redirect!
+    assert_select ".session-detail-heading", text: /Facilitated by Replacement Facilitator/
+
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    follow_redirect!
+    assert_select ".session-detail-heading", text: /Facilitated by Replacement Facilitator/
+    assert_select ".attendance-panel .attendance-row", text: /Main Facilitator.*Absent/m
+    assert_select ".speaker-queue", text: /Main Facilitator/, count: 0
+
+    post cancel_start_builder_session_path(@builder_session), params: { run_started_at: @builder_session.reload.run_token }
+    follow_redirect!
+    assert_select ".attendance-row", text: /Main Facilitator.*Not attending/m
+  end
+
   test "facilitators configure every phase and can discard a mistaken start" do
     @builder_session.update!(
       scheduled_starts_at: 2.hours.from_now,
@@ -195,6 +223,68 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_redirected_to builder_session_path(@builder_session)
     assert_equal "ready", @builder_session.reload.state
     assert_nil @builder_session.transcript
+  end
+
+  test "live facilitator attendance controls advance the queue and allow returning" do
+    sign_in_as(@facilitator)
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    @builder_session.reload
+    run_started_at = @builder_session.run_token
+    # Finish the builder's turn if randomized first, leaving the facilitator speaking.
+    if @builder_session.current_speaker_attendance.user_id == @builder.id
+      post next_speaker_builder_session_path(@builder_session), params: {
+        speaker_id: @builder_session.current_speaker_attendance.id, run_started_at:
+      }
+    end
+
+    get builder_session_path(@builder_session)
+    assert_select ".attendance-panel .attendance-row", text: /Main Facilitator/ do
+      assert_select "button", text: "Mark absent"
+    end
+
+    patch attendance_builder_session_path(@builder_session), params: { user_id: @facilitator.id, status: "absent", run_started_at: }
+    follow_redirect!
+    assert_select ".attendance-panel .attendance-row", text: /Main Facilitator.*Absent/m
+    assert_select ".live-session-stage h2", text: "Main Facilitator", count: 0
+
+    patch attendance_builder_session_path(@builder_session), params: { user_id: @facilitator.id, status: "present", run_started_at: }
+    follow_redirect!
+    assert_select ".attendance-panel .attendance-row", text: /Main Facilitator.*Present/m
+    assert_select ".live-session-stage h2, .speaker-queue", text: /Main Facilitator/
+  end
+
+  test "starting does not override an explicitly absent assigned facilitator" do
+    sign_in_as(@facilitator)
+    patch attendance_builder_session_path(@builder_session), params: { user_id: @facilitator.id, status: "absent" }
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    follow_redirect!
+
+    assert_select "ul.attendance-list .attendance-row", text: /Main Facilitator.*Absent/m
+    assert_select ".live-session-stage h2", text: "Active Builder"
+    assert_select ".speaker-queue", text: /Main Facilitator/, count: 0
+  end
+
+  test "only operators can choose a verified facilitator for an upcoming session" do
+    sign_in_as(@builder)
+    patch facilitator_builder_session_path(@builder_session), params: { facilitator_id: @builder.id }
+    assert_redirected_to builder_sessions_path
+
+    sign_in_as(@facilitator)
+    patch facilitator_builder_session_path(@builder_session), params: { facilitator_id: @builder.id }
+    assert_response :not_found
+    unverified = User.create!(email: "unverified-facilitator@example.com", facilitator: true)
+    patch facilitator_builder_session_path(@builder_session), params: { facilitator_id: unverified.id }
+    assert_response :not_found
+    replacement = User.create!(email: "replacement@example.com", facilitator: true, verified_at: Time.current)
+    patch facilitator_builder_session_path(@builder_session), params: { facilitator_id: replacement.id }
+    assert_redirected_to builder_session_path(@builder_session)
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    assert_equal replacement, @builder_session.reload.assigned_facilitator
+
+    patch facilitator_builder_session_path(@builder_session), params: { facilitator_id: @facilitator.id }
+    follow_redirect!
+    assert_includes response.body, "Only upcoming sessions can change their facilitator."
+    assert_equal replacement, @builder_session.reload.assigned_facilitator
   end
 
   test "a stale finish submission cannot complete a newer timer run" do
@@ -514,7 +604,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
       assert_select "span", text: /Up next · 10:00 allocated/
     end
     assert_select ".attendance-panel:last-of-type .attendance-row", text: /Main Facilitator/ do
-      assert_select "form[action='#{attendance_builder_session_path(@builder_session)}']", count: 0
+      assert_select "form[action='#{attendance_builder_session_path(@builder_session)}'] button", text: "Mark absent"
     end
   end
 

@@ -47,7 +47,10 @@ class BuilderSession < ApplicationRecord
   end
 
   def participated?(user)
-    user.present? && (assigned_facilitator_id == user.id || attendances.exists?(user_id: user.id, status: "present"))
+    return false unless user
+
+    attendance = attendances.find_by(user_id: user.id)
+    attendance ? attendance.status == "present" : assigned_facilitator_id == user.id
   end
 
   def previous_promise_for(user)
@@ -76,7 +79,10 @@ class BuilderSession < ApplicationRecord
   end
 
   def ready_attendances
-    builders = User.active.where(facilitator: false).order(:name, :email).to_a
+    facilitator = assigned_facilitator || program.main_facilitator
+    recorded_facilitators = User.where(id: attendances.where(role: "facilitator").select(:user_id), facilitator: true)
+      .where.not(enrollment_status: "removed")
+    builders = User.active.or(User.where(id: facilitator&.id)).or(recorded_facilitators).order(:name, :email).to_a
     saved_attendances_by_user_id = attendances.where(user_id: builders.map(&:id)).index_by(&:user_id)
 
     builders.map do |builder|
@@ -84,7 +90,7 @@ class BuilderSession < ApplicationRecord
         builder_session: self,
         user: builder,
         display_name: builder.name.presence || "Builder",
-        role: "builder",
+        role: builder == facilitator || builder.facilitator? ? "facilitator" : "builder",
         status: "present"
       )
     end
@@ -111,8 +117,6 @@ class BuilderSession < ApplicationRecord
       return false if expected_started_at.present? ? !same_timer_run?(expected_started_at) : active?
 
       attendance = attendance_for!(user)
-      return self if active? && attendance.role == "facilitator"
-
       was_current = attendance.speaker_state == "speaking"
       attendance.assign_attributes(status: "absent")
       if was_current
@@ -185,8 +189,7 @@ class BuilderSession < ApplicationRecord
       with_lock do
         return false unless active? && same_timer_run?(expected_started_at)
 
-        attendances.where(role: "facilitator").destroy_all
-        attendances.where(role: "builder").update_all(
+        attendances.update_all(
           arrived_at: nil,
           speaker_state: nil,
           speaker_position: nil,
@@ -198,7 +201,6 @@ class BuilderSession < ApplicationRecord
         )
         pauses.destroy_all
         update!(
-          assigned_facilitator: program.main_facilitator,
           state: "ready",
           facilitator_name_snapshot: nil,
           started_at: nil,
@@ -403,6 +405,7 @@ class BuilderSession < ApplicationRecord
         raise AlreadyActive if program.builder_sessions.active.where.not(id: id).exists?
         raise ActiveRecord::RecordInvalid, self unless state == "ready"
 
+        expected = ready_attendances.map(&:user).reject { |user| user == facilitator }.sort_by(&:id)
         duration = duration_seconds || default_timer_minutes.minutes.to_i
         started_at = Time.current
         update!(
@@ -414,7 +417,7 @@ class BuilderSession < ApplicationRecord
           pre_core_duration_seconds:,
           hangout_duration_seconds:
         )
-        snapshot_expected_attendees!(facilitator)
+        snapshot_expected_attendees!(facilitator, expected:)
         begin_builder_updates!(at: started_at, random:) if pre_core_duration_seconds.zero?
       end
     end
@@ -435,14 +438,10 @@ class BuilderSession < ApplicationRecord
 
   def attendance_for!(user)
     attendances.find_by(user:) || begin
-      raise ActiveRecord::RecordNotFound unless state == "ready" && user.active? && !user.facilitator?
+      attendance = ready_attendances.find { |candidate| candidate.user_id == user.id } if state == "ready"
+      raise ActiveRecord::RecordNotFound unless attendance
 
-      attendances.create!(
-        user:,
-        display_name: user.name.presence || "Builder",
-        role: "builder",
-        status: "absent"
-      )
+      attendance.tap(&:save!)
     end
   end
 
@@ -547,23 +546,18 @@ class BuilderSession < ApplicationRecord
     pause.update!(ended_at: at)
   end
 
-  def snapshot_expected_attendees!(facilitator)
-    expected = User.active.where(facilitator: false).to_a
+  def snapshot_expected_attendees!(facilitator, expected:)
+    expected << facilitator unless expected.include?(facilitator)
     expected_ids = expected.map(&:id)
-    attendances.where(role: "builder").find_each do |attendance|
+    attendances.find_each do |attendance|
       attendance.destroy! unless attendance.user_id.in?(expected_ids)
     end
-    expected << facilitator unless expected.include?(facilitator)
     expected.each do |user|
       attendance = attendances.find_or_initialize_by(user: user)
       attendance.display_name = user.name.presence || (user == facilitator ? "Facilitator" : "Builder")
       attendance.role = user == facilitator || user.facilitator? ? "facilitator" : "builder"
-      if user == facilitator
-        attendance.status = "present"
-        attendance.arrived_at ||= started_at
-      elsif attendance.new_record?
-        attendance.status = "present"
-      end
+      attendance.status = "present" if attendance.new_record?
+      attendance.arrived_at ||= started_at if user == facilitator && attendance.status == "present"
       attendance.save!
     end
   end

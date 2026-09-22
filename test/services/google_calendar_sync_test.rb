@@ -89,6 +89,20 @@ class GoogleCalendarSyncTest < ActiveSupport::TestCase
     assert @connection.last_synced_at
   end
 
+  test "calendar refresh preserves a substitute facilitator assigned to one session" do
+    event = event_hash(id: "event-1", title: "Builder Clinic")
+    sync = GoogleCalendarSync.new(connection: @connection, client: FakeClient.new([ event ]))
+    sync.call
+    session = @program.builder_sessions.find_by!(google_event_id: "event-1")
+    substitute = User.create!(email: "substitute@example.com", facilitator: true, verified_at: Time.current)
+    session.update!(assigned_facilitator: substitute)
+
+    sync.call
+
+    assert_equal substitute, session.reload.assigned_facilitator
+    assert_equal @facilitator, @program.reload.main_facilitator
+  end
+
   test "updates upcoming sessions without rewriting sessions that already started" do
     upcoming = @program.builder_sessions.create!(
       assigned_facilitator: @facilitator,
