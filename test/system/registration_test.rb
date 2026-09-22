@@ -50,6 +50,8 @@ class RegistrationTest < ApplicationSystemTestCase
   end
 
   test "visitor unlocks the join button by checking every readiness point" do
+    # This test checks animated feedback; the rest of the suite reduces motion.
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "no-preference" } ])
     visit root_path
 
     find("#readiness summary").click
@@ -59,6 +61,8 @@ class RegistrationTest < ApplicationSystemTestCase
       assert_link "Bring me in 🤝", href: join_path
       assert_selector ".readiness-confetti", minimum: 1
     end
+  ensure
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: [])
   end
 
   test "visitor can switch between sign in and join without a newsletter option on sign in" do

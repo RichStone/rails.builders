@@ -54,6 +54,17 @@ RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
 
 `bin/ci` runs the full local pipeline, including a seed replant after the test suite.
 
+Run browser coverage with `bin/rails test:system`. To repeat a CI failure's exact
+test order, use `bin/rails test test/system --seed <seed-from-CI-log>`. Run these
+serially with other Rails test commands: they share the local test database.
+Browser tests use Chrome's reduced-motion preference so decorative animations
+and smooth scrolling do not move click targets. JavaScript, Turbo, and timers
+still run normally; the confetti test explicitly enables motion. Repeated saves
+must wait for the new page, not a success message left over from the previous
+save (`click_button_and_wait_for_navigation`).
+Failed CI browser tests retain both screenshots and page HTML in the `screenshots`
+artifact; use `RAILS_SYSTEM_TESTING_SCREENSHOT_HTML=1` locally for the same capture.
+
 ## Notification preferences
 
 Builders manage email preferences at `/notifications`, linked from the signed-in navigation and every email footer. Existing and new accounts have notifications enabled by default. The master switch pauses enrollment notifications, session reminders, and Facilitator product digests while preserving each category choice. Requested sign-in links and newsletter confirmations still send; the separate Loop Labs newsletter and Google Calendar reminders retain their own settings.

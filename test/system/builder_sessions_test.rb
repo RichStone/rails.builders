@@ -303,13 +303,20 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     click_button "Confirm finish session"
     assert_text(/session complete/i)
 
+    # Make stale-flash synchronization fail reliably, even on a fast local server.
+    # The browser session (including this fetch wrapper) is reset after the test.
+    page.execute_script <<~JS
+      const originalFetch = window.fetch;
+      window.fetch = (...args) => new Promise(resolve => setTimeout(resolve, 300)).then(() => originalFetch(...args));
+    JS
+
     zone = ActiveSupport::TimeZone["Europe/Madrid"]
     2.times do |index|
       corrected_start = (Time.current - (index + 3).minutes).in_time_zone(zone).strftime("%Y-%m-%dT%H:%M")
       corrected_end = (Time.current + (index + 3).minutes).in_time_zone(zone).strftime("%Y-%m-%dT%H:%M")
       set_datetime_local "Actual start time", corrected_start
       set_datetime_local "Actual end time", corrected_end
-      click_button "Correct session times"
+      click_button_and_wait_for_navigation "Correct session times"
       assert_text "Session times corrected."
       assert_equal zone.parse(corrected_start), @builder_session.reload.started_at
     end
