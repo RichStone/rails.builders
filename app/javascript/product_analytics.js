@@ -36,6 +36,7 @@ const capture = (event, properties) => {
       event,
       properties: {
         ...properties,
+        app: "rails_builders",
         $geoip_disable: true,
         $pathname: posthogPath,
         $process_person_profile: false

@@ -62,12 +62,13 @@ test("sends only the normalized anonymous analytics contract", () => {
 
   for (const event of events) {
     assert.equal(event.api_key, "phc_test_public_token")
+    assert.equal(event.properties.app, "rails_builders")
     assert.equal(event.properties.$pathname, "/sessions/:session")
     assert.equal(event.properties.$process_person_profile, false)
     assert.equal(event.properties.$geoip_disable, true)
     assert.deepEqual(Object.keys(event.properties).sort(), event.event === "$pageview"
-      ? ["$geoip_disable", "$pathname", "$process_person_profile", "route"]
-      : ["$geoip_disable", "$pathname", "$process_person_profile", "placement"])
+      ? ["$geoip_disable", "$pathname", "$process_person_profile", "app", "route"]
+      : ["$geoip_disable", "$pathname", "$process_person_profile", "app", "placement"])
   }
 
   assert.deepEqual(requests[0].options, {

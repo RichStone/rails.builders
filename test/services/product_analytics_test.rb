@@ -20,7 +20,7 @@ class ProductAnalyticsTest < ActiveSupport::TestCase
 
     assert_not captured.key?(:distinct_id)
     assert_equal "registration_created", captured.fetch(:event)
-    assert_empty captured.fetch(:properties)
+    assert_equal({ app: "rails_builders" }, captured.fetch(:properties))
   end
 
   test "capture failures never break the product flow" do

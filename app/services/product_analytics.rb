@@ -17,7 +17,7 @@ class ProductAnalytics
 
     # Omitting distinct_id makes posthog-ruby generate a fresh personless ID
     # and attach $process_person_profile=false.
-    !!client.capture({ event:, properties: {} })
+    !!client.capture({ event:, properties: { app: "rails_builders" } })
   rescue StandardError => error
     Rails.logger.warn("PostHog capture failed (#{error.class})")
     false
