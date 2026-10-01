@@ -47,7 +47,7 @@ gem "resend"
 
 # Sync the Program calendar and import structured Google Meet transcripts.
 gem "google-apis-calendar_v3", "~> 0.57"
-gem "google-apis-meet_v2", "~> 0.14"
+gem "google-apis-meet_v2", "~> 0.15"
 gem "googleauth", "~> 1.17"
 
 group :development, :test do
