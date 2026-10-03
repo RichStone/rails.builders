@@ -77,15 +77,24 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     end
   end
 
-  test "absentees get the missed subject count and next meeting without an invented promise" do
+  test "absentees get a useful nugget and fun fact alongside the missed session details without an invented promise" do
     @next_session.update!(meet_url: "https://meet.google.com/abc-defg-hij")
-    email = render_for(@absentee)
+    email = WeeklyCherryEmail.new(
+      builder_session: @session, recipient: @absentee,
+      subject: "Sharper offers, five customers, ship the page",
+      tldr: [ "Watch a customer use what you have before adding another feature.", "The demo assistant invented a participant named Mark." ]
+    ).render
     assert_equal "You missed Sharper offers, five customers, ship the page", email.fetch(:subject)
     assert_includes email.fetch(:text), "1st missed session in a row"
     assert_includes email.fetch(:text), "Two more"
     assert_includes email.fetch(:text), "The Builders didn't mention you this time."
     assert_includes email.fetch(:text), "https://meet.google.com/abc-defg-hij"
-    assert_not_includes email.fetch(:text), "TL;DR"
+    [ :text, :html ].each do |format|
+      assert_includes email.fetch(format), "TL;DR"
+      assert_includes email.fetch(format), "Watch a customer use what you have before adding another feature."
+      assert_includes email.fetch(format), "The demo assistant invented a participant named Mark."
+    end
+    assert_includes email.fetch(:html), "#ffe6ed"
     assert_not_includes email.fetch(:text), "You promised"
     assert_not_includes email.fetch(:html), "Your promise"
   end
@@ -139,6 +148,8 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_includes email.fetch(:text), "The Builders said this about you this time:"
     assert_not_includes email.fetch(:text), "didn't mention you"
     assert_includes email.fetch(:html), "&lt;b&gt;your demo was useful&lt;/b&gt;"
+    assert_not_includes email.fetch(:text), "TL;DR"
+    assert_not_includes email.fetch(:html), "TL;DR"
   end
 
   test "new members without an attendance snapshot are not charged a missed session" do
@@ -147,9 +158,11 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
   end
 
   test "escapes untrusted text in every email field" do
-    email = WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "Learning, number, action", tldr: [ "<script>alert('x')</script>", "Useful & honest." ]).render
-    assert_not_includes email.fetch(:html), "<script>"
-    assert_includes email.fetch(:html), "&lt;script&gt;"
+    [ @builder, @absentee ].each do |recipient|
+      email = WeeklyCherryEmail.new(builder_session: @session, recipient: recipient, subject: "Learning, number, action", tldr: [ "<script>alert('x')</script>", "Useful & honest." ]).render
+      assert_not_includes email.fetch(:html), "<script>"
+      assert_includes email.fetch(:html), "&lt;script&gt;"
+    end
   end
 
   test "rejects inactive recipients deleted records and malformed copy" do

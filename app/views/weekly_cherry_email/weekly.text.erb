@@ -41,12 +41,14 @@ The Builders didn't mention you this time.
 <% end %>
 <% end %>
 
-<% if @attended %>
+<% if @tldr.any? %>
 TL;DR
 <% @tldr.each do |line| %>
 <%= line %>
 <% end %>
+<% end %>
 
+<% if @attended %>
 Review the last session -> <%= @session_url %>
 <% end %>
 
