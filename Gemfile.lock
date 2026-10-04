@@ -178,7 +178,7 @@ GEM
     honeybadger (6.9.2)
       logger
       ostruct
-    httparty (0.24.2)
+    httparty (0.24.3)
       csv
       mini_mime (>= 1.0.0)
       multi_xml (>= 0.5.2)
@@ -356,7 +356,7 @@ GEM
       declarative (< 0.1.0)
       trailblazer-option (>= 0.1.1, < 0.2.0)
       uber (< 0.2.0)
-    resend (1.16.1)
+    resend (1.17.0)
       base64
       httparty (>= 0.22.0)
     retriable (4.2.0)
