@@ -76,7 +76,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   test "the public page describes the weekly group and emits social metadata" do
     get root_path
 
-    title = "Rails.Builders Group — Continuous r-AI-ls.Builders Edition"
+    title = "Rails.Builders Group — Continuous Rails.Builders Edition"
     description = "A focused group of Builders who love ship useful products on Rails."
 
     assert_select "title", text: title
@@ -111,7 +111,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   end
 
   test "the public page uses live Program capacity, name, and dates" do
-    @program.update!(name: "Continuous r-AI-ls.Builders Edition")
+    @program.update!(name: "Continuous Rails.Builders Edition")
 
     travel_to Date.new(2026, 8, 23) do
       get root_path
@@ -119,7 +119,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
 
     assert_select ".hero .microcopy", text: /9 places left/
     assert_select ".cohort-strip .eyebrow", text: "Current cohort"
-    assert_select ".cohort-strip h2", text: /Continuous r-AI-ls.Builders Edition/
+    assert_select ".cohort-strip h2", text: /Continuous Rails.Builders Edition/
     assert_select ".countdown[aria-hidden='true'] strong[data-value='--']", count: 4
     assert_select ".sr-only[data-countdown-target='accessible']", text: "Cohort countdown loading"
   end
@@ -140,12 +140,12 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   end
 
   test "the public page reveals the Program-owned session format" do
-    @program.update!(name: "Continuous r-AI-ls.Builders Edition", format_points: "🚂 First stop\n💬 Last stop")
+    @program.update!(name: "Continuous Rails.Builders Edition", format_points: "🚂 First stop\n💬 Last stop")
 
     get root_path
 
     assert_select "[data-program-format]" do
-      assert_select "h2", text: /How the Continuous r-AI-ls.Builders Edition works/
+      assert_select "h2", text: /How the Continuous Rails.Builders Edition works/
       assert_select "[data-program-format-target='item'][hidden]", count: 2
       assert_select "button[data-action='program-format#start']"
       assert_select "a[href='#{join_path}']", text: "I love it 🤝"
@@ -185,7 +185,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   test "the dashboard leads with the live Program and next steps" do
     starts_at = Time.zone.parse("2026-09-03 18:00")
     ends_at = Time.zone.parse("2026-12-17 19:30")
-    @program.update!(name: "Continuous r-AI-ls.Builders Edition", starts_on: Date.new(2026, 9, 3), starts_at:, ends_at:, capacity: 9)
+    @program.update!(name: "Continuous Rails.Builders Edition", starts_on: Date.new(2026, 9, 3), starts_at:, ends_at:, capacity: 9)
     6.times do |index|
       User.create!(email: "reserved-#{index}@example.com", verified_at: Time.current, enrollment_status: "active")
     end
@@ -194,7 +194,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get dashboard_path
 
     assert_select ".dashboard-page > .dashboard-program:first-child" do
-      assert_select "h1", text: "Continuous r-AI-ls.Builders Edition"
+      assert_select "h1", text: "Continuous Rails.Builders Edition"
       assert_select ".program-dates", text: "September 03, 2026 — December 17, 2026"
       assert_select ".program-seats", text: "9 seats · 7 reserved"
       assert_select ".dashboard-countdown strong[data-value='--']", count: 4
@@ -210,7 +210,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
       assert_select ".sr-only", text: "Not completed", count: 1
     end
     assert_no_match(/👉/, response.body)
-    assert_select ".dashboard-head", text: /Your seat in Continuous r-AI-ls.Builders Edition is confirmed/
+    assert_select ".dashboard-head", text: /Your seat in Continuous Rails.Builders Edition is confirmed/
   end
 
   test "the dashboard rolls waitlist position into the Program" do
