@@ -1,0 +1,82 @@
+.cohort-attendance { max-width: 1240px; margin: auto; padding: 64px 28px 100px; }
+.attendance-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
+.attendance-heading .eyebrow { margin-bottom: 12px; }
+.attendance-heading h1 { font-size: clamp(48px, 7vw, 76px); }
+.attendance-heading h1 > span { color: var(--ruby); }
+.attendance-heading p:last-child { margin: 16px 0 0; color: var(--muted); }
+.attendance-private { margin-top: 12px; padding: 7px 13px; border: 1px solid var(--line); border-radius: 30px; color: var(--muted); white-space: nowrap; font-size: 12px; }
+.attendance-overview { display: grid; grid-template-columns: 1fr 1.1fr; gap: 32px; padding: 34px 38px; border-radius: 24px; color: white; background: radial-gradient(ellipse at 15% 120%, #98233e, transparent 60%), #350e1b; }
+.attendance-cohort .eyebrow { color: #f7b9c6; }
+.attendance-cohort h2 { font-size: 34px; line-height: 1.12; }
+.attendance-cohort > p:last-child { margin: 18px 0 0; color: #edc9d2; font-size: 13px; }
+.attendance-stats { display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin: 0; gap: 22px; }
+.attendance-stats > div { display: flex; flex-direction: column-reverse; gap: 10px; }
+.attendance-stats dt { color: #edc9d2; font-size: 12px; line-height: 1.5; }
+.attendance-stats dd { margin: 0; font: 600 clamp(36px, 4vw, 56px)/1 "Space Grotesk", sans-serif; letter-spacing: -.06em; }
+.attendance-stats > div:first-child dd { color: #bdebd6; }
+.attendance-board { margin-top: 42px; }
+.attendance-board-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.attendance-board-heading .eyebrow { margin-bottom: 9px; }
+.attendance-board-heading h2 { font-size: 30px; }
+.attendance-legend { display: flex; flex-wrap: wrap; gap: 16px; padding: 0; margin: 0; list-style: none; }
+.attendance-legend li { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.attendance-key { display: inline-grid; width: 22px; height: 22px; place-items: center; border-radius: 6px; font-weight: 800; }
+.attendance-hint, .attendance-footnote { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.attendance-hint { margin: 20px 0 12px; }
+.attendance-footnote { margin: 14px 0 0; max-width: 850px; }
+.attendance-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 18px; background: white; scrollbar-width: thin; }
+.attendance-scroll:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
+.attendance-matrix { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.attendance-matrix th, .attendance-matrix td { padding: 16px 8px; text-align: center; border-bottom: 1px solid var(--line); }
+.attendance-matrix thead th { background: #fbf4ef; }
+.attendance-matrix tbody tr:last-child > * { border-bottom: 0; }
+.attendance-matrix .attendance-person { position: sticky; left: 0; z-index: 1; width: 220px; min-width: 220px; max-width: 220px; padding-left: 20px; text-align: left; background: white; border-right: 1px solid var(--line); }
+.attendance-matrix thead .attendance-person { background: #fbf4ef; }
+.attendance-identity { display: flex; align-items: center; gap: 10px; }
+.attendance-initials { flex: 0 0 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; color: var(--ruby-dark); background: #f7e5e6; font-size: 11px; }
+.attendance-identity > span:last-child { min-width: 0; }
+.attendance-identity strong { display: block; line-height: 1.4; overflow-wrap: anywhere; }
+.attendance-identity small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 400; }
+.attendance-identity .attendance-you { display: inline; color: var(--ruby); font-weight: 700; }
+.attendance-date { min-width: 65px; }
+.attendance-date a { min-height: 60px; display: block; text-decoration: none; }
+.attendance-date span, .attendance-date small { display: block; color: var(--muted); font-size: 10px; font-weight: 500; }
+.attendance-date span { text-transform: uppercase; letter-spacing: .1em; }
+.attendance-date strong { display: block; margin: 3px 0; font: 600 23px/1 "Space Grotesk", sans-serif; }
+.attendance-mark { display: grid; width: 42px; height: 42px; margin: auto; place-items: center; border: 1px solid transparent; border-radius: 10px; font-size: 23px; font-weight: 700; text-decoration: none; transition: transform .15s; }
+.attendance-mark:hover { transform: translateY(-3px); border-color: currentColor; }
+.attendance-mark.is-present, .attendance-key.is-present { color: #216046; background: #e3f3e9; }
+.attendance-mark.is-absent, .attendance-key.is-absent { color: #a02243; background: #ffe0e5; }
+.attendance-mark.is-unrecorded, .attendance-key.is-unrecorded { color: #7f7773; background: #f3f0ed; }
+.attendance-mark.is-unrecorded { border: 1px dashed #d8cdc8; font-size: 17px; font-weight: 400; }
+.attendance-matrix .attendance-total { min-width: 130px; padding-right: 20px; padding-left: 20px; text-align: left; white-space: nowrap; }
+.attendance-total small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+.attendance-missed { color: #216046; font-size: 13px; }
+.attendance-missed.has-misses { color: #a02243; }
+.attendance-no-record { color: var(--muted); font-size: 12px; }
+.attendance-matrix .attendance-self > * { background-color: #fff9f5; }
+.attendance-empty { margin-top: 24px; padding: 48px 24px; border: 1px dashed var(--line); border-radius: 18px; text-align: center; }
+.attendance-empty > span { display: block; color: var(--ruby); font-size: 46px; }
+.attendance-empty h3 { margin: 8px 0 12px; font-size: 26px; }
+.attendance-empty p { color: var(--muted); }
+.site-header nav a[aria-current="page"] { color: var(--ruby); text-decoration: underline; text-underline-offset: 6px; }
+
+@media (max-width: 900px) {
+  .attendance-overview { grid-template-columns: 1fr; gap: 28px; }
+  .attendance-stats { max-width: 520px; }
+  .attendance-board-heading { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 760px) {
+  .cohort-attendance { padding: 42px 20px 70px; }
+  .attendance-heading { gap: 10px; }
+  .attendance-private { font-size: 10px; padding: 6px 9px; }
+  .attendance-heading h1 { font-size: 44px; }
+  .attendance-heading p:last-child { font-size: 14px; }
+  .attendance-overview { padding: 26px 22px; }
+  .attendance-cohort h2 { font-size: 30px; }
+  .attendance-stats { gap: 16px; }
+  .attendance-stats dd { font-size: 38px; }
+  .attendance-stats dt { font-size: 10px; }
+  .attendance-matrix .attendance-person { width: 155px; min-width: 155px; max-width: 155px; padding-left: 12px; }
+  .attendance-initials { display: none; }
+}

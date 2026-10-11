@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   delete "sign-out", to: "sessions#destroy"
 
   resource :dashboard, only: :show, controller: :dashboard
+  resource :attendance, only: :show, controller: :attendance
   resources :builders, only: %i[index show] do
     post :promote, on: :member
   end

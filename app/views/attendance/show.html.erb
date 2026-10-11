@@ -1,0 +1,113 @@
+<% content_for :title, "Attendance — Rails.Builders" %>
+
+<main class="cohort-attendance">
+  <header class="attendance-heading">
+    <div>
+      <p class="eyebrow">The cohort roll call</p>
+      <h1>Attendance<span aria-hidden="true">.</span></h1>
+      <p>Big plans. Real humans. Who made it to the room?</p>
+    </div>
+    <span class="attendance-private">Members only</span>
+  </header>
+
+  <section class="attendance-overview" aria-label="Cohort attendance overview">
+    <div class="attendance-cohort">
+      <p class="eyebrow"><%= @program.name %></p>
+      <h2>Showing up is<br>part of the build.</h2>
+      <p>A little friendly accountability, one session at a time.</p>
+    </div>
+    <dl class="attendance-stats">
+      <div>
+        <dt>Recorded attendance</dt>
+        <dd><%= @recorded_count.positive? ? number_to_percentage(100.0 * @present_count / @recorded_count, precision: 0) : "—" %></dd>
+      </div>
+      <div>
+        <dt>Completed sessions</dt>
+        <dd><%= @builder_sessions.size %></dd>
+      </div>
+      <div>
+        <dt>Total absences</dt>
+        <dd><%= @missed_count %></dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="attendance-board" aria-labelledby="attendance-board-heading">
+    <div class="attendance-board-heading">
+      <div>
+        <p class="eyebrow">Every session leaves a mark</p>
+        <h2 id="attendance-board-heading">The attendance wall</h2>
+      </div>
+      <ul class="attendance-legend" aria-label="Attendance key">
+        <li><span class="attendance-key is-present" aria-hidden="true">✓</span> Attended</li>
+        <li><span class="attendance-key is-absent" aria-hidden="true">×</span> Missed</li>
+        <li><span class="attendance-key is-unrecorded" aria-hidden="true">—</span> No record</li>
+      </ul>
+    </div>
+
+    <% if @builder_sessions.any? && @builders.any? %>
+      <p class="attendance-hint" id="attendance-help">Read across to follow a Builder. Select a date or mark to open that session. Scroll sideways for the full history.</p>
+      <div class="attendance-scroll" role="region" aria-label="Attendance by Builder and session" aria-describedby="attendance-help" tabindex="0">
+        <table class="attendance-matrix">
+          <caption class="sr-only">Recorded attendance for <%= @program.name %>. Only completed sessions count. A dash means no attendance record.</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="attendance-person">The crew</th>
+              <% @builder_sessions.each do |builder_session| %>
+                <% date = builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone) %>
+                <th scope="col" class="attendance-date">
+                  <%= link_to builder_session_path(builder_session), title: "#{builder_session.title} · #{date.strftime('%d %B %Y · %H:%M %Z')}" do %>
+                    <time datetime="<%= date.iso8601 %>"><span><%= date.strftime("%b") %></span><strong><%= date.strftime("%d") %></strong><small><%= date.year %></small></time>
+                  <% end %>
+                </th>
+              <% end %>
+              <th scope="col" class="attendance-total">The tally</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @builders.each do |builder| %>
+              <% name = builder.name.presence || "Builder" %>
+              <% attendances = @attendance_by_user.fetch(builder.id, {}) %>
+              <% present = attendances.values.count { |attendance| attendance.status == "present" } %>
+              <% missed = attendances.size - present %>
+              <tr data-builder-id="<%= builder.id %>" class="<%= 'attendance-self' if builder == current_user %>">
+                <th scope="row" class="attendance-person">
+                  <div class="attendance-identity">
+                    <span class="attendance-initials" aria-hidden="true"><%= name.split.first(2).map { |part| part.first }.join.upcase %></span>
+                    <span><strong><%= name %><% if builder == current_user %> <small class="attendance-you">you</small><% end %></strong><small><%= builder.facilitator? ? "Facilitator" : "Builder" %><%= " · Past member" unless builder.active? || builder.facilitator? %></small></span>
+                  </div>
+                </th>
+                <% @builder_sessions.each do |builder_session| %>
+                  <% status = attendances[builder_session.id]&.status || "unrecorded" %>
+                  <% label, symbol = { "present" => [ "Attended", "✓" ], "absent" => [ "Missed", "×" ], "unrecorded" => [ "No record", "—" ] }.fetch(status) %>
+                  <% description = "#{name} · #{builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime('%d %B %Y')} · #{label}" %>
+                  <td>
+                    <%= link_to builder_session_path(builder_session), class: "attendance-mark is-#{status}", title: description, aria: { label: description } do %>
+                      <span aria-hidden="true"><%= symbol %></span>
+                    <% end %>
+                  </td>
+                <% end %>
+                <td class="attendance-total">
+                  <% if attendances.any? %>
+                    <strong class="attendance-missed <%= 'has-misses' if missed.positive? %>"><%= missed %> missed</strong>
+                    <small><%= present %> / <%= attendances.size %> attended</small>
+                  <% else %>
+                    <span class="attendance-no-record">No record yet</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="attendance-footnote">Completed sessions only. A dash means no attendance record, not an absence. Totals cover the people shown here; deleted accounts are excluded.<% if session_operator? %> To correct a mark, open its session and update attendance.<% end %></p>
+    <% else %>
+      <div class="attendance-empty">
+        <span aria-hidden="true">▦</span>
+        <h3>The wall is waiting.</h3>
+        <p>Attendance will appear here once a completed session has a cohort to show.</p>
+        <%= link_to "Go to sessions", builder_sessions_path, class: "button button-quiet" %>
+      </div>
+    <% end %>
+  </section>
+</main>
