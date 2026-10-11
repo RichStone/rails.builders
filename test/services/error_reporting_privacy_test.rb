@@ -1,6 +1,28 @@
 require "test_helper"
 
 class ErrorReportingPrivacyTest < ActiveSupport::TestCase
+  test "error reports and insights omit caller-controlled request correlation IDs" do
+    notices = []
+    events = []
+    config = Honeybadger.config.dup
+    config.configure do |honeybadger|
+      honeybadger.api_key = "synthetic-test-key"
+      honeybadger.report_data = false
+      honeybadger.before_notify { |notice| notices << notice.as_json; notice.halt! }
+      honeybadger.before_event { |event| events << event.as_json; event.halt! }
+    end
+    agent = Honeybadger::Agent.new(config)
+    request_id = "synthetic-user@examplecom"
+
+    agent.notify(RuntimeError.new("Synthetic failure"), request_id: request_id)
+    agent.event("synthetic_request", request_id: request_id)
+
+    assert_equal 1, notices.size
+    assert_equal 1, events.size
+    assert_nil notices.first.dig(:correlation_context, :request_id)
+    assert_not events.first.key?(:request_id)
+  end
+
   test "error reports omit request headers and login sessions while keeping diagnostic record IDs" do
     environment = Rack::MockRequest.env_for(
       "https://rails.builders/private-request-path",
