@@ -68,7 +68,6 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       assert_includes email.fetch(:html), "Show the price before the call."
       assert_not_includes email.fetch(:html), "Private to Rich"
       assert_includes email.fetch(:html), "cid:weekly-cherry"
-      assert_includes email.fetch(:html), "#ffe6ed"
       assert_includes email.fetch(:text), "https://rails.builders/sessions/#{@session.id}"
       assert_includes email.fetch(:text), "Europe/Berlin"
       assert_includes email.fetch(:text), "Rich and Otto Labot"
@@ -94,9 +93,22 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       assert_includes email.fetch(format), "Watch a customer use what you have before adding another feature."
       assert_includes email.fetch(format), "The demo assistant invented a participant named Mark."
     end
-    assert_includes email.fetch(:html), "#ffe6ed"
     assert_not_includes email.fetch(:text), "You promised"
     assert_not_includes email.fetch(:html), "Your promise"
+  end
+
+  test "TLDR uses a light reading surface for attendees absentees and facilitators" do
+    [ @builder, @absentee, @facilitator ].each do |recipient|
+      html = Nokogiri::HTML.fragment(render_for(recipient).fetch(:html))
+      heading = html.css("p").find { |paragraph| paragraph.text == "TL;DR" }
+      assert heading, "Expected a TL;DR heading"
+      assert_includes heading.parent["style"], "background-color: #fffaf6"
+      assert_includes heading.parent["style"], "border-left: 3px solid #a40f32"
+      heading.parent.css("p").drop(1).each do |paragraph|
+        assert_includes paragraph["style"], "color: #35292c"
+        assert_includes paragraph["style"], "line-height: 26px"
+      end
+    end
   end
 
   test "email openings skip the decorative headline and attendee review links use the requested label" do
