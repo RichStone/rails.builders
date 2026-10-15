@@ -66,6 +66,7 @@ class AttendanceTest < ActionDispatch::IntegrationTest
       assert_select ".attendance-mark.is-unrecorded", count: 1
       assert_select ".attendance-total", text: /1 missed/
       assert_select ".attendance-total", text: /1\s*\/\s*2 attended/
+      assert_select ".attendance-streak", text: "0/3 😊"
     end
     marks = css_select(".attendance-matrix tr[data-builder-id='#{@builder.id}'] .attendance-mark")
     [ [ "24", /attended/i ], [ "31", /missed/i ], [ "07", /no record/i ] ].zip(marks).each do |(day, status), mark|
@@ -147,6 +148,7 @@ class AttendanceTest < ActionDispatch::IntegrationTest
       assert_select ".attendance-mark.is-present", count: 1
       assert_select ".attendance-mark.is-absent", count: 0
       assert_select ".attendance-total", text: /0 missed/
+      assert_select ".attendance-streak", text: "0/3 😊"
       assert_select ".attendance-total", text: /1\s*\/\s*1 attended/
     end
   end
@@ -160,6 +162,86 @@ class AttendanceTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".attendance-empty", text: /Attendance will appear here once a completed session has a cohort to show/
     assert_select ".attendance-mark", count: 0
+  end
+
+  test "the tally shows the current absence streak and configured limit alongside lifetime totals" do
+    sessions = 4.times.map { |index| create_builder_session("streak-#{index}", "2026-09-#{7 + index} 18:00") }
+    builders = 5.times.map do |misses|
+      user = User.create!(email: "streak#{misses}@example.com", name: "Streak #{misses}", enrollment_status: "active", verified_at: Time.current)
+      sessions.each_with_index { |session, index| record_attendance(session, user, index >= 4 - misses ? "absent" : "present") }
+      user
+    end
+    sign_in_as(@builder)
+
+    get attendance_path
+
+    [ "0/3 😊", "1/3 😮", "2/3 🫠", "3/3 ☠️", "4/3 ☠️" ].zip(builders).each do |label, user|
+      assert_select "tr[data-builder-id='#{user.id}'] .attendance-streak", text: label
+    end
+    assert_select "tr[data-builder-id='#{builders.last.id}'] .attendance-total", text: /4 missed/
+
+    @program.update!(consecutive_absence_limit: 4)
+    get attendance_path
+    assert_select "tr[data-builder-id='#{builders[3].id}'] .attendance-streak", text: "3/4 🫠"
+    assert_select "tr[data-builder-id='#{builders[4].id}'] .attendance-streak", text: "4/4 ☠️"
+  end
+
+  test "operators can record a separately sent strike email for the current streak and a new streak starts pending" do
+    sessions = 3.times.map do |index|
+      create_builder_session("strike-#{index}", "2026-09-#{7 + index} 18:00").tap { |session| record_attendance(session, @builder, "absent") }
+    end
+    latest = sessions.last.attendances.find_by!(user: @builder)
+    sign_in_as(@builder)
+    get attendance_path
+    assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-email", text: "Email Pending"
+    assert_select "button", text: "Mark email sent", count: 0
+    post mark_strike_email_sent_attendance_path, params: { attendance_id: latest.id }
+    assert_redirected_to builder_sessions_path
+    assert_nil latest.reload.strike_email_sent_at
+    delete sign_out_path
+
+    sign_in_as(@facilitator)
+    get attendance_path
+    assert_select "button", text: "Mark email sent", count: 1
+    post mark_strike_email_sent_attendance_path, params: { attendance_id: latest.id }
+    assert_redirected_to attendance_path
+    sent_at = latest.reload.strike_email_sent_at
+    assert_not_nil sent_at
+    follow_redirect!
+    assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-email", text: "Email Sent"
+    post mark_strike_email_sent_attendance_path, params: { attendance_id: latest.id }
+    assert_equal sent_at, latest.reload.strike_email_sent_at
+
+    fourth = create_builder_session("fourth-strike", "2026-09-10 18:00")
+    record_attendance(fourth, @builder, "absent")
+    get attendance_path
+    assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-email", text: "Email Sent"
+
+    returned = create_builder_session("returned", "2026-09-11 18:00")
+    record_attendance(returned, @builder, "present")
+    get attendance_path
+    assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-email", count: 0
+    3.times do |index|
+      session = create_builder_session("new-strike-#{index}", "2026-09-#{12 + index} 18:00")
+      record_attendance(session, @builder, "absent")
+    end
+    post mark_strike_email_sent_attendance_path, params: { attendance_id: latest.id }
+    assert_redirected_to attendance_path
+    follow_redirect!
+    assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-email", text: "Email Pending"
+  end
+
+  test "an email cannot be marked sent below the limit or after an attendance correction" do
+    session = create_builder_session("one-miss", "2026-09-07 18:00")
+    attendance = record_attendance(session, @builder, "absent")
+    sign_in_as(@admin)
+    post mark_strike_email_sent_attendance_path, params: { attendance_id: attendance.id }
+    assert_nil attendance.reload.strike_email_sent_at
+
+    @program.update!(consecutive_absence_limit: 1)
+    attendance.update!(status: "present")
+    post mark_strike_email_sent_attendance_path, params: { attendance_id: attendance.id }
+    assert_nil attendance.reload.strike_email_sent_at
   end
 
   private

@@ -22,6 +22,12 @@ class AttendanceSystemTest < ApplicationSystemTestCase
       end
     end
 
+    builders.first(5).each_with_index do |builder, misses|
+      sessions.last(5).each_with_index do |builder_session, index|
+        builder_session.attendances.find_by!(user: builder).update!(status: index >= 5 - misses ? "absent" : "present")
+      end
+    end
+
     visit verify_email_path(token: facilitator.generate_token_for(:email_verification))
     click_link "Attendance", exact: true
 
@@ -29,8 +35,17 @@ class AttendanceSystemTest < ApplicationSystemTestCase
     assert_selector ".attendance-mark.is-absent"
     assert_selector ".attendance-mark.is-unrecorded"
     assert_selector ".attendance-matrix tbody tr", count: 7
+    [ "0/3 😊", "1/3 😮", "2/3 🫠", "3/3 ☠️", "4/3 ☠️" ].zip(builders).each do |label, builder|
+      assert_selector "tr[data-builder-id='#{builder.id}'] .attendance-streak", text: label
+    end
+    within("tr[data-builder-id='#{builders[3].id}']") do
+      assert_text "Email Pending"
+      click_button "Mark email sent"
+    end
+    assert_selector "tr[data-builder-id='#{builders[3].id}'] .attendance-email", text: "Email Sent"
     if ENV["ATTENDANCE_SCREENSHOTS"]
-      page.current_window.resize_to(1280, 1500)
+      page.current_window.resize_to(1440, 1800)
+      find(".attendance-board").execute_script("this.scrollIntoView({ block: 'start' })")
       page.save_screenshot(Rails.root.join("tmp/screenshots/attendance-desktop.png"))
     end
 
@@ -46,6 +61,10 @@ class AttendanceSystemTest < ApplicationSystemTestCase
     assert region.evaluate_script("this.scrollWidth > this.clientWidth"), "The session history should scroll within its own region"
     region.execute_script("this.scrollLeft = this.scrollWidth")
     assert region.evaluate_script("this.scrollLeft > 0")
+    if ENV["ATTENDANCE_SCREENSHOTS"]
+      find("tr[data-builder-id='#{builders[2].id}']").execute_script("this.scrollIntoView({ block: 'start' })")
+      page.save_screenshot(Rails.root.join("tmp/screenshots/attendance-mobile-tally.png"))
+    end
     name_cell = find("tr[data-builder-id='#{facilitator.id}'] .attendance-person")
     assert_operator name_cell.evaluate_script("this.getBoundingClientRect().left"), :>=, 0
     within("tr[data-builder-id='#{facilitator.id}']") do

@@ -228,6 +228,21 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_includes render_for(@absentee).fetch(:text), "1st missed session in a row"
   end
 
+  test "absence warnings use the configured consecutive missed session limit" do
+    @program.update!(consecutive_absence_limit: 2)
+    assert_includes render_for(@absentee).fetch(:text), "1st missed session in a row. One more"
+
+    older = @program.builder_sessions.create!(google_event_id: "configured-limit", title: "Older", state: "completed", scheduled_starts_at: 9.days.ago, scheduled_ends_at: 9.days.ago + 1.hour, time_zone: "Europe/Berlin")
+    older.attendances.create!(user: @absentee, display_name: "Absent", role: "builder", status: "absent")
+
+    [ :text, :html ].each do |format|
+      assert_includes render_for(@absentee).fetch(format), "You have reached the 2-miss limit; Rich needs to review your spot"
+    end
+
+    @program.update!(consecutive_absence_limit: 5)
+    assert_includes render_for(@absentee).fetch(:text), "3 more and your Rails.Builders spot is at risk"
+  end
+
   test "attendees get the next session Meet link or its honest unavailable fallback" do
     @next_session.update!(meet_url: "https://meet.google.com/abc-defg-hij")
     email = render_for(@builder)

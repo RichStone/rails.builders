@@ -36,7 +36,7 @@ class Admin::ProgramsController < Admin::BaseController
   end
 
   def program_params
-    attributes = params.require(:program).permit(:name, :starts_on, :starts_at_time, :ends_on, :ends_at_time, :capacity, :format_points, :readiness_points, :promotions_paused, :main_facilitator_id)
+    attributes = params.require(:program).permit(:name, :starts_on, :starts_at_time, :ends_on, :ends_at_time, :capacity, :consecutive_absence_limit, :format_points, :readiness_points, :promotions_paused, :main_facilitator_id)
     assign_boundary_time(attributes, :starts_at)
     assign_boundary_time(attributes, :ends_at)
     attributes

@@ -12,6 +12,13 @@
       <div class="program-boundary-fields"><%= form.label :ends_on %><%= form.date_field :ends_on %><span aria-hidden="true">at</span><%= form.time_field :ends_at_time, value: @program.ends_at_time, aria: { label: "End time" } %></div>
       <span class="program-time-zone"><%= @program.schedule_zone.name %></span>
       <%= form.label :capacity %><%= form.number_field :capacity, min: 1 %>
+      <div class="admin-check-with-help">
+        <%= form.label :consecutive_absence_limit, "Consecutive absence limit" %><%= form.number_field :consecutive_absence_limit, min: 1, step: 1, required: true %>
+        <details class="info-tip">
+          <summary aria-label="About the consecutive absence limit"><span aria-hidden="true">?</span></summary>
+          <p>This limit drives the attendance tally and weekly absence warning. Edit the session format and readiness wording separately below to keep it consistent.</p>
+        </details>
+      </div>
       <%= form.label :main_facilitator_id, "Main facilitator" %><%= form.collection_select :main_facilitator_id, User.where(facilitator: true).order(:name, :email), :id, ->(user) { user.name.presence || user.email }, include_blank: "Not assigned" %>
       <div class="admin-check-with-help">
         <label class="check-row"><%= form.check_box :promotions_paused %><span>Pause waitlist promotion</span></label>

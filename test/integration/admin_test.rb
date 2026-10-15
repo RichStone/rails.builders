@@ -110,6 +110,19 @@ class AdminTest < ActionDispatch::IntegrationTest
     assert_equal [ "🚂 First stop", "🤝 Last stop" ], @program.reload.format_points_list
   end
 
+  test "admin can configure the consecutive missed session limit" do
+    sign_in_as(@admin)
+
+    get admin_root_path
+    assert_select "label[for='program_consecutive_absence_limit']", text: "Consecutive absence limit"
+    assert_select "input[name='program[consecutive_absence_limit]'][type='number'][min='1'][value='3']"
+
+    patch admin_program_path(@program), params: { program: { consecutive_absence_limit: "5" } }
+
+    assert_redirected_to admin_root_path
+    assert_equal 5, @program.reload.consecutive_absence_limit
+  end
+
   test "admin can edit the ordered Program readiness points" do
     sign_in_as(@admin)
 

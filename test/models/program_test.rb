@@ -24,6 +24,19 @@ class ProgramTest < ActiveSupport::TestCase
     assert_equal 9, @program.format_points_list.size
   end
 
+  test "the consecutive absence limit defaults to three and requires a positive integer" do
+    assert_equal 3, @program.consecutive_absence_limit
+
+    [ nil, 0, -1, 1.5, "invalid" ].each do |limit|
+      @program.consecutive_absence_limit = limit
+      assert_not @program.valid?, "Expected #{limit.inspect} to be rejected"
+      assert @program.errors[:consecutive_absence_limit].present?
+    end
+
+    @program.consecutive_absence_limit = 5
+    assert @program.valid?
+  end
+
   test "the readiness checklist is stored as an ordered list on the Program" do
     assert_equal "You have the ONE product you would hack on with us.", @program.readiness_points_list.first
     assert_equal "You have a checkout (so it's purchaseable).", @program.readiness_points_list.last

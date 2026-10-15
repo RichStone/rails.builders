@@ -89,10 +89,14 @@ class WeeklyCherryEmail
     end
     return "No missed session has been counted: there is no attendance record for you this week." if count.zero?
 
-    warning = case count
-    when 1 then "Two more and your Rails.Builders spot is at risk"
-    when 2 then "One more and your Rails.Builders spot is at risk"
-    else "You have reached the three-miss limit; Rich needs to review your spot"
+    limit = @builder_session.program.consecutive_absence_limit
+    remaining = limit - count
+    warning = if remaining.positive?
+      remaining_label = { 1 => "One", 2 => "Two" }.fetch(remaining, remaining.to_s)
+      "#{remaining_label} more and your Rails.Builders spot is at risk"
+    else
+      limit_label = limit == 3 ? "three" : limit
+      "You have reached the #{limit_label}-miss limit; Rich needs to review your spot"
     end
     "This is your #{count.ordinalize} missed session in a row. #{warning} (you remember, gamification 🎲)."
   end

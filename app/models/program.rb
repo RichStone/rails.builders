@@ -9,6 +9,7 @@ class Program < ApplicationRecord
   validates :name, length: { maximum: 100 }
   validates :schedule_time_zone, length: { maximum: 100 }, allow_nil: true
   validates :capacity, numericality: { only_integer: true, greater_than: 0 }
+  validates :consecutive_absence_limit, numericality: { only_integer: true, greater_than: 0 }
   validate :ends_on_or_after_starts_on
   validate :main_facilitator_has_role
 
