@@ -214,7 +214,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_selector ".live-phase", text: /Hangout/i
     assert_selector "summary", text: "Finish session"
     assert_no_selector ".attendance-row", text: /Speaking/
-    assert_selector ".session-clock", text: "0:01", wait: 3
+    assert_clock_counts_up
   end
 
   test "the core timer starts hangout as soon as the shared time expires" do
@@ -314,7 +314,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
       click_button "Resume", exact: true
       assert_button "Pause"
     end
-    assert_selector ".session-clock", text: "0:01", wait: 3
+    assert_clock_counts_up
 
     find("summary", text: "Finish session").click
     assert_button "Confirm finish session"
@@ -445,6 +445,16 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
   end
 
   private
+
+  def assert_clock_counts_up
+    minutes, seconds = find(".session-clock", text: /\A\d+:\d{2}\z/).text.split(":").map(&:to_i)
+    elapsed_seconds = minutes * 60 + seconds
+
+    assert_selector ".session-clock", text: /\A\d+:\d{2}\z/, wait: 3 do |clock|
+      current_minutes, current_seconds = clock.text.split(":").map(&:to_i)
+      current_minutes * 60 + current_seconds > elapsed_seconds
+    end
+  end
 
   def configure_session(pre_core: 0, core:, hangout: 0)
     fill_in "Pre-core (minutes)", with: pre_core

@@ -65,141 +65,147 @@
     </section>
   <% elsif @builder_session.active? %>
     <% run_token = @builder_session.run_token %>
-    <section class="live-session-stage <%= "is-paused" if @builder_session.paused? %>"
-      data-controller="session-timer"
-      data-session-timer-seconds-value="<%= @builder_session.clock_seconds %>"
-      data-session-timer-total-seconds-value="<%= @builder_session.total_remaining_seconds %>"
-      data-session-timer-rendered-at-value="<%= (Time.current.to_f * 1000).round %>"
-      data-session-timer-mode-value="<%= @builder_session.clock_mode %>"
-      data-session-timer-paused-value="<%= @builder_session.paused? %>"
-      data-session-timer-heartbeat-url-value="<%= heartbeat_builder_session_path(@builder_session) %>"
-      data-session-timer-version-value="<%= @builder_session.updated_at.iso8601(6) %>"
-      data-session-timer-state-value="<%= @builder_session.state %>">
-      <div aria-live="polite">
-        <p class="live-phase"><%= @builder_session.paused? ? "Paused" : display_state %></p>
-        <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %>
-          <h2><%= @builder_session.current_speaker_attendance.display_name %></h2>
-          <%= render "speaker_commitment", builder_session: @builder_session %>
-          <ol class="session-prompts" data-session-prompts>
-            <li>One business challenge</li>
-            <li>One AI-building challenge</li>
-            <li>What will you have done by the next session?</li>
-          </ol>
-        <% elsif @builder_session.state == "builder_updates" %>
-          <h2>Waiting for an attending Builder.</h2>
-        <% elsif @builder_session.state == "connection" %>
-          <h2>Welcome in. Start core when the room is ready.</h2>
-        <% elsif @builder_session.state == "closing" %>
-          <h2>Name the next useful move.</h2>
-        <% else %>
-          <h2>Hang out. The core session is done.</h2>
-        <% end %>
-      </div>
-      <% clock_label = if @builder_session.state == "hangout" && @builder_session.hangout_duration_seconds.zero?
-        "Hangout time elapsed"
-      elsif @builder_session.state == "hangout"
-        "Hangout time remaining"
-      elsif @builder_session.state == "connection"
-        "Pre-core time remaining"
-      elsif @builder_session.current_speaker_attendance
-        "Current speaker time remaining"
-      else
-        "Core time remaining"
-      end %>
-      <div class="session-clock" data-session-timer-target="display" role="timer" aria-label="<%= clock_label %>">--:--</div>
-      <p class="session-timer-warning" data-session-timer-target="warning" role="status"></p>
-      <% if @builder_session.state == "builder_updates" %><p class="total-clock"><span data-session-timer-target="total">--:--</span> core time remains</p><% end %>
-    </section>
+    <div class="live-session-layout">
+      <div class="live-session-timer">
+        <section class="live-session-stage <%= "is-paused" if @builder_session.paused? %>"
+          data-controller="session-timer"
+          data-session-timer-seconds-value="<%= @builder_session.clock_seconds %>"
+          data-session-timer-total-seconds-value="<%= @builder_session.total_remaining_seconds %>"
+          data-session-timer-rendered-at-value="<%= (Time.current.to_f * 1000).round %>"
+          data-session-timer-mode-value="<%= @builder_session.clock_mode %>"
+          data-session-timer-paused-value="<%= @builder_session.paused? %>"
+          data-session-timer-heartbeat-url-value="<%= heartbeat_builder_session_path(@builder_session) %>"
+          data-session-timer-version-value="<%= @builder_session.updated_at.iso8601(6) %>"
+          data-session-timer-state-value="<%= @builder_session.state %>">
+          <div aria-live="polite">
+            <p class="live-phase"><%= @builder_session.paused? ? "Paused" : display_state %></p>
+            <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %>
+              <h2><%= @builder_session.current_speaker_attendance.display_name %></h2>
+              <%= render "speaker_commitment", builder_session: @builder_session %>
+              <ol class="session-prompts" data-session-prompts>
+                <li>One business challenge</li>
+                <li>One AI-building challenge</li>
+                <li>What will you have done by the next session?</li>
+              </ol>
+            <% elsif @builder_session.state == "builder_updates" %>
+              <h2>Waiting for an attending Builder.</h2>
+            <% elsif @builder_session.state == "connection" %>
+              <h2>Welcome in. Start core when the room is ready.</h2>
+            <% elsif @builder_session.state == "closing" %>
+              <h2>Name the next useful move.</h2>
+            <% else %>
+              <h2>Hang out. The core session is done.</h2>
+            <% end %>
+          </div>
+          <% clock_label = if @builder_session.state == "hangout" && @builder_session.hangout_duration_seconds.zero?
+            "Hangout time elapsed"
+          elsif @builder_session.state == "hangout"
+            "Hangout time remaining"
+          elsif @builder_session.state == "connection"
+            "Pre-core time remaining"
+          elsif @builder_session.current_speaker_attendance
+            "Current speaker time remaining"
+          else
+            "Core time remaining"
+          end %>
+          <div class="session-clock" data-session-timer-target="display" role="timer" aria-label="<%= clock_label %>">--:--</div>
+          <p class="session-timer-warning" data-session-timer-target="warning" role="status"></p>
+          <% if @builder_session.state == "builder_updates" %><p class="total-clock"><span data-session-timer-target="total">--:--</span> core time remains</p><% end %>
+        </section>
 
-    <% if session_operator? %>
-      <section class="session-controls" data-session-controls>
-        <%= button_to(@builder_session.paused? ? "Resume" : "Pause", @builder_session.paused? ? resume_builder_session_path(@builder_session) : pause_builder_session_path(@builder_session), params: { run_started_at: run_token }, class: "button button-quiet", form: { data: { turbo: false } }) %>
-        <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %><%= button_to "Next", next_speaker_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-primary" %><% end %>
-        <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance && @builder_session.unspoken_speakers.any? %><%= button_to "Push to back", push_speaker_back_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-quiet" %><% end %>
-        <% unless @builder_session.state == "hangout" %>
-          <% advance_label = { "connection" => "Start core session", "builder_updates" => "Finish core & start hangout", "closing" => "Start hangout" }.fetch(@builder_session.state) %>
-          <% if @builder_session.state == "builder_updates" && @builder_session.unspoken_speakers.any? %>
-            <details class="session-confirmation">
-              <summary><%= advance_label %></summary>
-              <p>This skips every speaker still in the queue.</p>
-              <%= button_to "Confirm finish core", advance_builder_session_path(@builder_session), params: { state: @builder_session.state, run_started_at: run_token }, class: "button button-quiet" %>
-            </details>
-          <% else %>
-            <%= button_to advance_label, advance_builder_session_path(@builder_session), params: { state: @builder_session.state, run_started_at: run_token }, class: "button button-quiet" %>
-          <% end %>
-        <% end %>
-        <% if @builder_session.state == "hangout" %>
-          <details class="session-confirmation">
-            <summary>Finish session</summary>
-            <p>This saves the completed session and stops the timer.</p>
-            <%= button_to "Confirm finish session", finish_builder_session_path(@builder_session),
-              params: { run_started_at: run_token }, class: "button button-quiet" %>
-          </details>
-        <% end %>
-        <details class="session-confirmation cancel-session">
-          <summary>Cancel session</summary>
-          <p>Only use this for a mistaken start. The timer run will be discarded and this session will return to Ready.</p>
-          <%= button_to "Discard session run", cancel_start_builder_session_path(@builder_session),
-            params: { run_started_at: run_token },
-            class: "button button-quiet", form: { data: { turbo: false } } %>
-        </details>
-      </section>
-    <% end %>
-
-    <% unspoken_speakers = @builder_session.unspoken_speakers.to_a %>
-    <% if @builder_session.state == "builder_updates" && unspoken_speakers.any? %>
-      <section class="attendance-panel">
-        <div class="section-heading"><p class="eyebrow">Coming up</p><h2>Speaker queue</h2></div>
-        <%= tag.ol class: "attendance-list speaker-queue",
-          data: (session_operator? ? {
-            controller: "speaker-order",
-            speaker_order_url_value: speaker_order_builder_session_path(@builder_session),
-            speaker_order_run_started_at_value: run_token,
-            action: "dragover->speaker-order#over drop->speaker-order#drop"
-          } : {}) do %>
-          <% if session_operator? %><li class="sr-only" data-speaker-order-target="status" aria-live="polite"></li><% end %>
-          <% unspoken_speakers.each do |attendance| %>
-            <%= tag.li class: "attendance-row",
-              draggable: (session_operator? ? "true" : nil),
-              data: (session_operator? ? {
-                speaker_order_target: "item",
-                attendance_id: attendance.id,
-                action: "dragstart->speaker-order#start dragend->speaker-order#end"
-              } : {}) do %>
-              <div><strong><%= attendance.display_name %></strong><span>Up next · <%= format_timer_seconds(attendance.speaker_allotted_seconds) %> allocated</span></div>
-              <% if session_operator? %>
-                <span class="queue-actions">
-                  <button type="button" data-action="speaker-order#earlier" aria-label="Move <%= attendance.display_name %> earlier">↑</button>
-                  <button type="button" data-action="speaker-order#later" aria-label="Move <%= attendance.display_name %> later">↓</button>
-                  <span class="drag-handle" aria-hidden="true" title="Drag to reorder">↕</span>
-                </span>
+        <% if session_operator? %>
+          <section class="session-controls" data-session-controls>
+            <%= button_to(@builder_session.paused? ? "Resume" : "Pause", @builder_session.paused? ? resume_builder_session_path(@builder_session) : pause_builder_session_path(@builder_session), params: { run_started_at: run_token }, class: "button button-quiet", form: { data: { turbo: false } }) %>
+            <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %><%= button_to "Next", next_speaker_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-primary" %><% end %>
+            <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance && @builder_session.unspoken_speakers.any? %><%= button_to "Push to back", push_speaker_back_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-quiet" %><% end %>
+            <% unless @builder_session.state == "hangout" %>
+              <% advance_label = { "connection" => "Start core session", "builder_updates" => "Finish core & start hangout", "closing" => "Start hangout" }.fetch(@builder_session.state) %>
+              <% if @builder_session.state == "builder_updates" && @builder_session.unspoken_speakers.any? %>
+                <details class="session-confirmation">
+                  <summary><%= advance_label %></summary>
+                  <p>This skips every speaker still in the queue.</p>
+                  <%= button_to "Confirm finish core", advance_builder_session_path(@builder_session), params: { state: @builder_session.state, run_started_at: run_token }, class: "button button-quiet" %>
+                </details>
+              <% else %>
+                <%= button_to advance_label, advance_builder_session_path(@builder_session), params: { state: @builder_session.state, run_started_at: run_token }, class: "button button-quiet" %>
               <% end %>
             <% end %>
-          <% end %>
-        <% end %>
-      </section>
-    <% end %>
-
-    <section class="attendance-panel">
-      <div class="section-heading"><p class="eyebrow">In the room</p><h2>Builders</h2></div>
-      <ul class="attendance-list">
-        <% @builder_session.attendances.order(Arel.sql("CASE role WHEN 'facilitator' THEN 0 ELSE 1 END"), :speaker_position, :display_name).each do |attendance| %>
-          <li class="attendance-row">
-            <div><strong><%= attendance.display_name %></strong><span><%= attendance.role.humanize %> · <%= attendance.status.humanize %><%= " · #{attendance.speaker_state.humanize}" if attendance.speaker_state %></span></div>
-            <% if session_operator? %>
-              <div class="attendance-actions">
-                <% if @builder_session.state == "builder_updates" && attendance.role == "builder" && !attendance.speaker_state.in?(%w[queued speaking]) %>
-                  <%= button_to "Add to queue", queue_speaker_builder_session_path(@builder_session), params: { attendance_id: attendance.id, run_started_at: run_token }, class: "attendance-toggle" %>
-                <% end %>
-                <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present", run_started_at: run_token }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") if attendance.user_id %>
-              </div>
-            <% else %>
-              <span class="status-pill"><%= attendance.status.humanize %></span>
+            <% if @builder_session.state == "hangout" %>
+              <details class="session-confirmation">
+                <summary>Finish session</summary>
+                <p>This saves the completed session and stops the timer.</p>
+                <%= button_to "Confirm finish session", finish_builder_session_path(@builder_session),
+                  params: { run_started_at: run_token }, class: "button button-quiet" %>
+              </details>
             <% end %>
-          </li>
+            <details class="session-confirmation cancel-session">
+              <summary>Cancel session</summary>
+              <p>Only use this for a mistaken start. The timer run will be discarded and this session will return to Ready.</p>
+              <%= button_to "Discard session run", cancel_start_builder_session_path(@builder_session),
+                params: { run_started_at: run_token },
+                class: "button button-quiet", form: { data: { turbo: false } } %>
+            </details>
+          </section>
         <% end %>
-      </ul>
-    </section>
+      </div>
+
+      <div class="live-session-builders">
+        <% unspoken_speakers = @builder_session.unspoken_speakers.to_a %>
+        <% if @builder_session.state == "builder_updates" && unspoken_speakers.any? %>
+          <section class="attendance-panel">
+            <div class="section-heading"><p class="eyebrow">Coming up</p><h2>Speaker queue</h2></div>
+            <%= tag.ol class: "attendance-list speaker-queue",
+              data: (session_operator? ? {
+                controller: "speaker-order",
+                speaker_order_url_value: speaker_order_builder_session_path(@builder_session),
+                speaker_order_run_started_at_value: run_token,
+                action: "dragover->speaker-order#over drop->speaker-order#drop"
+              } : {}) do %>
+              <% if session_operator? %><li class="sr-only" data-speaker-order-target="status" aria-live="polite"></li><% end %>
+              <% unspoken_speakers.each do |attendance| %>
+                <%= tag.li class: "attendance-row",
+                  draggable: (session_operator? ? "true" : nil),
+                  data: (session_operator? ? {
+                    speaker_order_target: "item",
+                    attendance_id: attendance.id,
+                    action: "dragstart->speaker-order#start dragend->speaker-order#end"
+                  } : {}) do %>
+                  <div><strong><%= attendance.display_name %></strong><span>Up next · <%= format_timer_seconds(attendance.speaker_allotted_seconds) %> allocated</span></div>
+                  <% if session_operator? %>
+                    <span class="queue-actions">
+                      <button type="button" data-action="speaker-order#earlier" aria-label="Move <%= attendance.display_name %> earlier">↑</button>
+                      <button type="button" data-action="speaker-order#later" aria-label="Move <%= attendance.display_name %> later">↓</button>
+                      <span class="drag-handle" aria-hidden="true" title="Drag to reorder">↕</span>
+                    </span>
+                  <% end %>
+                <% end %>
+              <% end %>
+            <% end %>
+          </section>
+        <% end %>
+
+        <section class="attendance-panel">
+          <div class="section-heading"><p class="eyebrow">In the room</p><h2>Builders</h2></div>
+          <ul class="attendance-list">
+            <% @builder_session.attendances.order(Arel.sql("CASE role WHEN 'facilitator' THEN 0 ELSE 1 END"), :speaker_position, :display_name).each do |attendance| %>
+              <li class="attendance-row">
+                <div><strong><%= attendance.display_name %></strong><span><%= attendance.role.humanize %> · <%= attendance.status.humanize %><%= " · #{attendance.speaker_state.humanize}" if attendance.speaker_state %></span></div>
+                <% if session_operator? %>
+                  <div class="attendance-actions">
+                    <% if @builder_session.state == "builder_updates" && attendance.role == "builder" && !attendance.speaker_state.in?(%w[queued speaking]) %>
+                      <%= button_to "Add to queue", queue_speaker_builder_session_path(@builder_session), params: { attendance_id: attendance.id, run_started_at: run_token }, class: "attendance-toggle" %>
+                    <% end %>
+                    <%= button_to(attendance.status == "present" ? "Mark absent" : "Mark present", attendance_builder_session_path(@builder_session), method: :patch, params: { user_id: attendance.user_id, status: attendance.status == "present" ? "absent" : "present", run_started_at: run_token }, class: "attendance-toggle #{"is-present" if attendance.status == "present"}") if attendance.user_id %>
+                  </div>
+                <% else %>
+                  <span class="status-pill"><%= attendance.status.humanize %></span>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </section>
+      </div>
+    </div>
   <% elsif @builder_session.state == "completed" %>
     <section class="session-complete-panel">
       <p class="eyebrow">Session complete</p>
