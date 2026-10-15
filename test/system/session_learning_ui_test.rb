@@ -62,6 +62,16 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     page.current_window.resize_to(390, 1000)
     assert_no_horizontal_overflow
     capture_learning_screenshot("session-live-promise-mobile", ".live-session-stage")
+
+    speaker = live_session.current_speaker_attendance
+    speaker.update!(speaker_started_at: Time.current - speaker.speaker_allotted_seconds + 30.seconds)
+    visit builder_session_path(live_session)
+    assert_selector ".live-session-stage.timer-amber [role='status']", text: "⚠️ Wrap up soon"
+    all(".speaker-context-label, .speaker-project a, .speaker-promise p").each do |element|
+      assert_matches_style element, color: "rgba(69, 26, 3, 1)"
+    end
+    assert_no_horizontal_overflow
+    capture_learning_screenshot("session-live-promise-warning-mobile", ".live-session-stage")
   ensure
     page.current_window.resize_to(1280, 900)
   end

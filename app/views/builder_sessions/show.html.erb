@@ -107,6 +107,7 @@
         "Core time remaining"
       end %>
       <div class="session-clock" data-session-timer-target="display" role="timer" aria-label="<%= clock_label %>">--:--</div>
+      <p class="session-timer-warning" data-session-timer-target="warning" role="status"></p>
       <% if @builder_session.state == "builder_updates" %><p class="total-clock"><span data-session-timer-target="total">--:--</span> core time remains</p><% end %>
     </section>
 

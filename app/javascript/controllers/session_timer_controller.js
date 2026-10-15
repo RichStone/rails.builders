@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["display", "total"]
+  static targets = ["display", "total", "warning"]
   static values = {
     seconds: Number,
     totalSeconds: Number,
@@ -32,8 +32,11 @@ export default class extends Controller {
     const coreExpired = this.stateValue === "builder_updates" && totalSeconds <= 0
     this.displayTarget.textContent = this.format(coreExpired ? 0 : seconds)
     if (this.hasTotalTarget) this.totalTarget.textContent = this.format(Math.max(0, totalSeconds))
-    this.element.classList.toggle("timer-amber", this.modeValue === "countdown" && seconds <= 30 && seconds > 10)
-    this.element.classList.toggle("timer-red", this.modeValue === "countdown" && seconds <= 10)
+    const warningActive = this.modeValue === "countdown" && !this.pausedValue && seconds <= 30
+    this.element.classList.toggle("timer-amber", warningActive && seconds > 10)
+    this.element.classList.toggle("timer-red", warningActive && seconds <= 10)
+    const warning = !warningActive ? "" : seconds <= 0 ? "🚨 Time is up" : seconds <= 10 ? "🚨 Final seconds" : "⚠️ Wrap up soon"
+    if (this.warningTarget.textContent !== warning) this.warningTarget.textContent = warning
     if (coreExpired && !this.coreHandoffRequested) {
       this.coreHandoffRequested = true
       this.heartbeat()

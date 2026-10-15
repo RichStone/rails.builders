@@ -79,6 +79,27 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_text "Processing transcript"
   end
 
+  test "the live timer shows a warning in the final thirty seconds" do
+    @builder_session.start!(facilitator: @facilitator, pre_core_duration_seconds: 60)
+    @builder_session.update!(started_at: 30.seconds.ago)
+    sign_in_as(@facilitator)
+    visit builder_session_path(@builder_session)
+
+    assert_selector ".live-session-stage.timer-amber [role='status']", text: "⚠️ Wrap up soon"
+    page.execute_script("arguments[0].scrollIntoView({ block: 'center', behavior: 'instant' })", find(".live-session-stage"))
+    page.save_screenshot(Rails.root.join("tmp/screenshots/timer-thirty-seconds.png"))
+
+    @builder_session.update!(started_at: 50.seconds.ago)
+    visit builder_session_path(@builder_session)
+    assert_selector ".live-session-stage.timer-red [role='status']", text: "🚨 Final seconds"
+    page.execute_script("arguments[0].scrollIntoView({ block: 'center', behavior: 'instant' })", find(".live-session-stage"))
+    page.save_screenshot(Rails.root.join("tmp/screenshots/timer-final-seconds.png"))
+
+    click_button "Pause"
+    assert_selector ".live-session-stage.is-paused"
+    assert_no_text "🚨 Final seconds"
+  end
+
   test "facilitator edits analysis and expands the private session artifacts" do
     started_at = 2.hours.ago
     @builder_session.update!(
