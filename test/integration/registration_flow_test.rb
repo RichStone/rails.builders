@@ -327,6 +327,43 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_select "input[name='email'][value='builder..name@example.com']"
   end
 
+  test "sign-in persists for 400 days and visits renew it until sign-out" do
+    freeze_time
+    user = User.create!(email: "persistent@example.com")
+    post verify_email_path, params: { token: user.generate_token_for(:email_verification) }
+    assert_redirected_to dashboard_path
+
+    cookie = Rack::Test::Cookie.new(response.headers.fetch("set-cookie"))
+    assert_equal "_rails_builders_session", cookie.name
+    assert_equal Time.now + 400.days, cookie.expires
+    assert cookie.http_only?
+    assert_equal "lax", cookie.to_h["samesite"]
+
+    2.times do
+      travel 300.days
+      get dashboard_path
+      assert_response :success
+      cookie = Rack::Test::Cookie.new(response.headers.fetch("set-cookie"))
+      assert_equal Time.now + 400.days, cookie.expires
+    end
+
+    delete sign_out_path
+    assert_redirected_to root_path
+    get dashboard_path
+    assert_redirected_to sign_in_path
+  end
+
+  test "an expired session cookie cannot authenticate even if sent by the browser" do
+    user = User.create!(email: "expired-session@example.com")
+    post verify_email_path, params: { token: user.generate_token_for(:email_verification) }
+    cookie = cookies["_rails_builders_session"]
+
+    travel 401.days
+    cookies["_rails_builders_session"] = cookie
+    get dashboard_path
+    assert_redirected_to sign_in_path
+  end
+
   test "a successful sign-in rejects the pre-authentication CSRF token" do
     previous_forgery_protection = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = true

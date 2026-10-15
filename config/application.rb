@@ -11,6 +11,9 @@ module RailsBuilders
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.1
 
+    # Keep logins across browser restarts; Rails renews the expiry on each visit.
+    config.session_store :cookie_store, key: "_rails_builders_session", expire_after: 400.days
+
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
