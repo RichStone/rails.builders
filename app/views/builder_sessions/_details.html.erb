@@ -1,0 +1,15 @@
+<div class="session-details">
+  <%= link_to "← All sessions", builder_sessions_path, class: "back-link" %>
+
+  <header class="session-detail-heading">
+    <p class="eyebrow"><%= display_state %></p>
+    <h1><%= builder_session.title %></h1>
+    <p><%= builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime("%A %d %B · %H:%M %Z") %> · Facilitated by <%= builder_session.assigned_facilitator&.name || Program.current.main_facilitator&.name || "Rails.Builders" %></p>
+    <% if builder_session.description.present? %><p class="session-description"><%= builder_session.description %></p><% end %>
+    <% if builder_session.location.present? %><p class="session-location"><strong>Location:</strong> <%= builder_session.location %></p><% end %>
+    <% if builder_session.meeting_code && builder_session.joinable? %>
+      <%= link_to "Join Google Meet", join_builder_session_path(builder_session), class: "button button-primary", target: "_blank", rel: "noopener noreferrer" %>
+      <p class="privacy-note">This meeting may be recorded or transcribed. Private transcripts, meeting chat, AI-generated notes, promises, feedback, and trend analysis are retained for Program participants and may inform personalized session emails. <%= link_to "Privacy details", privacy_path %>.</p>
+    <% end %>
+  </header>
+</div>

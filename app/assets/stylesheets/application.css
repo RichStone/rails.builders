@@ -153,7 +153,14 @@ button, input, textarea, select { font: inherit; }
 .sessions-page,.session-page { max-width: 1040px; min-height: calc(100vh - 160px); margin: auto; padding: 76px 28px 120px; }
 .sessions-heading,.session-detail-heading { max-width: 780px; margin-bottom: 50px; }.sessions-heading h1,.session-detail-heading h1 { margin-bottom: 15px; font-size: clamp(48px, 7vw, 78px); }.sessions-heading > p:last-child,.session-detail-heading > p { max-width: 690px; color: var(--muted); font-size: 17px; }.session-detail-heading .button { margin-top: 24px; }.privacy-note { margin-top: 12px; font-size: 12px !important; }
 .session-description,.session-location { margin-top: 12px; white-space: pre-line; }.session-location { font-size: 14px !important; }
-.session-page.is-live { max-width: 1184px; padding-top: 30px; }.session-page.is-live .back-link { margin-bottom: 13px; }.session-page.is-live .session-detail-heading { max-width: none; margin-bottom: 24px; }.session-page.is-live .session-detail-heading h1 { margin-bottom: 5px; font-size: clamp(34px, 5vw, 48px); }.session-page.is-live .session-detail-heading .button { min-height: 40px; margin-top: 13px; padding: 0 17px; }.session-page.is-live .session-description,.session-page.is-live .session-location { display: none; }.session-page.is-live .privacy-note { display: inline; margin-left: 12px; }
+.session-page.is-live { max-width: 1440px; padding-top: 24px; }
+.session-page.is-live .session-details { margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--line); }
+.session-page.is-live .back-link { margin-bottom: 12px; }
+.session-page.is-live .session-detail-heading { max-width: none; margin-bottom: 0; }
+.session-page.is-live .session-detail-heading h1 { margin-bottom: 6px; font-size: clamp(26px, 3vw, 36px); }
+.session-page.is-live .session-detail-heading > p { font-size: 14px; }
+.session-page.is-live .session-detail-heading .button { min-height: 40px; margin-top: 13px; padding: 0 17px; }
+.session-page.is-live .session-description,.session-page.is-live .session-location { display: none; }
 .back-link { margin-bottom: 30px; display: inline-block; color: var(--ruby); font-size: 13px; font-weight: 800; text-decoration: none; }
 .session-section { margin-top: 34px; padding: 32px; border: 1px solid var(--line); border-radius: 21px; background: rgba(255,255,255,.75); }.session-section h2 { margin-bottom: 22px; font-size: 30px; }.session-section-live { color: white; background: linear-gradient(125deg,var(--ruby-dark),var(--ruby)); box-shadow: var(--shadow); }.session-section-live .eyebrow { color: #ffc1bc; }.session-feature-link { color: white; font: 700 clamp(31px, 5vw, 52px) "Space Grotesk"; text-decoration: none; }
 .session-list-item { padding: 20px 0; border-top: 1px solid var(--line); display: flex; gap: 24px; align-items: center; justify-content: space-between; }.session-list-item:first-child { border-top: 0; }.session-list-item time,.session-list-item > span { color: var(--muted); font-size: 12px; }.session-list-item h3 { margin-top: 5px; font-size: 22px; }.session-list-item h3 a { color: var(--ink); text-decoration: none; }
