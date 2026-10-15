@@ -64,7 +64,7 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     capture_learning_screenshot("session-live-promise-mobile", ".live-session-stage")
 
     speaker = live_session.current_speaker_attendance
-    speaker.update!(speaker_started_at: Time.current - speaker.speaker_allotted_seconds + 30.seconds)
+    speaker.update!(speaker_started_at: Time.current - speaker.speaker_allotted_seconds + 90.seconds)
     visit builder_session_path(live_session)
     assert_selector ".live-session-stage.timer-amber [role='status']", text: "⚠️ Wrap up soon"
     all(".speaker-context-label, .speaker-project a, .speaker-promise p").each do |element|

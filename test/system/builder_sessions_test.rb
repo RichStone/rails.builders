@@ -79,17 +79,17 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     assert_text "Processing transcript"
   end
 
-  test "the live timer shows a warning in the final thirty seconds" do
-    @builder_session.start!(facilitator: @facilitator, pre_core_duration_seconds: 60)
+  test "the live timer warns at ninety seconds and escalates at thirty seconds" do
+    @builder_session.start!(facilitator: @facilitator, pre_core_duration_seconds: 120)
     @builder_session.update!(started_at: 30.seconds.ago)
     sign_in_as(@facilitator)
     visit builder_session_path(@builder_session)
 
     assert_selector ".live-session-stage.timer-amber [role='status']", text: "⚠️ Wrap up soon"
     page.execute_script("arguments[0].scrollIntoView({ block: 'center', behavior: 'instant' })", find(".live-session-stage"))
-    page.save_screenshot(Rails.root.join("tmp/screenshots/timer-thirty-seconds.png"))
+    page.save_screenshot(Rails.root.join("tmp/screenshots/timer-ninety-seconds.png"))
 
-    @builder_session.update!(started_at: 50.seconds.ago)
+    @builder_session.update!(started_at: 90.seconds.ago)
     visit builder_session_path(@builder_session)
     assert_selector ".live-session-stage.timer-red [role='status']", text: "🚨 Final seconds"
     page.execute_script("arguments[0].scrollIntoView({ block: 'center', behavior: 'instant' })", find(".live-session-stage"))

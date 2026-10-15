@@ -16,18 +16,18 @@ test("countdown warnings escalate, clear on pause, and never appear for count-up
   controller.stateValue = "connection"
 
   for (const [seconds, mode, paused, className, warning] of [
-    [31, "countdown", false, null, ""],
-    [30, "countdown", false, "timer-amber", "⚠️ Wrap up soon"],
-    [11, "countdown", false, "timer-amber", "⚠️ Wrap up soon"],
-    [10, "countdown", false, "timer-red", "🚨 Final seconds"],
+    [91, "countdown", false, null, ""],
+    [90, "countdown", false, "timer-amber", "⚠️ Wrap up soon"],
+    [31, "countdown", false, "timer-amber", "⚠️ Wrap up soon"],
+    [30, "countdown", false, "timer-red", "🚨 Final seconds"],
     [1, "countdown", false, "timer-red", "🚨 Final seconds"],
-    [0, "countdown", false, "timer-red", "🚨 Time is up"],
-    [-1, "countdown", false, "timer-red", "🚨 Time is up"],
-    [10, "countdown", true, null, ""],
-    [10, "countdown", false, "timer-red", "🚨 Final seconds"],
-    [31, "countdown", false, null, ""],
+    [0, "countdown", false, "timer-red", "☠️ Time is up"],
+    [-1, "countdown", false, "timer-red", "☠️ Time is up"],
+    [30, "countdown", true, null, ""],
+    [30, "countdown", false, "timer-red", "🚨 Final seconds"],
+    [91, "countdown", false, null, ""],
     [0, "countup", false, null, ""],
-    [30, "countup", false, null, ""]
+    [90, "countup", false, null, ""]
   ]) {
     controller.secondsValue = seconds
     controller.modeValue = mode
