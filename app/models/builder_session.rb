@@ -36,11 +36,16 @@ class BuilderSession < ApplicationRecord
   validate :time_zone_is_supported
 
   scope :active, -> { where(state: ACTIVE_STATES) }
+  scope :upcoming, ->(at: Time.current) { where(state: "ready", scheduled_ends_at: at..).order(:scheduled_starts_at) }
 
   def active? = state.in?(ACTIVE_STATES)
   def paused? = pauses.where(ended_at: nil).exists?
   def joinable? = state == "ready" || active?
   def run_token = started_at&.iso8601(6)
+
+  def scheduled_for_today?(at: Time.current)
+    scheduled_starts_at.in_time_zone(time_zone).to_date == at.in_time_zone(time_zone).to_date
+  end
 
   def session_record_writable?
     state == "completed" && !BuilderSessionTranscript.exists?(builder_session_id: id, state: "deleted")

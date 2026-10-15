@@ -9,7 +9,7 @@ class HomeController < ApplicationController
     @past_builders = User.og.where.not(enrollment_status: %w[active waitlisted]).where.not(id: inactive_builders.select(:id)).avatar_first
     sessions = @program.builder_sessions
     @live_session = sessions.active.first
-    @upcoming_sessions = sessions.where(state: "ready", scheduled_starts_at: Time.current..).order(:scheduled_starts_at).limit(3)
+    @upcoming_sessions = sessions.upcoming.limit(3)
   end
 
   def privacy; end

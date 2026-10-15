@@ -130,6 +130,29 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     end
   end
 
+  test "grouped recommendations follow the shared TLDR for every recipient variant" do
+    recommendations = [
+      { title: "Video Software", links: [ { label: "HeyGen", url: "https://www.heygen.com/" }, { label: "Remotion", url: "https://www.remotion.dev/" } ] },
+      { title: "Software Making", links: [ { label: "Mutineer", url: "https://github.com/davidteren/mutineer" } ] }
+    ]
+    [ @builder, @absentee, @facilitator ].each do |recipient|
+      email = WeeklyCherryEmail.new(builder_session: @session, recipient: recipient, subject: "This week", tldr: [ "A useful lesson." ], recommendations: recommendations).render
+      html = Nokogiri::HTML.fragment(email.fetch(:html))
+      section = html.at_css("[data-recommendations]")
+      assert section, "Expected a Recommendations & Mentions section"
+      assert_includes section.text, "Recommendations & Mentions"
+      assert_equal [ "Video Software", "Software Making" ], section.css("strong").map(&:text)
+      assert_equal [ "HeyGen", "Remotion", "Mutineer" ], section.css("a").map(&:text)
+      assert_equal [ "https://www.heygen.com/", "https://www.remotion.dev/", "https://github.com/davidteren/mutineer" ], section.css("a").map { |link| link["href"] }
+      [ html.text, email.fetch(:text) ].each do |content|
+        assert_operator content.index("A useful lesson."), :<, content.index("Recommendations & Mentions")
+        assert_operator content.index("Recommendations & Mentions"), :<, content.index("The next session is on")
+      end
+      assert_includes email.fetch(:text), "Video Software\nHeyGen: https://www.heygen.com/"
+      assert_includes email.fetch(:text), "Software Making\nMutineer: https://github.com/davidteren/mutineer"
+    end
+  end
+
   test "email openings skip the decorative headline and attendee review links use the requested label" do
     [ @builder, @absentee ].each do |recipient|
       email = render_for(recipient)
@@ -147,6 +170,51 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       else
         assert_nil link
       end
+    end
+  end
+
+  test "recommendations accept JSON keys and escape supplied titles labels and URLs" do
+    recommendations = [ { "title" => "Video <script>alert(1)</script>", "links" => [ { "label" => "HeyGen <img src=x onerror=alert(1)>", "url" => "https://example.com/?video=1&mode=2" } ] } ]
+    email = WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Useful." ], recommendations: recommendations).render
+    html = Nokogiri::HTML.fragment(email.fetch(:html))
+    section = html.at_css("[data-recommendations]")
+    assert_empty section.css("script, img")
+    assert_includes section.text, "Video <script>alert(1)</script>"
+    assert_equal "HeyGen <img src=x onerror=alert(1)>", section.at_css("a").text
+    assert_equal "https://example.com/?video=1&mode=2", section.at_css("a")["href"]
+    assert_includes email.fetch(:html), "video=1&amp;mode=2"
+    assert_includes email.fetch(:text), "HeyGen <img src=x onerror=alert(1)>: https://example.com/?video=1&mode=2"
+  end
+
+  test "recommendations reject unsafe or malformed destinations" do
+    [ "javascript:alert(1)", "data:text/html,hello", "file:///tmp/private", "//example.com", "/relative", "https://", "https://user:secret@example.com/", "https://example.com/\nanything", "https://example.com/\u0000anything", "https://example.com/has space", "https://example.com/" + "x" * 2_048, 123, nil ].each do |url|
+      recommendations = [ { title: "Tools", links: [ { label: "Tool", url: url } ] } ]
+      assert_raises(ArgumentError, "Should reject #{url.inspect}") do
+        WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Useful." ], recommendations: recommendations).render
+      end
+    end
+  end
+
+  test "recommendations reject malformed groups and oversized copy" do
+    link = { label: "A tool", url: "https://example.com/" }
+    group = { title: "Tools", links: [ link ] }
+    [
+      nil, {}, [ nil ], Array.new(13, group), [ { title: "Tools" } ],
+      [ group.merge(title: "") ], [ group.merge(title: "x" * 121) ], [ group.merge(title: "Tools\nInjected") ],
+      [ group.merge(links: []) ], [ group.merge(links: {}) ], [ group.merge(links: Array.new(21, link)) ], [ group.merge(links: [ nil ]) ],
+      [ group.merge(links: [ link.except(:label) ]) ], [ group.merge(links: [ link.merge(label: "x" * 301) ]) ], [ group.merge(links: [ link.merge(label: 123) ]) ]
+    ].each do |recommendations|
+      assert_raises(ArgumentError) do
+        WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Useful." ], recommendations: recommendations).render
+      end
+    end
+  end
+
+  test "emails omit the recommendations section when none are supplied" do
+    [ @builder, @absentee, @facilitator ].each do |recipient|
+      email = render_for(recipient)
+      assert_empty Nokogiri::HTML.fragment(email.fetch(:html)).css("[data-recommendations]")
+      assert_not_includes email.fetch(:text), "Recommendations & Mentions"
     end
   end
 

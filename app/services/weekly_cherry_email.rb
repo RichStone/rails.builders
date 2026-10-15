@@ -6,12 +6,13 @@ class WeeklyCherryEmail
     (User.active.order(:id).to_a + [ facilitator ]).compact.uniq(&:id)
   end
 
-  def initialize(builder_session:, recipient:, subject:, tldr: [], mentions: [], warning_notice: nil, info_notice: nil, cherry_cid: "weekly-cherry")
+  def initialize(builder_session:, recipient:, subject:, tldr: [], mentions: [], recommendations: [], warning_notice: nil, info_notice: nil, cherry_cid: "weekly-cherry")
     @builder_session = builder_session
     @recipient = recipient
     @subject = subject
     @tldr = tldr
     @mentions = mentions
+    @recommendations = recommendations.is_a?(Array) ? recommendations.map { |group| group.is_a?(Hash) ? group.deep_symbolize_keys : group } : recommendations
     @warning_notice = warning_notice
     @info_notice = info_notice
     @cherry_cid = cherry_cid
@@ -44,6 +45,7 @@ class WeeklyCherryEmail
       feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: item.author.name.to_s.split.first || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
       tldr: @tldr,
       mentions: @mentions,
+      recommendations: @recommendations,
       warning_notice: @warning_notice,
       info_notice: @info_notice,
       absence_warning: attended ? nil : absence_warning,
@@ -101,7 +103,30 @@ class WeeklyCherryEmail
     raise ArgumentError, "Use a short, single-line subject" unless @subject.is_a?(String) && @subject.present? && @subject.length <= 180 && !@subject.match?(/[\r\n]/)
     raise ArgumentError, "Use up to four concise TL;DR items" unless @tldr.is_a?(Array) && @tldr.length.in?((attended ? 1 : 0)..4) && @tldr.all? { |line| line.is_a?(String) && line.present? && line.length <= 500 }
     raise ArgumentError, "Use up to five evidenced mentions" unless @mentions.is_a?(Array) && @mentions.length <= 5 && @mentions.all? { |line| line.is_a?(String) && line.present? && line.length <= 700 }
+    raise ArgumentError, "Use up to 12 recommendation groups with concise labels and safe HTTP(S) links" unless valid_recommendations?
     raise ArgumentError, "Use concise plain-text edition notices" unless [ @warning_notice, @info_notice ].all? { |notice| notice.nil? || (notice.is_a?(String) && notice.present? && notice.length <= 1_000) }
     raise ArgumentError, "Invalid image content ID" unless @cherry_cid.is_a?(String) && @cherry_cid.match?(/\A[a-zA-Z0-9_.@-]{1,100}\z/)
+  end
+
+  def valid_recommendations?
+    @recommendations.is_a?(Array) && @recommendations.length <= 12 && @recommendations.all? do |group|
+      group.is_a?(Hash) && recommendation_text?(group[:title], 120) &&
+        group[:links].is_a?(Array) && group[:links].length.in?(1..20) && group[:links].all? do |link|
+          link.is_a?(Hash) && recommendation_text?(link[:label], 300) && safe_recommendation_url?(link[:url])
+        end
+    end
+  end
+
+  def recommendation_text?(text, limit)
+    text.is_a?(String) && text.present? && text.length <= limit && !text.match?(/[\x00-\x1f\x7f]/)
+  end
+
+  def safe_recommendation_url?(url)
+    return false unless url.is_a?(String) && url.length <= 2_048 && !url.match?(/[\x00-\x20\x7f]/)
+
+    uri = URI.parse(url)
+    uri.is_a?(URI::HTTP) && uri.host.present? && uri.userinfo.nil?
+  rescue URI::InvalidURIError
+    false
   end
 end

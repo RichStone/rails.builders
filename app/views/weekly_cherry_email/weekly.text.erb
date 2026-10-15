@@ -51,6 +51,17 @@ TL;DR
 <% end %>
 <% end %>
 
+<% if @recommendations.any? %>
+Recommendations & Mentions
+<% @recommendations.each do |group| %>
+
+<%= group.fetch(:title) %>
+<% group.fetch(:links).each do |link| %>
+<%= link.fetch(:label) %>: <%= link.fetch(:url) %>
+<% end %>
+<% end %>
+<% end %>
+
 <% if @attended %>
 Review the last session -> <%= @session_url %>
 <% end %>

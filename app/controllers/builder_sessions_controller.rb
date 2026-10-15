@@ -8,9 +8,9 @@ class BuilderSessionsController < ApplicationController
     sessions = Program.current.builder_sessions
     now = Time.current
     @live_session = sessions.active.first
-    @upcoming_sessions = sessions.where(state: "ready", scheduled_starts_at: now..).order(:scheduled_starts_at)
+    @upcoming_sessions = sessions.upcoming(at: now)
     @past_sessions = sessions.where(state: %w[completed cancelled])
-      .or(sessions.where(state: "ready", scheduled_starts_at: ...now))
+      .or(sessions.where(state: "ready", scheduled_ends_at: ...now))
       .order(scheduled_starts_at: :desc)
   end
 
@@ -37,6 +37,10 @@ class BuilderSessionsController < ApplicationController
   end
 
   def start
+    unless @builder_session.scheduled_for_today? || params[:confirm_unscheduled_start] == "1"
+      return redirect_to @builder_session, alert: "Confirm the scheduled date before starting a session on a different day."
+    end
+
     pre_core_minutes = params[:pre_core_minutes].nil? ? 0 : Integer(params[:pre_core_minutes], exception: false)
     core_minutes = params[:duration_minutes].nil? ? @builder_session.default_timer_minutes : Integer(params[:duration_minutes], exception: false)
     hangout_minutes = params[:hangout_minutes].nil? ? 0 : Integer(params[:hangout_minutes], exception: false)

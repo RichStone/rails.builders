@@ -31,6 +31,12 @@
           <%= form.number_field :duration_minutes, value: @builder_session.default_timer_minutes, min: 1, max: 300, required: true %>
           <%= form.label :hangout_minutes, "Hangout (minutes, 0 counts up)" %>
           <%= form.number_field :hangout_minutes, value: @builder_session.default_hangout_minutes, min: 0, max: 300, required: true %>
+          <% unless @builder_session.scheduled_for_today? %>
+            <%= form.label :confirm_unscheduled_start do %>
+              <%= form.check_box :confirm_unscheduled_start, required: true %>
+              I intend to start the <%= @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone).strftime("%A %-d %B %Y") %> session today.
+            <% end %>
+          <% end %>
           <%= form.submit "Start session", class: "button button-primary" %>
         <% end %>
       <% end %>

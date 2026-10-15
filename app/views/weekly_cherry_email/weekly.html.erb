@@ -47,6 +47,17 @@
   <% end %>
 </div>
 <% end %>
+<% if @recommendations.any? %>
+<div data-recommendations style="margin: 30px 0 24px; color: #35292c; font-size: 16px; line-height: 26px;">
+  <h2 style="margin: 0 0 18px; color: #35040f; font-size: 20px; line-height: 28px;">Recommendations &amp; Mentions</h2>
+  <% @recommendations.each do |group| %>
+    <p style="margin: 20px 0 6px;"><strong><%= group.fetch(:title) %></strong></p>
+    <% group.fetch(:links).each do |link| %>
+      <p style="margin: 6px 0;"><a href="<%= link.fetch(:url) %>" style="color: #a40f32;"><%= link.fetch(:label) %></a></p>
+    <% end %>
+  <% end %>
+</div>
+<% end %>
 <% if @attended %>
 <p style="font-size: 16px; line-height: 26px;"><a href="<%= @session_url %>" style="color: #a40f32; font-weight: 700;">Review the last session -&gt;</a></p>
 <% end %>

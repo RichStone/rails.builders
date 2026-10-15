@@ -2,6 +2,7 @@ require "test_helper"
 
 class BuilderSessionsTest < ActionDispatch::IntegrationTest
   setup do
+    travel_to Time.utc(2026, 8, 24, 17, 45)
     @facilitator = User.create!(
       email: "facilitator@example.com",
       name: "Main Facilitator",
@@ -85,6 +86,30 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_not_includes public_sessions, "abc-defg-hij"
     assert_not_includes public_sessions, "Main Facilitator"
     assert_not_includes public_sessions, "Active Builder"
+  end
+
+  test "an unstarted session stays first on both schedules through its scheduled end" do
+    starts_at = Time.utc(2026, 10, 15, 15, 30)
+    ends_at = Time.utc(2026, 10, 15, 17)
+    @builder_session.update!(title: "15 October session", scheduled_starts_at: starts_at, scheduled_ends_at: ends_at, time_zone: "Europe/Amsterdam")
+    next_week = @program.builder_sessions.create!(google_event_id: "next-week", title: "22 October session", scheduled_starts_at: starts_at + 1.week, scheduled_ends_at: ends_at + 1.week, time_zone: "Europe/Amsterdam")
+
+    [ starts_at + 84.seconds, ends_at, ends_at + 1.second ].each do |at|
+      travel_to(at) do
+        expected_titles = at <= ends_at ? [ "15 October session", "22 October session" ] : [ "22 October session" ]
+        get root_path
+        assert_equal expected_titles, css_select(".public-session-grid h3").map(&:text)
+
+        sign_in_as(@facilitator)
+        get builder_sessions_path
+        sections = css_select(".session-section")
+        upcoming = sections.find { |section| section.at_css("h2")&.text == "Upcoming" }
+        past = sections.find { |section| section.at_css("h2")&.text == "Past" }
+        assert_equal expected_titles, upcoming.css("h3 a").map(&:text)
+        assert_equal(at > ends_at, past.css("a[href='#{builder_session_path(@builder_session)}']").any?)
+        assert_empty past.css("a[href='#{builder_session_path(next_week)}']")
+      end
+    end
   end
 
   test "active Builders can see private session details" do
@@ -223,6 +248,50 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_redirected_to builder_session_path(@builder_session)
     assert_equal "ready", @builder_session.reload.state
     assert_nil @builder_session.transcript
+  end
+
+  test "starting a different local date requires explicit confirmation of the scheduled date" do
+    @builder_session.update!(scheduled_starts_at: Time.utc(2026, 10, 22, 15, 30), scheduled_ends_at: Time.utc(2026, 10, 22, 17), time_zone: "Europe/Amsterdam")
+    travel_to(Time.utc(2026, 10, 15, 15, 31, 24)) do
+      sign_in_as(@facilitator)
+      get builder_session_path(@builder_session)
+      assert_select "form[action='#{start_builder_session_path(@builder_session)}']" do
+        assert_select "input[type='checkbox'][name='confirm_unscheduled_start'][required]"
+        assert_select "label[for='confirm_unscheduled_start']", text: /Thursday 22 October 2026.*today/
+      end
+
+      post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+      follow_redirect!
+      assert_select ".session-detail-heading .eyebrow", text: "Ready"
+      assert_select "[data-controller='session-timer']", count: 0
+      assert_includes response.body, "Confirm the scheduled date before starting a session on a different day."
+
+      post start_builder_session_path(@builder_session), params: { duration_minutes: 30, confirm_unscheduled_start: "1" }
+      follow_redirect!
+      assert_select "[data-controller='session-timer']", count: 1
+      assert_select ".session-detail-heading", text: /Thursday 22 October/
+    end
+  end
+
+  test "the start confirmation compares dates in the session time zone rather than UTC" do
+    @builder_session.update!(scheduled_starts_at: Time.utc(2026, 10, 14, 22, 30), scheduled_ends_at: Time.utc(2026, 10, 14, 23, 30), time_zone: "Europe/Amsterdam")
+    travel_to(Time.utc(2026, 10, 15, 0, 5)) do
+      sign_in_as(@facilitator)
+      get builder_session_path(@builder_session)
+      assert_select "input[name='confirm_unscheduled_start']", count: 0
+      post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+      follow_redirect!
+      assert_select "[data-controller='session-timer']", count: 1
+
+      post cancel_start_builder_session_path(@builder_session), params: { run_started_at: @builder_session.reload.run_token }
+      @builder_session.reload.update!(scheduled_starts_at: Time.utc(2026, 10, 15, 22, 30), scheduled_ends_at: Time.utc(2026, 10, 15, 23, 30))
+      get builder_session_path(@builder_session)
+      assert_select "label[for='confirm_unscheduled_start']", text: /Friday 16 October 2026.*today/
+      post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+      follow_redirect!
+      assert_select ".session-detail-heading .eyebrow", text: "Ready"
+      assert_select "[data-controller='session-timer']", count: 0
+    end
   end
 
   test "live facilitator attendance controls advance the queue and allow returning" do
@@ -488,10 +557,10 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_equal displayed_end, @builder_session.ended_at
   end
 
-  test "a missed ready session appears in Past instead of Upcoming" do
+  test "a ready session appears in Past after its scheduled end instead of Upcoming" do
     sign_in_as(@builder)
 
-    travel_to(@builder_session.scheduled_starts_at + 1.minute) do
+    travel_to(@builder_session.scheduled_ends_at + 1.second) do
       get builder_sessions_path
     end
 

@@ -27,8 +27,8 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
       google_event_id: "browser-session",
       title: "Browser session",
       meet_url: "https://meet.google.com/abc-defg-hij",
-      scheduled_starts_at: 10.minutes.from_now,
-      scheduled_ends_at: 40.minutes.from_now,
+      scheduled_starts_at: Time.current,
+      scheduled_ends_at: 30.minutes.from_now,
       time_zone: "Europe/Madrid"
     )
   end
@@ -392,10 +392,9 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
       enrollment_status: "active",
       verified_at: Time.current
     )
-    @builder_session.update!(
-      scheduled_starts_at: 2.hours.from_now,
-      scheduled_ends_at: 3.hours.from_now
-    )
+    now = Time.current
+    starts_at = now + (now.in_time_zone(@builder_session.time_zone).hour < 21 ? 2.hours : -2.hours)
+    @builder_session.update!(scheduled_starts_at: starts_at, scheduled_ends_at: starts_at + 1.hour)
     sign_in_as(@facilitator)
     click_link "Sessions"
     click_link "Browser session"
@@ -422,6 +421,23 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
       assert_selector ".session-detail-heading .eyebrow", text: /Ready/i
       within(".attendance-row", text: "Active Builder") { assert_button "Confirm attendance" }
     end
+  end
+
+  test "starting another date requires the explicit scheduled-date checkbox" do
+    @builder_session.update!(scheduled_starts_at: 1.week.from_now, scheduled_ends_at: 1.week.from_now + 1.hour)
+    sign_in_as(@facilitator)
+    visit builder_session_path(@builder_session)
+    configure_session(pre_core: 1, core: 2, hangout: 1)
+
+    assert_selector "label[for='confirm_unscheduled_start']", text: /I intend to start the .* session today\./
+    click_button "Start session"
+    assert_selector "#confirm_unscheduled_start:invalid"
+    assert_selector ".session-detail-heading .eyebrow", text: /Ready/i
+    page.save_screenshot(Rails.root.join("tmp/screenshots/session-date-confirmation.png"))
+
+    check "confirm_unscheduled_start"
+    click_button "Start session"
+    assert_selector ".live-phase", text: /Pre-core/i
   end
 
   test "a configured hangout counts below zero until it is explicitly finished" do
