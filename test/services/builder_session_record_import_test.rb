@@ -200,14 +200,17 @@ class BuilderSessionRecordImportTest < ActiveSupport::TestCase
     assert_includes feedback.errors[:author], "must have participated in the session"
   end
 
-  test "previous promise is from the immediately preceding completed session in the same program" do
-    first = create_session("first", @session.scheduled_starts_at - 2.weeks)
+  test "previous promise is from the last attended completed session in the same program" do
+    first = create_session("first", @session.scheduled_starts_at - 3.weeks)
+    missed = create_session("missed", @session.scheduled_starts_at - 2.weeks)
     middle = create_session("middle", @session.scheduled_starts_at - 1.week)
     first.attendances.create!(user: @builder, display_name: "Builder", role: "builder", status: "present")
+    missed.attendances.create!(user: @builder, display_name: "Builder", role: "builder", status: "absent")
     old_promise = first.next_session_promises.create!(user: @builder, body: "An old commitment.")
-    assert_nil @session.previous_promise_for(@builder)
+    assert_equal old_promise, @session.previous_promise_for(@builder)
 
     middle.attendances.create!(user: @builder, display_name: "Builder", role: "builder", status: "present")
+    assert_nil @session.previous_promise_for(@builder)
     last_promise = middle.next_session_promises.create!(user: @builder, body: "Last week's commitment.")
     assert_equal last_promise, @session.previous_promise_for(@builder)
 
@@ -216,6 +219,15 @@ class BuilderSessionRecordImportTest < ActiveSupport::TestCase
     middle.update!(state: "completed")
     middle.create_transcript!(state: "deleted", deleted_at: Time.current)
     assert_nil @session.previous_promise_for(@builder)
+  end
+
+  test "previous facilitator promise skips explicit absences and accepts assigned participation without attendance" do
+    first = create_session("first", @session.scheduled_starts_at - 2.weeks)
+    promise = first.next_session_promises.create!(user: @facilitator, body: "Talk to three builders.")
+    missed = create_session("missed", @session.scheduled_starts_at - 1.week)
+    missed.attendances.create!(user: @facilitator, display_name: "Rich", role: "facilitator", status: "absent")
+
+    assert_equal promise, @session.previous_promise_for(@facilitator)
   end
 
   test "a more recent promise in another program never enters the current timer" do

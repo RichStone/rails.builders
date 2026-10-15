@@ -97,6 +97,25 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_not_includes email.fetch(:html), "Your promise"
   end
 
+  test "absentee emails carry the promise from their last attended session across missed weeks" do
+    attended = @program.builder_sessions.create!(google_event_id: "last-attended", title: "Last attended", state: "completed", scheduled_starts_at: 16.days.ago, scheduled_ends_at: 16.days.ago + 1.hour, time_zone: "Europe/Berlin")
+    attended.attendances.create!(user: @absentee, display_name: "Absent", role: "builder", status: "present")
+    attended.next_session_promises.create!(user: @absentee, body: "Test the offer with three customers.")
+    missed = @program.builder_sessions.create!(google_event_id: "last-missed", title: "Missed", state: "completed", scheduled_starts_at: 9.days.ago, scheduled_ends_at: 9.days.ago + 1.hour, time_zone: "Europe/Berlin")
+    missed.attendances.create!(user: @absentee, display_name: "Absent", role: "builder", status: "absent")
+
+    email = render_for(@absentee)
+
+    [ :text, :html ].each do |format|
+      assert_includes email.fetch(format), "Your promise from your last session"
+      assert_includes email.fetch(format), "You promised to test the offer with three customers."
+      assert_includes email.fetch(format), "2nd missed session in a row"
+      assert_not_includes email.fetch(format), "No explicit next-session promise"
+    end
+    assert_empty @session.next_session_promises
+    assert_empty missed.next_session_promises
+  end
+
   test "TLDR uses a light reading surface for attendees absentees and facilitators" do
     [ @builder, @absentee, @facilitator ].each do |recipient|
       html = Nokogiri::HTML.fragment(render_for(recipient).fetch(:html))

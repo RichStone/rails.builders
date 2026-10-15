@@ -8,8 +8,8 @@
     </div>
   <% end %>
   <% if (promise = builder_session.previous_promise_for(builder)) %>
-    <aside class="speaker-promise" aria-label="Your promise from last session" data-previous-promise>
-      <%= link_to "Last session, you promised…", builder_session_path(promise.builder_session), class: "speaker-context-label" %>
+    <aside class="speaker-promise" aria-label="Your promise from your last session" data-previous-promise>
+      <%= link_to "At your last session, you promised…", builder_session_path(promise.builder_session), class: "speaker-context-label" %>
       <p><%= promise.body %></p>
     </aside>
   <% end %>

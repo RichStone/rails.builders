@@ -11,12 +11,15 @@ THE WEEKLY BUILDERS CHERRY · <%= @session_date %>
 
 Hey <%= @recipient_name %>,
 
-<% if @attended %>
 <% if @promise.present? %>
+<% unless @attended %>
+Your promise from your last session:
+<% end %>
 You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %>
-<% else %>
+<% elsif @attended %>
 No explicit next-session promise was captured for you this week.
 <% end %>
+<% if @attended %>
 <% @feedback.each do |item| %>
 
 <%= item.fetch(:emoji) %> <%= item.fetch(:name) %> → you: <%= item.fetch(:body) %>

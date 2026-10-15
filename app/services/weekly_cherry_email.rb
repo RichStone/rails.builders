@@ -21,7 +21,11 @@ class WeeklyCherryEmail
   def render
     attended = @builder_session.attendances.exists?(user: @recipient, status: "present")
     validate!(attended: attended)
-    promise = @builder_session.next_session_promises.find_by(user: @recipient) if attended
+    promise = if attended
+      @builder_session.next_session_promises.find_by(user: @recipient)
+    else
+      @builder_session.previous_promise_for(@recipient)
+    end
     upcoming_sessions = @builder_session.program.builder_sessions.where(state: "ready")
       .where("scheduled_starts_at > ?", [ @builder_session.scheduled_starts_at, Time.current ].max)
       .order(:scheduled_starts_at)

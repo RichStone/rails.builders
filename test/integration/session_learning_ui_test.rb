@@ -78,8 +78,10 @@ class SessionLearningUiTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
-  test "the live speaker sees a focus project then last session promise then session questions" do
+  test "the live speaker sees their last attended session promise after missing a session" do
     @builder.products.create!(name: "Tiny Onboarding", url: "https://example.com/onboarding", focus: true)
+    missed = completed_session("missed-week", Time.zone.parse("2026-09-07 15:30"))
+    missed.attendances.find_by!(user: @builder).update!(status: "absent")
     live_session = @program.builder_sessions.create!(google_event_id: "next-week", title: "Next week", scheduled_starts_at: Time.zone.parse("2026-09-10 15:30"), scheduled_ends_at: Time.zone.parse("2026-09-10 16:30"), time_zone: "Europe/Berlin")
     live_session.start!(facilitator: @facilitator)
     live_session.finish_current_speaker! until live_session.current_speaker_attendance.user == @builder
@@ -90,7 +92,7 @@ class SessionLearningUiTest < ActionDispatch::IntegrationTest
 
     assert_select "[data-speaker-project] a[href='https://example.com/onboarding'][rel='noopener noreferrer']", text: /Tiny Onboarding/
     assert_select "[data-previous-promise]", text: /Test the smaller onboarding flow with three customers/
-    assert_select "[data-previous-promise] a[href='#{builder_session_path(@session)}']", text: /Last session/
+    assert_select "[data-previous-promise] a[href='#{builder_session_path(@session)}']", text: /At your last session/
     assert_operator response.body.index("data-speaker-project"), :<, response.body.index("data-previous-promise")
     assert_operator response.body.index("data-previous-promise"), :<, response.body.index("data-session-prompts")
   end

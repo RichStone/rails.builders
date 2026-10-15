@@ -7,15 +7,15 @@
   <p data-edition-notice="info" style="margin: 16px 0; padding: 18px 20px; border-radius: 12px; background-color: #e8f2ff; color: #173b65; font-size: 15px; line-height: 24px;"><%= @info_notice %></p>
 <% end %>
 <p style="font-size: 16px; line-height: 26px;">Hey <%= @recipient_name %>,</p>
+<% if @promise.present? %>
+  <div style="margin: 24px 0; padding: 22px; border-left: 4px solid #e31340; background-color: #fffaf6; border-radius: 0 14px 14px 0;">
+    <p style="margin: 0 0 8px; color: #a40f32; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;"><%= @attended ? "Your promise until next session" : "Your promise from your last session" %></p>
+    <p style="margin: 0; color: #35040f; font-family: Georgia, serif; font-size: 23px; line-height: 31px; font-weight: 700;">You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %></p>
+  </div>
+<% elsif @attended %>
+  <p style="font-size: 16px; line-height: 26px;">No explicit next-session promise was captured for you this week.</p>
+<% end %>
 <% if @attended %>
-  <% if @promise.present? %>
-    <div style="margin: 24px 0; padding: 22px; border-left: 4px solid #e31340; background-color: #fffaf6; border-radius: 0 14px 14px 0;">
-      <p style="margin: 0 0 8px; color: #a40f32; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Your promise until next session</p>
-      <p style="margin: 0; color: #35040f; font-family: Georgia, serif; font-size: 23px; line-height: 31px; font-weight: 700;">You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %></p>
-    </div>
-  <% else %>
-    <p style="font-size: 16px; line-height: 26px;">No explicit next-session promise was captured for you this week.</p>
-  <% end %>
   <% @feedback.each do |item| %>
     <div style="margin: 14px 0; padding: 18px 20px; border: 1px solid #ead8d5; border-radius: 14px;">
       <p style="margin: 0 0 7px; color: #a40f32; font-size: 13px; line-height: 20px; font-weight: 700;"><%= item.fetch(:emoji) %> <%= item.fetch(:name) %> → you</p>

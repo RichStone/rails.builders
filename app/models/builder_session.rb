@@ -56,9 +56,10 @@ class BuilderSession < ApplicationRecord
   def previous_promise_for(user)
     return unless user
 
+    # ponytail: scan weekly history; filter participation in SQL if it grows large.
     previous_session = program.builder_sessions.where(state: "completed")
       .where("scheduled_starts_at < ?", scheduled_starts_at)
-      .order(scheduled_starts_at: :desc, id: :desc).first
+      .order(scheduled_starts_at: :desc, id: :desc).detect { |session| session.participated?(user) }
     previous_session&.next_session_promises&.find_by(user: user) if previous_session&.session_record_writable?
   end
 
