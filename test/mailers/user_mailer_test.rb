@@ -14,7 +14,8 @@ class UserMailerTest < ActionMailer::TestCase
       assert_includes body, "limit of 3 missed sessions in a row"
       assert_includes body, "marked you inactive"
       assert_includes body, "request to rejoin"
-      assert_includes body, "seat depends on availability"
+      assert_includes body, "you’re always welcome back"
+      assert_includes body, "You’ll be added to the waitlist (if there is one) and we'll get you back in ASAP."
       assert_includes body, "http://example.com/dashboard"
     end
     image = mail.attachments["loop-monster-broken-rails.png"]
