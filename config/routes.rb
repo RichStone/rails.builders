@@ -20,9 +20,7 @@ Rails.application.routes.draw do
   resource :reauthentication, only: %i[show create edit update]
 
   resource :dashboard, only: :show, controller: :dashboard
-  resource :attendance, only: :show, controller: :attendance do
-    post :mark_strike_email_sent
-  end
+  resource :attendance, only: :show, controller: :attendance
   resources :builders, only: %i[index show] do
     post :promote, on: :member
   end

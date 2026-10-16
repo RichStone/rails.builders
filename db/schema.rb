@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_16_120000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -55,6 +55,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.datetime "strike_email_sent_at"
+    t.datetime "strike_inactivated_at"
+    t.integer "strike_absence_limit"
+    t.datetime "strike_calendar_removed_at"
+    t.datetime "strike_followups_claimed_at"
     t.index ["builder_session_id", "speaker_position"], name: "index_session_attendances_on_speaker_position", unique: true, where: "speaker_position IS NOT NULL"
     t.index ["builder_session_id", "user_id"], name: "index_session_attendances_on_session_and_user", unique: true, where: "user_id IS NOT NULL"
     t.index ["builder_session_id"], name: "index_builder_session_attendances_on_builder_session_id"
@@ -264,6 +268,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
     t.datetime "verified_at"
     t.datetime "waitlist_joined_at"
     t.integer "waitlist_rank"
+    t.datetime "attendance_streak_reset_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["enrollment_status"], name: "index_users_on_enrollment_status"
     t.index ["waitlist_rank", "waitlist_joined_at"], name: "index_users_on_waitlist_rank_and_waitlist_joined_at"

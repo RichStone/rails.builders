@@ -37,7 +37,7 @@ module GoogleWorkspace
       end
     end
 
-    def list_events(calendar_id:, starts_at:, ends_at:)
+    def list_events(calendar_id:, starts_at:, ends_at:, single_events: true)
       events = []
       page_token = nil
 
@@ -49,7 +49,7 @@ module GoogleWorkspace
           max_results: PAGE_SIZE,
           page_token: page_token,
           show_deleted: true,
-          single_events: true,
+          single_events:,
           time_min: starts_at.iso8601,
           time_max: ends_at.iso8601
         )
@@ -62,26 +62,18 @@ module GoogleWorkspace
     end
 
     def add_attendee_to_upcoming_events(calendar_id:, starts_at:, ends_at:, email:, send_notification:)
-      event_ids = list_events(calendar_id:, starts_at:, ends_at:).filter_map do |event|
-        event[:recurring_event_id] || event[:id] unless event[:all_day] || event[:status] == "cancelled"
-      end.uniq
+      upcoming_event_ids(calendar_id:, starts_at:, ends_at:).count do |event_id|
+        update_event_attendees(calendar_id:, event_id:, send_notification:) do |attendees|
+          attendees.any? { |attendee| attendee.email.to_s.casecmp?(email) } ? attendees : attendees + [ Google::Apis::CalendarV3::EventAttendee.new(email:) ]
+        end
+      end
+    end
 
-      event_ids.count do |event_id|
-        event = service.get_event(calendar_id, event_id, fields: "attendees,etag")
-        attendees = Array(event.attendees)
-        next false if attendees.any? { |attendee| attendee.email.to_s.casecmp?(email) }
-
-        attendees << Google::Apis::CalendarV3::EventAttendee.new(email:)
-        options = Google::Apis::RequestOptions.default.dup
-        options.header = { "If-Match" => event.etag } if event.etag.present?
-        service.patch_event(
-          calendar_id,
-          event_id,
-          Google::Apis::CalendarV3::Event.new(attendees:),
-          send_updates: send_notification ? "all" : "none",
-          options:
-        )
-        true
+    def remove_attendee_from_upcoming_events(calendar_id:, starts_at:, ends_at:, email:)
+      upcoming_event_ids(calendar_id:, starts_at:, ends_at:).count do |event_id|
+        update_event_attendees(calendar_id:, event_id:, send_notification: false) do |attendees|
+          attendees.reject { |attendee| attendee.email.to_s.casecmp?(email) }
+        end
       end
     end
 
@@ -95,6 +87,29 @@ module GoogleWorkspace
     private
 
     attr_reader :connection, :service
+
+    def upcoming_event_ids(calendar_id:, starts_at:, ends_at:)
+      event_ids = list_events(calendar_id:, starts_at:, ends_at:).filter_map do |event|
+        event[:recurring_event_id] || event[:id] unless event[:all_day] || event[:status] == "cancelled"
+      end.uniq
+      # Edited instances keep separate guest lists on both removal and rejoining.
+      exceptions = list_events(calendar_id:, starts_at:, ends_at:, single_events: false)
+        .filter_map { |event| event[:id] if event[:recurring_event_id] && !event[:all_day] && event[:status] != "cancelled" }
+      (event_ids + exceptions).uniq
+    end
+
+    def update_event_attendees(calendar_id:, event_id:, send_notification:)
+      event = service.get_event(calendar_id, event_id, fields: "attendees,etag")
+      previous = Array(event.attendees)
+      attendees = yield previous
+      return false if attendees == previous
+
+      options = Google::Apis::RequestOptions.default.dup
+      options.header = { "If-Match" => event.etag } if event.etag.present?
+      service.patch_event(calendar_id, event_id, Google::Apis::CalendarV3::Event.new(attendees:),
+        send_updates: send_notification ? "all" : "none", options:)
+      true
+    end
 
     def build_service(credentials)
       authorization = credentials || Authorization.new(connection: connection).credentials

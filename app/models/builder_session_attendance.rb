@@ -13,4 +13,10 @@ class BuilderSessionAttendance < ApplicationRecord
   validates :speaker_position, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :speaker_position, uniqueness: { scope: :builder_session_id }, allow_nil: true
   validates :speaker_allotted_seconds, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+
+  def self.absence_streak(sessions:, attendances:, reset_at: nil)
+    sessions.reverse_each.take_while do |session|
+      (!reset_at || session.scheduled_starts_at > reset_at) && attendances[session.id]&.status == "absent"
+    end.map { |session| attendances.fetch(session.id) }
+  end
 end

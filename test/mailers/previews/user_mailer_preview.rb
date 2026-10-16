@@ -19,6 +19,12 @@ class UserMailerPreview < ActionMailer::Preview
     UserMailer.enrollment_status(preview_user, "active")
   end
 
+  def strike_limit_reached
+    user = User.new(email: "builder@example.com", name: "Casey", enrollment_status: "inactive")
+    attendance = BuilderSessionAttendance.new(strike_absence_limit: 3, strike_inactivated_at: Time.utc(2026, 10, 16))
+    UserMailer.strike_limit_reached(user, attendance)
+  end
+
   private
 
   def preview_user

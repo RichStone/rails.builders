@@ -25,7 +25,7 @@ class User < ApplicationRecord
   has_many :facilitated_programs, class_name: "Program", foreign_key: :main_facilitator_id, dependent: :restrict_with_error
   has_one_attached :avatar
 
-  attr_accessor :send_calendar_notification
+  attr_accessor :send_calendar_notification, :strike_limit_release
 
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :name, :testimonial, with: ->(value) { value.strip }
@@ -56,6 +56,7 @@ class User < ApplicationRecord
   after_update_commit :enqueue_calendar_invitation, if: :saved_change_to_enrollment_status?
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
   after_update_commit :capture_enrollment_conversion, if: :saved_change_to_enrollment_status?
+  before_update :reset_attendance_streak, if: -> { will_save_change_to_enrollment_status? && active? }
   before_destroy :prevent_last_verified_administrator_deletion
 
   scope :og, -> { where(og: true) }
@@ -347,12 +348,16 @@ class User < ApplicationRecord
     immediately_promotable = waitlisted? && !program.promotions_paused? && program.seat_available?
     return if immediately_promotable
 
-    UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later
+    UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later unless strike_limit_release
     AdministratorMailer.enrollment_status(self, enrollment_status).deliver_later if User.where(administrator: true).exists?
     User.where(facilitator: true, administrator: false).find_each do |facilitator|
       FacilitatorMailer.enrollment_status(facilitator, self, enrollment_status).deliver_later
     end
     UserMailer.offer_reminder(self).deliver_later(wait_until: offer_expires_at - 24.hours) if offered? && offer_expires_at > 24.hours.from_now
+  end
+
+  def reset_attendance_streak
+    self.attendance_streak_reset_at = Time.current
   end
 
   def enqueue_calendar_invitation

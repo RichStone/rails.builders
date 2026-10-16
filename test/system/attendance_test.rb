@@ -27,6 +27,9 @@ class AttendanceSystemTest < ApplicationSystemTestCase
         builder_session.attendances.find_by!(user: builder).update!(status: index >= 5 - misses ? "absent" : "present")
       end
     end
+    builders[3].update!(enrollment_status: "inactive")
+    sessions.last.attendances.find_by!(user: builders[3]).update!(strike_inactivated_at: Time.current,
+      strike_absence_limit: 3, strike_email_sent_at: Time.current, strike_calendar_removed_at: Time.current)
 
     visit verify_email_path(token: facilitator.generate_token_for(:email_verification))
     click_link "Attendance", exact: true
@@ -39,8 +42,8 @@ class AttendanceSystemTest < ApplicationSystemTestCase
       assert_selector "tr[data-builder-id='#{builder.id}'] .attendance-streak", text: label
     end
     within("tr[data-builder-id='#{builders[3].id}']") do
-      assert_text "Email Pending"
-      click_button "Mark email sent"
+      assert_text "Seat released"
+      assert_text "Calendar Removed"
     end
     assert_selector "tr[data-builder-id='#{builders[3].id}'] .attendance-email", text: "Email Sent"
     if ENV["ATTENDANCE_SCREENSHOTS"]

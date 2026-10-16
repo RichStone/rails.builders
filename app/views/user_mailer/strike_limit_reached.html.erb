@@ -1,0 +1,11 @@
+<% content_for :preheader, "Your seat is open for another builder. Come back when life leaves room for the hustle." %>
+
+<%= image_tag attachments["loop-monster-broken-rails.png"].url, width: 280, height: 280, alt: "The Loop Monster sitting on broken rails, sadly looking at a ruby", style: "display: block; width: 100%; max-width: 280px; height: auto; margin: 0 auto 28px; border: 0;" %>
+<%= render "layouts/heading", eyebrow: "A little pause", title: "Life shipped a plot twist." %>
+<p style="margin: 0 0 20px; color: #4f3d40; font-size: 17px; line-height: 27px;">Hey <%= @user.name.to_s.split.first || "Builder" %>,</p>
+<p style="margin: 0 0 20px; color: #4f3d40; font-size: 17px; line-height: 27px;">Sometimes you’re ready to ship, and life opens 47 browser tabs, schedules a surprise boss fight, and forgets where it put the charger. We get it.</p>
+<p style="margin: 0 0 20px; color: #4f3d40; font-size: 17px; line-height: 27px;">You’ve reached our limit of <%= @limit %> missed sessions in a row, so we’ve marked you inactive and opened your seat for another builder. The Loop Monster is having a small feelings moment about it. You don’t owe it an apology.</p>
+<p style="margin: 0 0 20px; color: #4f3d40; font-size: 17px; line-height: 27px;">Your account is still here. Whenever you have time and energy for the hustle again, request to rejoin from your dashboard or reply to this email. You can join the waitlist again; a seat depends on availability.</p>
+<p style="margin: 0 0 24px; color: #4f3d40; font-size: 17px; line-height: 27px;">Take care of the human doing the building. We’d love to see you back.</p>
+<%= render "layouts/button", label: "Come back when you’re ready", url: @url %>
+<p style="margin: 24px 0 0; color: #715f62; font-size: 14px; line-height: 22px;">Rich &amp; the Loop Monster<br>Rails.Builders</p>

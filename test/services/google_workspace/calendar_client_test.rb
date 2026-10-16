@@ -40,6 +40,7 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
 
     def patch_event(calendar_id, event_id, event, **options)
       @event_patch_calls << options.merge(calendar_id:, event_id:, event:)
+      @events.fetch(event_id).attendees = event.attendees
     end
   end
 
@@ -170,7 +171,8 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
             start: Calendar::EventDateTime.new(date_time: starts_at + 2.days),
             end: Calendar::EventDateTime.new(date_time: starts_at + 2.days + 1.hour)
           )
-        ])
+        ]),
+        Calendar::Events.new(items: [])
       ],
       events: {
         "series" => Calendar::Event.new(
@@ -212,7 +214,7 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
           start: Calendar::EventDateTime.new(date_time: starts_at + 1.day),
           end: Calendar::EventDateTime.new(date_time: starts_at + 1.day + 1.hour)
         )
-      ]) ],
+      ]), Calendar::Events.new(items: []) ],
       events: { "session" => Calendar::Event.new(etag: "session-v1") }
     )
 
@@ -247,5 +249,59 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
       event_id: "weekly-session",
       fields: "attendees(email,responseStatus)"
     } ], service.event_get_calls
+  end
+
+  test "removing a Builder preserves other guests and handles recurring series and edited exceptions" do
+    starts_at = Time.utc(2026, 10, 16)
+    ends_at = Time.utc(2026, 12, 18)
+    event = ->(id, series = nil) do
+      Calendar::Event.new(id:, recurring_event_id: series, status: "confirmed",
+        start: Calendar::EventDateTime.new(date_time: starts_at + 1.day),
+        end: Calendar::EventDateTime.new(date_time: starts_at + 1.day + 1.hour))
+    end
+    guests = [ Calendar::EventAttendee.new(email: "BUILDER@example.com", response_status: "accepted"),
+      Calendar::EventAttendee.new(email: "other@example.com", response_status: "tentative") ]
+    service = FakeService.new(event_pages: [
+      Calendar::Events.new(items: [ event.call("instance-1", "series"), event.call("instance-2", "series"), event.call("single"),
+        Calendar::Event.new(id: "cancelled", status: "cancelled"),
+        Calendar::Event.new(id: "all-day", start: Calendar::EventDateTime.new(date: starts_at.to_date)) ]),
+      Calendar::Events.new(items: [ event.call("edited-instance", "series") ])
+    ] * 2, events: {
+      "series" => Calendar::Event.new(etag: "series-v1", attendees: guests),
+      "single" => Calendar::Event.new(etag: "single-v1", attendees: guests),
+      "edited-instance" => Calendar::Event.new(etag: "exception-v1", attendees: guests)
+    })
+
+    removed = GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service).remove_attendee_from_upcoming_events(
+      calendar_id: "sessions@group.calendar.google.com", starts_at:, ends_at:, email: "builder@example.com")
+
+    assert_equal 3, removed
+    assert_equal [ "series", "single", "edited-instance" ], service.event_patch_calls.map { |call| call[:event_id] }
+    service.event_patch_calls.each do |call|
+      assert_equal [ "other@example.com" ], call[:event].attendees.map(&:email)
+      assert_equal "tentative", call[:event].attendees.sole.response_status
+      assert_equal "none", call[:send_updates]
+      assert call[:options].header.key?("If-Match")
+    end
+    restored = GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service).add_attendee_to_upcoming_events(
+      calendar_id: "sessions@group.calendar.google.com", starts_at:, ends_at:, email: "builder@example.com", send_notification: false)
+    assert_equal 3, restored
+    assert_equal [ "series", "single", "edited-instance" ], service.event_patch_calls.last(3).map { |call| call[:event_id] }
+    service.event_patch_calls.last(3).each do |call|
+      assert_equal %w[builder@example.com other@example.com], call[:event].attendees.map(&:email).sort
+    end
+  end
+
+  test "removing a guest who is already absent makes no Calendar change" do
+    starts_at = Time.utc(2026, 10, 16)
+    service = FakeService.new(event_pages: [
+      Calendar::Events.new(items: [ Calendar::Event.new(id: "single", status: "confirmed",
+        start: Calendar::EventDateTime.new(date_time: starts_at + 1.day), end: Calendar::EventDateTime.new(date_time: starts_at + 1.day + 1.hour)) ]),
+      Calendar::Events.new(items: [])
+    ], events: { "single" => Calendar::Event.new(attendees: [ Calendar::EventAttendee.new(email: "other@example.com") ]) })
+
+    assert_equal 0, GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service).remove_attendee_from_upcoming_events(
+      calendar_id: "sessions@group.calendar.google.com", starts_at:, ends_at: starts_at + 1.month, email: "builder@example.com")
+    assert_empty service.event_patch_calls
   end
 end

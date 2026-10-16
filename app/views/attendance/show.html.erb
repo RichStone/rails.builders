@@ -92,11 +92,12 @@
                     <% streak = @absence_streaks.fetch(builder.id) %>
                     <strong class="attendance-streak <%= 'has-misses' if streak.any? %>"><%= streak.size %>/<%= @program.consecutive_absence_limit %> <span aria-hidden="true"><%= attendance_streak_emoji(streak.size, @program.consecutive_absence_limit) %></span></strong>
                     <small>missed in a row</small>
-                    <% if streak.size >= @program.consecutive_absence_limit %>
+                    <% if !builder.facilitator? && streak.size >= @program.consecutive_absence_limit %>
                       <% email_sent = streak.any?(&:strike_email_sent_at) %>
-                      <small class="attendance-email">Email <%= email_sent ? "Sent" : "Pending" %></small>
-                      <% if session_operator? && !email_sent %>
-                        <%= button_to "Mark email sent", mark_strike_email_sent_attendance_path, params: { attendance_id: streak.first.id }, class: "attendance-email-action" %>
+                      <small class="attendance-email">Email <%= email_sent ? "Sent" : (builder.receives_enrollment_notifications? ? "Pending" : "Paused") %></small>
+                      <% if (strike = streak.find(&:strike_inactivated_at)) %>
+                        <small>Seat released</small>
+                        <% if session_operator? %><small>Calendar <%= strike.strike_calendar_removed_at? ? "Removed" : "Pending" %></small><% end %>
                       <% end %>
                     <% end %>
                     <strong class="attendance-missed <%= 'has-misses' if missed.positive? %>"><%= missed %> missed</strong>
@@ -110,7 +111,7 @@
           </tbody>
         </table>
       </div>
-      <p class="attendance-footnote">Completed sessions only. A dash means no attendance record, not an absence, and breaks a missed-session streak. Totals cover the people shown here; deleted accounts are excluded.<% if session_operator? %> To correct a mark, open its session and update attendance. Send strike-limit emails separately, then mark them sent here.<% end %></p>
+      <p class="attendance-footnote">Completed sessions only. A dash means no attendance record, not an absence, and breaks a missed-session streak. Returning to active membership starts a fresh streak. At the limit, Builders become inactive and their seat is released automatically; email and Calendar removal retry until processed. Email Paused means enrollment notifications are switched off. Facilitators are exempt. Totals cover the people shown here; deleted accounts are excluded.<% if session_operator? %> To correct a mark, open its session and update attendance.<% end %></p>
     <% else %>
       <div class="attendance-empty">
         <span aria-hidden="true">▦</span>

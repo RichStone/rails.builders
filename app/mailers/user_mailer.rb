@@ -46,6 +46,19 @@ class UserMailer < ApplicationMailer
     mail(to: user.email, subject: "Reminder: #{builder_session.title}")
   end
 
+  def strike_limit_reached(user, attendance)
+    user.reload if user.persisted?
+    return if user.active? || user.removed? || !user.receives_enrollment_notifications?
+
+    @user = user
+    @limit = attendance.strike_absence_limit
+    @url = dashboard_url
+    attachments.inline["loop-monster-broken-rails.png"] = Rails.root.join("app/assets/images/loop-monster-broken-rails.png").binread
+    attachments["loop-monster-broken-rails.png"].content_id = "loop-monster-broken-rails"
+    mail(to: user.email, reply_to: "rich@looplabs.cc", subject: "Life happened. Your Rails.Builders seat is taking a breather 🛤️",
+      options: { idempotency_key: "strike-limit-#{attendance.id}-#{attendance.strike_inactivated_at.to_i}" })
+  end
+
   private
 
   def enrollment_content

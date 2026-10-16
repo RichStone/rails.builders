@@ -78,15 +78,11 @@ class WeeklyCherryEmail
   end
 
   def absence_warning
-    count = 0
-    @builder_session.program.builder_sessions.where(state: "completed")
-      .where("scheduled_starts_at <= ?", @builder_session.scheduled_starts_at)
-      .order(scheduled_starts_at: :desc, id: :desc).each do |session|
-      attendance = session.attendances.find_by(user: @recipient)
-      break unless attendance&.status == "absent"
-
-      count += 1
-    end
+    sessions = @builder_session.program.builder_sessions.where(state: "completed")
+      .where(scheduled_starts_at: ..[ @builder_session.scheduled_starts_at, Time.current ].min)
+      .order(:scheduled_starts_at, :id).to_a
+    records = @recipient.builder_session_attendances.where(builder_session_id: sessions.map(&:id)).index_by(&:builder_session_id)
+    count = BuilderSessionAttendance.absence_streak(sessions:, attendances: records, reset_at: @recipient.attendance_streak_reset_at).size
     return "No missed session has been counted: there is no attendance record for you this week." if count.zero?
 
     limit = @builder_session.program.consecutive_absence_limit
@@ -96,7 +92,7 @@ class WeeklyCherryEmail
       "#{remaining_label} more and your Rails.Builders spot is at risk"
     else
       limit_label = limit == 3 ? "three" : limit
-      "You have reached the #{limit_label}-miss limit; Rich needs to review your spot"
+      "You have reached the #{limit_label}-miss limit. This limit releases your active seat; you can request to rejoin whenever the timing is right"
     end
     "This is your #{count.ordinalize} missed session in a row. #{warning} (you remember, gamification 🎲)."
   end

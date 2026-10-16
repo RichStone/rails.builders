@@ -1,6 +1,33 @@
 require "test_helper"
 
 class UserMailerTest < ActionMailer::TestCase
+  test "the strike-limit email embeds the sad monster above the copy and invites the Builder back" do
+    user = User.create!(email: "builder@example.com", name: "Casey", verified_at: Time.current, enrollment_status: "inactive")
+    attendance = BuilderSessionAttendance.new(id: 42, strike_absence_limit: 3, strike_inactivated_at: Time.utc(2026, 10, 16))
+    mail = UserMailer.strike_limit_reached(user, attendance).message
+
+    assert_equal [ user.email ], mail.to
+    assert_equal [ "rich@looplabs.cc" ], mail.reply_to
+    assert_equal({ idempotency_key: "strike-limit-42-1792108800" }, mail[:options].unparsed_value)
+    [ mail.html_part.body.decoded, mail.text_part.body.decoded ].each do |body|
+      assert_includes body, "Hey Casey"
+      assert_includes body, "limit of 3 missed sessions in a row"
+      assert_includes body, "marked you inactive"
+      assert_includes body, "request to rejoin"
+      assert_includes body, "seat depends on availability"
+      assert_includes body, "http://example.com/dashboard"
+    end
+    image = mail.attachments["loop-monster-broken-rails.png"]
+    assert image.inline?
+    assert_equal "<loop-monster-broken-rails>", image.content_id
+    html = Nokogiri::HTML(mail.html_part.body.decoded)
+    assert_equal "cid:loop-monster-broken-rails", html.at_css("img")["src"]
+    assert_operator mail.html_part.body.decoded.index("<img"), :<, mail.html_part.body.decoded.index("Life shipped a plot twist")
+
+    user.update!(enrollment_notifications: false)
+    assert_instance_of ActionMailer::Base::NullMail, UserMailer.strike_limit_reached(user, attendance).message
+  end
+
   test "enrollment emails queued before opting out respect current preferences while sign-in still works" do
     user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 1.day.from_now)
     UserMailer.enrollment_status(user).deliver_later

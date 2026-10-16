@@ -33,11 +33,11 @@ The initial admission phase in which available Seat Offers go only to verified O
 _Avoid_: Permanent eligibility rule
 
 **Active Builder**:
-A Rails Builder who has confirmed a Seat in Continuous. Active Builder status continues until the person withdraws, an Administrator removes them, or their account is deleted; the program finish date does not end it automatically.
+A Rails Builder who has confirmed a Seat in Continuous. Active Builder status continues until the person withdraws, reaches the Program's consecutive absence limit, an Administrator removes them, or their account is deleted; the program finish date does not end it automatically.
 _Avoid_: OG Builder, Registrant, Facilitator
 
 **Inactive Builder**:
-A verified person with no Seat Offer, Seat, or Waitlist Entry, including a new Registrant who has not completed the Readiness Check and explicitly joined the waitlist. An Inactive Builder may opt into the waitlist.
+A verified person with no Seat Offer, Seat, or Waitlist Entry, including a new Registrant who has not completed the Readiness Check and explicitly joined the waitlist, or a Builder whose Seat was released at the consecutive absence limit. An Inactive Builder may opt into the waitlist.
 _Avoid_: Non-active Builder, former member
 
 **Removed Builder**:

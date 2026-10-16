@@ -34,6 +34,9 @@ production:
   send_session_reminders:
     class: SessionReminderJob
     schedule: every minute
+  enforce_attendance_strike_limit:
+    class: StrikeLimitJob
+    schedule: every minute
   import_google_meet_transcripts:
     class: GoogleMeetTranscriptImportJob
     schedule: every 5 minutes

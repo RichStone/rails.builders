@@ -8,6 +8,7 @@ class GoogleCalendarAttendeeJob < ApplicationJob
     return unless connection.status == "connected" && user.active?
     return if Time.current >= connection.program.countdown_ends_at
 
+    invitation_attempted = true
     client_for(connection).add_attendee_to_upcoming_events(
       calendar_id: connection.google_calendar_id,
       starts_at: Time.current,
@@ -21,6 +22,12 @@ class GoogleCalendarAttendeeJob < ApplicationJob
   rescue StandardError => error
     record_failure(connection, "error", error)
     raise
+  ensure
+    # A partial provider failure may still have added an early event's invitation.
+    if invitation_attempted && (current_user = User.find_by(id: user.id)) && !current_user.active?
+      current_user.builder_session_attendances.where.not(strike_inactivated_at: nil).update_all(strike_calendar_removed_at: nil)
+      StrikeLimitJob.perform_later
+    end
   end
 
   private

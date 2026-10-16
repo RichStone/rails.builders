@@ -236,7 +236,7 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     older.attendances.create!(user: @absentee, display_name: "Absent", role: "builder", status: "absent")
 
     [ :text, :html ].each do |format|
-      assert_includes render_for(@absentee).fetch(format), "You have reached the 2-miss limit; Rich needs to review your spot"
+      assert_includes render_for(@absentee).fetch(format), "You have reached the 2-miss limit. This limit releases your active seat"
     end
 
     @program.update!(consecutive_absence_limit: 5)

@@ -1,11 +1,13 @@
 require "test_helper"
 
 class GoogleCalendarAttendeeJobTest < ActiveJob::TestCase
-  FakeClient = Struct.new(:calls, :error) do
+  FakeClient = Struct.new(:calls, :error, :callback, :post_error) do
     def add_attendee_to_upcoming_events(**attributes)
       raise error if error
 
       calls << attributes
+      callback&.call
+      raise post_error if post_error
     end
   end
 
@@ -99,5 +101,32 @@ class GoogleCalendarAttendeeJobTest < ActiveJob::TestCase
     job.perform(@connection.id, @builder.id, true)
 
     assert_empty client.calls
+  end
+
+  test "an invitation in flight schedules cleanup if a strike release overtakes it" do
+    session = @program.builder_sessions.create!(title: "Completed", google_event_id: "completed", state: "completed",
+      scheduled_starts_at: 1.day.ago, scheduled_ends_at: 1.day.ago + 1.hour, time_zone: "Europe/Madrid")
+    attendance = session.attendances.create!(user: @builder, display_name: "Builder", role: "builder", status: "absent",
+      strike_inactivated_at: Time.current, strike_calendar_removed_at: Time.current)
+    job = StubbedJob.new
+    job.client = FakeClient.new([], nil, -> { @builder.reload.update!(enrollment_status: "inactive") })
+
+    assert_enqueued_with(job: StrikeLimitJob) { job.perform(@connection.id, @builder.id, false) }
+
+    assert_nil attendance.reload.strike_calendar_removed_at
+  end
+
+  test "a partial invitation failure still schedules cleanup after a strike release" do
+    session = @program.builder_sessions.create!(title: "Completed", google_event_id: "completed", state: "completed",
+      scheduled_starts_at: 1.day.ago, scheduled_ends_at: 1.day.ago + 1.hour, time_zone: "Europe/Madrid")
+    attendance = session.attendances.create!(user: @builder, display_name: "Builder", role: "builder", status: "absent",
+      strike_inactivated_at: Time.current, strike_calendar_removed_at: Time.current)
+    job = StubbedJob.new
+    job.client = FakeClient.new([], nil, -> { @builder.reload.update!(enrollment_status: "inactive") }, IOError.new("Later event failed"))
+
+    assert_enqueued_with(job: StrikeLimitJob) do
+      assert_raises(IOError) { job.perform(@connection.id, @builder.id, false) }
+    end
+    assert_nil attendance.reload.strike_calendar_removed_at
   end
 end
