@@ -230,6 +230,22 @@ class BuilderSessionRecordImportTest < ActiveSupport::TestCase
     assert_equal promise, @session.previous_promise_for(@facilitator)
   end
 
+  test "previous promise lookup keeps query count bounded across missed weeks" do
+    attended = create_session("attended", @session.scheduled_starts_at - 12.weeks)
+    attended.attendances.create!(user: @builder, display_name: "Builder", role: "builder", status: "present")
+    promise = attended.next_session_promises.create!(user: @builder, body: "Finish the prototype.")
+    10.times do |week|
+      missed = create_session("missed-#{week}", @session.scheduled_starts_at - (week + 1).weeks)
+      missed.attendances.create!(user: @builder, display_name: "Builder", role: "builder", status: "absent")
+    end
+    @session.program
+
+    assert_queries_count(3) { assert_equal promise, @session.previous_promise_for(@builder) }
+
+    newcomer = User.create!(email: "newcomer@example.com")
+    assert_queries_count(1) { assert_nil @session.previous_promise_for(newcomer) }
+  end
+
   test "a more recent promise in another program never enters the current timer" do
     other_program = Program.create!(name: "Other program", starts_on: @program.starts_on, ends_on: @program.ends_on, capacity: 9)
     unrelated = create_session("unrelated", @session.scheduled_starts_at - 1.day)

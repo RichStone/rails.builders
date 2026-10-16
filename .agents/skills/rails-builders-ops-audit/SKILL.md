@@ -81,6 +81,8 @@ During every scheduled or manual audit, evaluate all open PRs whose author is `a
 
 Return a concise private audit summary:
 
+Lead the overall result and individual findings with status emojis: ✅ for a passed check, 🐛 for a confirmed application bug, ⚠️ for maintenance, unavailable checks, or an unresolved concern, and 🚨 for an active outage or urgent security incident. Keep the explanatory context alongside each emoji; use ✅ only when the check was actually verified.
+
 - overall production status;
 - sanitized check results and prioritized findings;
 - a sanitized diagnosis and suggested fix for every new or recurring Honeybadger production error, or the smallest next diagnostic when the evidence is insufficient;
