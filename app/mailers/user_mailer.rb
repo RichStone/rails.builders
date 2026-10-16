@@ -12,6 +12,11 @@ class UserMailer < ApplicationMailer
     mail(to: user.email, subject: "Confirm the Loop Labs newsletter")
   end
 
+  def reauthentication(user, token)
+    @url = edit_reauthentication_url(token: token)
+    mail(to: user.email, subject: "Confirm your Rails.Builders identity")
+  end
+
   def enrollment_status(user, status = user.enrollment_status, waitlist_position = user.waitlist_position)
     user.reload if user.persisted?
     return unless user.receives_enrollment_notifications?

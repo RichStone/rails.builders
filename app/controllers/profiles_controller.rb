@@ -1,5 +1,6 @@
 class ProfilesController < ApplicationController
   before_action :require_user
+  before_action :require_recent_authentication, only: :destroy
 
   def edit
     @product = current_user.focus_product || Product.new(user: current_user)

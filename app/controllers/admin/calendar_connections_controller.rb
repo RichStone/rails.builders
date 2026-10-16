@@ -1,4 +1,5 @@
 class Admin::CalendarConnectionsController < Admin::BaseController
+  before_action :require_recent_authentication, only: :callback
   before_action :set_program
   before_action :set_connection, except: :create
 

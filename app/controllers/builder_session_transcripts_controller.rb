@@ -2,6 +2,7 @@ class BuilderSessionTranscriptsController < ApplicationController
   before_action :require_session_member
   before_action :require_session_operator, only: %i[create update]
   before_action :require_administrator, only: :destroy
+  before_action :require_recent_authentication, only: :destroy
   before_action :set_builder_session
 
   def create

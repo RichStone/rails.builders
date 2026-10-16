@@ -4,6 +4,8 @@ class SessionsController < ApplicationController
   NEWSLETTER_CONSENT_VERSION = "2026-08-16"
 
   before_action :no_store
+  before_action :require_user, only: :destroy_all
+  before_action :require_recent_authentication, only: :destroy_all
   before_action -> { @joining = request.path_parameters[:joining] == true }, only: %i[new create]
   rate_limit to: 20, within: 5.minutes, by: -> { abuse_identity(request.remote_ip) }, name: "ip", with: -> { throttle_sign_in(:ip_rate_limit, 5.minutes) }, only: :create
   rate_limit to: 60, within: 1.hour, by: -> { abuse_identity(request.remote_ip) }, name: "ip_hour", with: -> { throttle_sign_in(:ip_rate_limit, 1.hour) }, only: :create
@@ -65,6 +67,7 @@ class SessionsController < ApplicationController
     token = email_link_token
     user = User.find_by_token_for!(:email_verification, token)
     first_verification = false
+    return_to_notifications = session[:return_to_notifications]
     Program.current.with_lock do
       user.with_lock do
         raise ActiveSupport::MessageVerifier::InvalidSignature unless User.find_by_token_for(:email_verification, token) == user
@@ -72,15 +75,13 @@ class SessionsController < ApplicationController
         first_verification = !user.verified?
         user.increment!(:sign_in_token_version)
         user.complete_verification!
+        start_login_session(user)
       end
     end
     Rails.cache.delete(mail_cooldown_key(user.email))
     event = first_verification ? "registration_verified" : "sign_in_completed"
     ProductAnalytics.capture(event)
     SignupAbuse.record(event)
-    return_to_notifications = session[:return_to_notifications]
-    reset_session
-    session[:user_id] = user.id
     ClickfunnelsNewsletterJob.perform_later(user.id) if user.newsletter_confirmed_at?
     redirect_to(return_to_notifications ? notification_preferences_path : dashboard_path, notice: "Email verified. Welcome to Rails.Builders.")
   rescue ActionController::ParameterMissing, ActiveSupport::MessageVerifier::InvalidSignature, ActiveRecord::RecordNotFound
@@ -89,8 +90,17 @@ class SessionsController < ApplicationController
   end
 
   def destroy
+    current_login_session&.destroy!
     reset_session
+    @current_login_session = @current_user = nil
     redirect_to root_path, notice: "You’re signed out."
+  end
+
+  def destroy_all
+    current_user.login_sessions.delete_all
+    reset_session
+    @current_login_session = @current_user = nil
+    redirect_to root_path, notice: "You’re signed out on all devices."
   end
 
   private

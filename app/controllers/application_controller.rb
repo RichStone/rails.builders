@@ -35,11 +35,32 @@ class ApplicationController < ActionController::Base
   end
 
   def current_user
-    @current_user ||= User.find_by(id: session[:user_id])
+    @current_user ||= current_login_session&.user
+  end
+
+  def current_login_session
+    @current_login_session ||= LoginSession.unexpired.find_by(id: session[:login_session_id]) if session[:login_session_id]
+  end
+
+  def start_login_session(user)
+    login_session = LoginSession.transaction do
+      current_login_session&.destroy!
+      user.login_sessions.create!
+    end
+    reset_session
+    @current_login_session = login_session
+    @current_user = user
+    session[:login_session_id] = login_session.id
   end
 
   def require_user
     redirect_to sign_in_path, alert: "Sign in to continue." unless current_user
+  end
+
+  def require_recent_authentication
+    return if current_login_session&.recently_authenticated?
+
+    redirect_to reauthentication_path, alert: "Confirm your email before making this change, then try it again."
   end
 
   def require_administrator

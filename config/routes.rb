@@ -16,6 +16,8 @@ Rails.application.routes.draw do
   get "verify", to: "sessions#verification", as: :verify_email
   post "verify", to: "sessions#verify"
   delete "sign-out", to: "sessions#destroy"
+  delete "sign-out-all", to: "sessions#destroy_all"
+  resource :reauthentication, only: %i[show create edit update]
 
   resource :dashboard, only: :show, controller: :dashboard
   resource :attendance, only: :show, controller: :attendance do

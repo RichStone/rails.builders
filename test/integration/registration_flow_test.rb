@@ -327,7 +327,7 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_select "input[name='email'][value='builder..name@example.com']"
   end
 
-  test "sign-in persists for 400 days and visits renew it until sign-out" do
+  test "sign-in persists across visits but cannot outlive 400 days from verification" do
     freeze_time
     user = User.create!(email: "persistent@example.com")
     post verify_email_path, params: { token: user.generate_token_for(:email_verification) }
@@ -339,16 +339,13 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert cookie.http_only?
     assert_equal "lax", cookie.to_h["samesite"]
 
-    2.times do
-      travel 300.days
-      get dashboard_path
-      assert_response :success
-      cookie = Rack::Test::Cookie.new(response.headers.fetch("set-cookie"))
-      assert_equal Time.now + 400.days, cookie.expires
-    end
+    travel 300.days
+    get dashboard_path
+    assert_response :success
+    cookie = Rack::Test::Cookie.new(response.headers.fetch("set-cookie"))
+    assert_equal Time.now + 400.days, cookie.expires
 
-    delete sign_out_path
-    assert_redirected_to root_path
+    travel 101.days
     get dashboard_path
     assert_redirected_to sign_in_path
   end

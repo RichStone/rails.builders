@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_15_130001) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_16_100000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -134,6 +134,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_130001) do
     t.index ["program_id", "state", "scheduled_starts_at"], name: "idx_on_program_id_state_scheduled_starts_at_ab613453a0"
     t.index ["program_id"], name: "index_builder_sessions_on_one_active_program", unique: true, where: "state IN ('connection', 'builder_updates', 'closing', 'hangout')"
     t.index ["program_id"], name: "index_builder_sessions_on_program_id"
+  end
+
+  create_table "login_sessions", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_login_sessions_on_created_at"
+    t.index ["user_id"], name: "index_login_sessions_on_user_id"
   end
 
   create_table "next_session_promises", force: :cascade do |t|
@@ -270,6 +278,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_130001) do
   add_foreign_key "builder_session_transcripts", "builder_sessions"
   add_foreign_key "builder_sessions", "programs"
   add_foreign_key "builder_sessions", "users", column: "assigned_facilitator_id"
+  add_foreign_key "login_sessions", "users"
   add_foreign_key "next_session_promises", "builder_sessions"
   add_foreign_key "next_session_promises", "users"
   add_foreign_key "peer_feedbacks", "builder_sessions"

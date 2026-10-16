@@ -1,0 +1,6 @@
+<main class="narrow-page">
+  <p class="eyebrow">Account security</p>
+  <h1>Confirm your identity.</h1>
+  <p>This allows sensitive changes for the next 15 minutes. You’ll stay signed in.</p>
+  <%= button_to "Confirm identity", reauthentication_path, method: :patch, params: { token: @token }, class: "button button-primary" %>
+</main>

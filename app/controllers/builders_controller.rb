@@ -1,5 +1,6 @@
 class BuildersController < ApplicationController
   before_action :require_session_operator
+  before_action :require_recent_authentication, only: :promote
   before_action :set_builder, only: %i[show promote]
 
   def index

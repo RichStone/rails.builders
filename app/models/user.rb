@@ -14,6 +14,7 @@ class User < ApplicationRecord
   end
 
   has_many :products, dependent: :destroy
+  has_many :login_sessions, dependent: :destroy
   has_many :session_reminder_deliveries, class_name: "SessionReminder", dependent: :destroy
   has_many :builder_session_attendances, dependent: :nullify
   has_many :next_session_promises, dependent: :destroy
@@ -50,6 +51,8 @@ class User < ApplicationRecord
 
   before_validation :set_slack_desired_state
   before_validation :clear_public_profile_approval_without_opt_in
+  before_update -> { self.sign_in_token_version += 1 }, if: :will_save_change_to_email?
+  after_update :revoke_login_sessions, if: -> { (saved_changes.keys & %w[email administrator facilitator]).any? }
   after_update_commit :enqueue_calendar_invitation, if: :saved_change_to_enrollment_status?
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
   after_update_commit :capture_enrollment_conversion, if: :saved_change_to_enrollment_status?
@@ -288,6 +291,10 @@ class User < ApplicationRecord
   end
 
   private
+
+  def revoke_login_sessions
+    login_sessions.delete_all
+  end
 
   def email_has_deliverable_parts
     local_part, domain = email.to_s.split("@", 2)

@@ -1,0 +1,5 @@
+<% content_for :preheader, "Confirm your identity before making sensitive changes. This link expires in 15 minutes." %>
+<%= render "layouts/heading", eyebrow: "Account security", title: "Confirm it’s you." %>
+<p>Open this link in the browser that requested it, then confirm your identity. The link expires in 15 minutes.</p>
+<%= render "layouts/button", label: "Confirm my identity", url: @url %>
+<%= render "layouts/note", text: "If you didn’t request this link, don’t confirm it. You can sign out all devices from your profile." %>

@@ -65,6 +65,14 @@ save (`click_button_and_wait_for_navigation`).
 Failed CI browser tests retain both screenshots and page HTML in the `screenshots`
 artifact; use `RAILS_SYSTEM_TESTING_SCREENSHOT_HTML=1` locally for the same capture.
 
+## Sign-in security
+
+The encrypted, HTTPS-only session cookie identifies a revocable `LoginSession` in the database. Logins expire 400 days after email verification even if the browser cookie is refreshed by visits. Signing out deletes that login record; **Sign out all devices** in Profile deletes every login for the account. Email or role changes revoke existing logins, and account deletion removes them. Expired login records are removed daily. Login records store the account and creation time, without IP addresses or browser details.
+
+Administration changes, Calendar authorization callbacks, Builder promotions, transcript deletion, account deletion, and signing out all devices require email verification within the last 15 minutes. The confirmation link lasts 15 minutes, is bound to the requesting login, and only changes access after an explicit confirmation POST/PATCH. Confirmation rotates the login record, so old cookies and reused links cannot inherit the new access. Blocked changes are never replayed automatically; retry them after confirming. Confirmation emails are limited to three requests per account per 15 minutes.
+
+The first deployment of database-backed logins requires everyone to sign in once; old cookie-only logins are not accepted or automatically upgraded.
+
 ## Notification preferences
 
 Builders manage email preferences at `/notifications`, linked from the signed-in navigation and every email footer. Existing and new accounts have notifications enabled by default. The master switch pauses enrollment notifications, session reminders, and Facilitator product digests while preserving each category choice. Requested sign-in links and newsletter confirmations still send; the separate Loop Labs newsletter and Google Calendar reminders retain their own settings.
