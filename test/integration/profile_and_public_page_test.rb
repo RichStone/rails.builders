@@ -307,7 +307,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     [
       [ "active", "Active Builders", "⚡", "1 building now" ],
       [ "waitlisted", "Waitlisted Builders", "⏳", "Signed up and waiting for an open seat" ],
-      [ "inactive", "Still prepping for the Build", "🛠️", "Signed up, but not yet ready to commit to the Build" ],
+      [ "inactive", "Dormant Builders", "😴", "Just signed up or left cohort" ],
       [ "past", "Past Builders", "🔥", "They built with the group before the current cohort" ]
     ].each do |id, title, icon, tooltip|
       assert_select "##{id}-builders .group-title" do
@@ -318,7 +318,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the public page lists inactive builders as still prepping" do
+  test "the public page lists inactive builders as dormant" do
     %w[inactive declined expired withdrawn left_waitlist].each do |status|
       User.create!(email: "#{status}@example.com", verified_at: Time.current, enrollment_status: status, og: true)
     end
@@ -330,9 +330,9 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_select "#waitlisted-builders + #inactive-builders" do
-      assert_select "h3", text: "Still prepping for the Build"
+      assert_select "h3", text: "Dormant Builders"
       assert_select ".builder-card", count: 5
-      assert_select ".private-label", text: "Still prepping for the Build · profile private", count: 5
+      assert_select ".private-label", text: "Dormant Builder · profile private", count: 5
     end
     assert_select "#past-builders .builder-card", count: 0
     assert_not_includes response.body, "inactive@example.com"
