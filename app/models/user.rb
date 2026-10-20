@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :products, dependent: :destroy
   has_many :login_sessions, dependent: :destroy
   has_many :session_reminder_deliveries, class_name: "SessionReminder", dependent: :destroy
+  has_many :session_cancellation_deliveries, dependent: :destroy
   has_many :builder_session_attendances, dependent: :nullify
   has_many :next_session_promises, dependent: :destroy
   has_many :authored_peer_feedbacks, class_name: "PeerFeedback", foreign_key: :author_id, dependent: :destroy
@@ -77,6 +78,7 @@ class User < ApplicationRecord
   def waitlist_eligible? = verified? && enrollment_status.in?(WAITLIST_ELIGIBLE_STATUSES)
   def receives_enrollment_notifications? = notifications_enabled? && enrollment_notifications?
   def receives_product_updates? = notifications_enabled? && product_update_notifications?
+  def receives_session_cancellations? = notifications_enabled? && verified? && !removed? && (active? || facilitator?)
 
   def session_reminder_due?(builder_session, at: Time.current)
     notifications_enabled? && session_reminders? && verified? && !removed? && (active? || facilitator?) &&

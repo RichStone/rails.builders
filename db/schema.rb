@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_16_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_120000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -133,6 +133,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_120000) do
     t.integer "timer_duration_seconds"
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.text "source_calendar_id"
+    t.datetime "cancellation_requested_at"
+    t.text "cancellation_reason"
+    t.datetime "cancellation_calendar_deleted_at"
+    t.datetime "cancellation_completed_at"
+    t.datetime "cancellation_claimed_at"
     t.index ["assigned_facilitator_id"], name: "index_builder_sessions_on_assigned_facilitator_id"
     t.index ["program_id", "google_event_id"], name: "index_builder_sessions_on_program_id_and_google_event_id", unique: true
     t.index ["program_id", "state", "scheduled_starts_at"], name: "idx_on_program_id_state_scheduled_starts_at_ab613453a0"
@@ -222,6 +228,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_120000) do
     t.index ["main_facilitator_id"], name: "index_programs_on_main_facilitator_id"
   end
 
+  create_table "session_cancellation_deliveries", force: :cascade do |t|
+    t.integer "builder_session_id", null: false
+    t.integer "user_id", null: false
+    t.datetime "sent_at"
+    t.datetime "skipped_at"
+    t.datetime "first_attempted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["builder_session_id", "user_id"], name: "idx_on_builder_session_id_user_id_eb32262a8f", unique: true
+    t.index ["builder_session_id"], name: "index_session_cancellation_deliveries_on_builder_session_id"
+    t.index ["user_id"], name: "index_session_cancellation_deliveries_on_user_id"
+  end
+
   create_table "session_reminders", force: :cascade do |t|
     t.integer "builder_session_id", null: false
     t.datetime "calendar_declined_at"
@@ -293,6 +312,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_16_120000) do
   add_foreign_key "program_calendar_connections", "programs"
   add_foreign_key "program_calendar_connections", "users", column: "facilitator_id"
   add_foreign_key "programs", "users", column: "main_facilitator_id"
+  add_foreign_key "session_cancellation_deliveries", "builder_sessions"
+  add_foreign_key "session_cancellation_deliveries", "users"
   add_foreign_key "session_reminders", "builder_sessions"
   add_foreign_key "session_reminders", "users"
 end

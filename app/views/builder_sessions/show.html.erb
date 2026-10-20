@@ -7,9 +7,25 @@
 
   <% if @builder_session.state == "cancelled" %>
     <section class="session-ready-panel">
-      <p class="eyebrow">Cancelled on Google Calendar</p>
+      <p class="eyebrow"><%= @builder_session.cancellation_requested_at? ? "Session cancelled" : "Cancelled on Google Calendar" %></p>
       <h2>This session is no longer scheduled.</h2>
-      <p>The record stays here so the Calendar history remains intact.</p>
+      <p>Session reminders have stopped. The record stays here so the Calendar history remains intact.</p>
+      <% if session_operator? && @builder_session.cancellation_requested_at? %>
+        <% cancellation_connection = @builder_session.program.calendar_connection %>
+        <p data-session-cancellation-status role="status">
+          <% if @builder_session.cancellation_completed_at? %>
+            Calendar removal and cancellation notifications are complete.
+          <% elsif @builder_session.cancellation_deliveries.where(sent_at: nil, skipped_at: nil).any?(&:retry_expired?) %>
+            Some emails need an Administrator to check delivery before retrying.
+          <% elsif @builder_session.cancellation_calendar_deleted_at? %>
+            The Calendar event has been removed. Cancellation emails are pending and will retry automatically.
+          <% elsif !cancellation_connection || !cancellation_connection.status.in?(%w[connected error]) || cancellation_connection.google_calendar_id != @builder_session.source_calendar_id %>
+            Calendar removal is paused. Ask an Administrator to reconnect the original Calendar before continuing. Cancellation emails have not been sent.
+          <% else %>
+            Calendar removal is pending and will retry automatically. Cancellation emails will follow once the event is removed.
+          <% end %>
+        </p>
+      <% end %>
     </section>
   <% elsif @builder_session.state == "ready" %>
     <section class="session-ready-panel">
@@ -41,6 +57,29 @@
         <% end %>
       <% end %>
     </section>
+
+    <% if session_operator? && @builder_session.scheduled_starts_at.future? %>
+      <% cancellation_date = @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone).strftime("%A %-d %B %Y at %H:%M %Z") %>
+      <details class="session-cancellation-panel">
+        <summary>☢ Cancel session</summary>
+        <h2>Cancel <%= cancellation_date %>?</h2>
+        <p>This stops reminders, removes this occurrence from Google Calendar, and emails Active Builders and Facilitators who have notifications enabled. Each email includes their last recorded promise and the Loop Monster. Other sessions stay scheduled.</p>
+        <% if @builder_session.source_calendar_id.blank? || @builder_session.source_calendar_id != @builder_session.program.calendar_connection&.google_calendar_id %>
+          <p class="form-warning">Sync the selected Calendar before canceling. If this session came from another Calendar, reconnect that original Calendar first.</p>
+        <% end %>
+        <%= form_with url: cancel_builder_session_path(@builder_session), data: { turbo: false } do |form| %>
+          <%= form.hidden_field :expected_scheduled_starts_at, value: @builder_session.scheduled_starts_at.iso8601(6) %>
+          <%= form.label :cancellation_reason, "Reason to include in the cancellation email" %>
+          <%= form.text_area :cancellation_reason, required: true, maxlength: 500, rows: 3,
+            placeholder: "Rich has an important appointment he can’t miss." %>
+          <%= form.label :confirm_cancellation, class: "session-cancellation-confirmation" do %>
+            <%= form.check_box :confirm_cancellation, required: true %>
+            <span>I confirm: cancel only <%= cancellation_date %>, remove its Calendar event, and send the personalized emails.</span>
+          <% end %>
+          <%= form.submit "☢ Cancel this session", class: "button button-primary" %>
+        <% end %>
+      </details>
+    <% end %>
 
     <section class="attendance-panel">
       <div class="section-heading"><p class="eyebrow">Expected attendance</p><h2>Builders and facilitators</h2></div>
@@ -134,7 +173,7 @@
               </details>
             <% end %>
             <details class="session-confirmation cancel-session">
-              <summary>Cancel session</summary>
+              <summary>Discard mistaken start</summary>
               <p>Only use this for a mistaken start. The timer run will be discarded and this session will return to Ready.</p>
               <%= button_to "Discard session run", cancel_start_builder_session_path(@builder_session),
                 params: { run_started_at: run_token },

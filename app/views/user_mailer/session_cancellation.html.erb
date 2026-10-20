@@ -1,0 +1,21 @@
+<% content_for :preheader, "#{@session_date.strftime('%A')} is canceled. Your side project gets some bonus building time." %>
+<p style="margin: 0 0 18px; color: #a40f32; font-size: 11px; line-height: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Session update · <%= @session_date.strftime("%-d %B") %></p>
+<p style="font-size: 16px; line-height: 26px;">Hey <%= @recipient_name %>,</p>
+<p style="font-size: 16px; line-height: 26px;"><%= @session_date.strftime("%A") %>’s Rails Builders session (<%= @session_date.strftime("%-d %B") %>) is canceled. <%= @builder_session.cancellation_reason %></p>
+<% if @promise %>
+  <p style="font-size: 16px; line-height: 26px;">You now have more time to work on what you promised:</p>
+  <div style="margin: 22px 0; padding: 20px 22px; border-left: 3px solid #a40f32; background-color: #fffaf6; border-radius: 0 12px 12px 0;">
+    <p style="margin: 0 0 10px; color: #715f62; font-size: 12px; line-height: 18px;"><%= link_to "Your last recorded promise · #{@promise.builder_session.scheduled_starts_at.in_time_zone(@promise.builder_session.time_zone).strftime('%-d %B')}", builder_session_url(@promise.builder_session), style: "color: #715f62;" %></p>
+    <p style="margin: 0; color: #35292c; font-size: 16px; line-height: 26px;"><%= @promise.body %></p>
+  </div>
+<% else %>
+  <p style="font-size: 16px; line-height: 26px;">You now have more time to work on your next small win. We don’t have a recorded promise for you yet, so pick something worth showing us.</p>
+<% end %>
+<%= image_tag attachments["loop-monster-rust-mac.png"].url, width: 460, alt: "A determined Loop Monster hacking on a Rust app on his MacBook.", style: "display: block; width: 100%; max-width: 460px; height: auto; margin: 24px auto 12px; border: 0; border-radius: 12px;" %>
+<p style="font-size: 16px; line-height: 26px;">The Loop Monster is already arguing with the Rust compiler. He calls it progress.</p>
+<% if @next_session %>
+  <p style="font-size: 16px; line-height: 26px;">See you <%= @next_session.scheduled_starts_at.in_time_zone(@next_session.time_zone).strftime("%A %-d %B at %H:%M %Z") %>. <%= link_to "Session details", builder_session_url(@next_session), style: "color: #a40f32;" %>.</p>
+<% else %>
+  <p style="font-size: 16px; line-height: 26px;">There isn’t another session scheduled yet. <%= link_to "Check Sessions for the next date", builder_sessions_url, style: "color: #a40f32;" %>.</p>
+<% end %>
+<p style="margin: 24px 0 0; font-size: 16px; line-height: 26px;">Sincerely yours,<br>Rich and Otto Labot</p>

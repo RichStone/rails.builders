@@ -34,6 +34,9 @@ production:
   send_session_reminders:
     class: SessionReminderJob
     schedule: every minute
+  finish_session_cancellations:
+    class: SessionCancellationJob
+    schedule: every minute
   enforce_attendance_strike_limit:
     class: StrikeLimitJob
     schedule: every minute

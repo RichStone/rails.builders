@@ -31,6 +31,7 @@ Rails.application.routes.draw do
     member do
       get :join
       post :start
+      post :cancel
       post :cancel_start
       post :pause
       post :resume

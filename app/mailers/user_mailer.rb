@@ -46,6 +46,30 @@ class UserMailer < ApplicationMailer
     mail(to: user.email, subject: "Reminder: #{builder_session.title}")
   end
 
+  def session_cancellation(user, builder_session)
+    user.reload if user.persisted?
+    builder_session.reload if builder_session.persisted?
+    return unless user.receives_session_cancellations? && builder_session.state == "cancelled" &&
+      builder_session.cancellation_requested_at? && builder_session.cancellation_calendar_deleted_at?
+
+    @builder_session = builder_session
+    @recipient_name = user.name.to_s.split.first || "Builder"
+    @session_date = builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone)
+    @promise = user.next_session_promises.joins(:builder_session)
+      .where(builder_sessions: { program_id: builder_session.program_id, state: "completed" })
+      .where("builder_sessions.scheduled_starts_at < ?", builder_session.scheduled_starts_at)
+      .where.not(builder_session_id: BuilderSessionTranscript.where(state: "deleted").select(:builder_session_id))
+      .includes(:builder_session).order("builder_sessions.scheduled_starts_at DESC, builder_sessions.id DESC").first
+    @next_session = builder_session.program.builder_sessions.where(state: "ready")
+      .where("scheduled_starts_at > ?", [ builder_session.scheduled_starts_at, Time.current ].max)
+      .order(:scheduled_starts_at, :id).first
+    attachments.inline["loop-monster-rust-mac.png"] = Rails.root.join("app/assets/images/loop-monster-rust-mac.png").binread
+    attachments["loop-monster-rust-mac.png"].content_id = "loop-monster-rust-mac"
+    mail(to: user.email, reply_to: "rich@looplabs.cc",
+      subject: "#{@session_date.strftime('%-d %b')} session canceled. Your side project approves.",
+      options: { idempotency_key: "session-cancellation-#{builder_session.id}-#{user.id}" })
+  end
+
   def strike_limit_reached(user, attendance)
     user.reload if user.persisted?
     return if user.active? || user.removed? || !user.receives_enrollment_notifications?

@@ -14,8 +14,10 @@ class BuilderSession < ApplicationRecord
   has_many :next_session_promises, dependent: :restrict_with_error
   has_many :peer_feedbacks, dependent: :restrict_with_error
   has_many :session_reminders, dependent: :destroy
+  has_many :cancellation_deliveries, class_name: "SessionCancellationDelivery", dependent: :destroy
 
   encrypts :meet_url
+  encrypts :cancellation_reason, :source_calendar_id
 
   validates :google_event_id, :title, :time_zone, :scheduled_starts_at, :scheduled_ends_at, presence: true
   validates :google_event_id, uniqueness: { scope: :program_id }
@@ -30,6 +32,7 @@ class BuilderSession < ApplicationRecord
   validates :pre_core_duration_seconds, :hangout_duration_seconds,
     numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 5.hours.to_i }
   validates :finish_reason, inclusion: { in: %w[manual automatic] }, allow_nil: true
+  validates :cancellation_reason, presence: true, length: { maximum: 500 }, if: :cancellation_requested_at?
   validate :configured_duration_fits_safety_window
   validate :scheduled_end_follows_start
   validate :meet_url_is_canonical
@@ -45,6 +48,28 @@ class BuilderSession < ApplicationRecord
 
   def scheduled_for_today?(at: Time.current)
     scheduled_starts_at.in_time_zone(time_zone).to_date == at.in_time_zone(time_zone).to_date
+  end
+
+  def request_cancellation!(reason:, expected_scheduled_starts_at:)
+    with_lock do
+      return false if cancellation_requested_at?
+
+      connection = program.calendar_connection&.reload
+      unless state == "ready" && scheduled_starts_at > Time.current &&
+          scheduled_starts_at.iso8601(6) == expected_scheduled_starts_at &&
+          connection&.status.in?(%w[connected error]) && source_calendar_id.present? &&
+          source_calendar_id == connection.google_calendar_id
+        errors.add(:base, "This session changed or its calendar needs reconnecting. Reload before cancelling.")
+        raise ActiveRecord::RecordInvalid, self
+      end
+
+      update!(state: "cancelled", cancellation_requested_at: Time.current,
+        cancellation_reason: reason.to_s.strip)
+      User.active.or(User.where(facilitator: true)).find_each do |user|
+        cancellation_deliveries.create!(user:) if user.receives_session_cancellations?
+      end
+    end
+    true
   end
 
   def session_record_writable?
