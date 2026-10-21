@@ -20,6 +20,15 @@
     <p class="countdown-label" data-countdown-target="label"><%= @program.started? ? "until current program ends" : "until the program begins" %></p>
   </section>
 
+  <% if (product = current_user.focus_product) %>
+    <section class="action-panel" data-current-problem>
+      <p class="eyebrow">Your focus product</p>
+      <h2><%= product.name %></h2>
+      <%= render "products/stage", product: product %>
+      <%= link_to "Update your stage & analysis", edit_profile_path, class: "button button-quiet" %>
+    </section>
+  <% end %>
+
   <section class="action-panel dashboard-next-steps">
     <% enrollment_step_complete = current_user.active? || current_user.waitlisted? %>
     <% profile_step_complete = current_user.public_profile? %>

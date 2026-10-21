@@ -46,7 +46,7 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
   end
 
   test "the current speaker has a readable emphasized promise and project on desktop and mobile" do
-    @builder.products.create!(name: "Tiny Onboarding", url: "https://example.com/onboarding", focus: true)
+    @builder.products.create!(name: "Tiny Onboarding", url: "https://example.com/onboarding", focus: true, stage_problem: "offer", stage_problem_analysis: "The app works; repeat demand is still unproven.")
     live_session = @program.builder_sessions.create!(google_event_id: "live-learning-browser", title: "One useful next move", scheduled_starts_at: Time.current, scheduled_ends_at: 1.hour.from_now, time_zone: "Europe/Berlin")
     live_session.start!(facilitator: @facilitator)
     live_session.finish_current_speaker! until live_session.current_speaker_attendance.user == @builder
@@ -55,6 +55,8 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     visit builder_session_path(live_session)
 
     assert_link "Tiny Onboarding", href: "https://example.com/onboarding"
+    assert_selector ".live-session-stage [data-product-stage]", text: "1. Offer (PMF)"
+    assert_selector ".live-session-stage [data-product-stage]", text: "repeat demand is still unproven"
     assert_selector "[data-previous-promise]", text: "Test the smaller onboarding flow with three customers."
     assert_selector "[data-session-prompts]", text: "One business challenge"
     capture_learning_screenshot("session-live-promise-desktop", ".live-session-stage")
@@ -74,6 +76,33 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     capture_learning_screenshot("session-live-promise-warning-mobile", ".live-session-stage")
   ensure
     page.current_window.resize_to(1280, 900)
+  end
+
+  test "builders and facilitators edit the product's current problem" do
+    @builder.products.create!(name: "Tiny Onboarding", url: "https://example.com/onboarding", focus: true)
+    sign_in_as(@builder)
+    visit edit_profile_path
+
+    within("form.profile-form") do
+      select "1. Offer (PMF)", from: "Stage problem"
+      fill_in "Stage problem analysis", with: "The product works, but repeat demand is unproven."
+      click_button "Save profile"
+    end
+
+    assert_selector "[data-current-problem]", text: "repeat demand is unproven"
+    capture_learning_screenshot("product-stage-dashboard", "[data-current-problem]")
+
+    sign_in_as(@facilitator)
+    visit builder_path(@builder)
+    within("[data-builder-products]") do
+      select "2. Product", from: "Stage problem"
+      fill_in "Stage problem analysis", with: "Returning paid customers validate demand; activation now needs fewer steps."
+      click_button "Save stage"
+    end
+    assert_text "Product stage updated."
+    assert_equal "product", find("[data-builder-products] select").value
+    assert_field "Stage problem analysis", with: "Returning paid customers validate demand; activation now needs fewer steps."
+    capture_learning_screenshot("product-stage-facilitator", "[data-builder-products]")
   end
 
   private

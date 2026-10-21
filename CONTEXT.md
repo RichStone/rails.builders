@@ -65,12 +65,20 @@ A person's name, image, products, and testimonial. Every field remains private u
 _Avoid_: Account, waitlist profile
 
 **Product**:
-An app or business a Rails Builder is building, identified by a name and URL. A Public Builder Profile may contain multiple Products.
+An app, business, or offer a Rails Builder is developing, identified by a name and an optional URL. A Product can exist before it has a public website, and a Public Builder Profile may contain multiple Products.
 _Avoid_: Project, product link
 
 **Focus Product**:
 The one Product a Rails Builder identifies as their main focus right now. The public Builder card leads with the Focus Product and may expand to reveal the others.
 _Avoid_: Primary account, only product
+
+**Stage Problem**:
+A Product’s current bottleneck: Offer (PMF), Product, Traffic, or Business Model. A working app does not establish product-market fit; a solid offer and proven fit come before Product or Traffic, and stalled growth can prompt a return to earlier stages or a business-model review.
+_Avoid_: Builder rank, maturity score
+
+**Stage Problem Analysis**:
+A one- or two-sentence, revisable explanation of a Product’s current bottleneck and the evidence or uncertainty behind that assessment. It is private Program context shared by the Builder, Facilitators, Administrators, and Active Builders.
+_Avoid_: Public product description, proven diagnosis
 
 **Anonymous Builder Card**:
 A public placeholder representing a homepage-listed Builder whose Public Builder Profile is private or awaiting approval, without revealing their identity or app. Each card has a stable, server-generated nerd alias and its own decorative visual treatment, and can become a Public Builder Profile when its Builder opts in.

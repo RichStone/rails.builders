@@ -1,0 +1,15 @@
+<% field_prefix = local_assigns[:prefix] || dom_id(form.object) %>
+<%= form.label :stage_problem, "Stage problem", for: "#{field_prefix}_stage_problem" %>
+<%= form.select :stage_problem, Product::STAGE_PROBLEMS.map { |value, label| [label, value] }, { include_blank: "Not assessed yet" }, id: "#{field_prefix}_stage_problem" %>
+<%= form.label :stage_problem_analysis, "Stage problem analysis", for: "#{field_prefix}_stage_problem_analysis" %>
+<%= form.text_area :stage_problem_analysis, rows: 3, maxlength: 600, placeholder: "In one or two sentences, what is the current bottleneck and what evidence supports it?", id: "#{field_prefix}_stage_problem_analysis" %>
+<small>Shared privately with Program participants. You, a Facilitator, or an Administrator can update this assessment.</small>
+<details class="stage-guide">
+  <summary>How to choose the current stage</summary>
+  <ol>
+    <li><strong>Offer (PMF):</strong> Clarify who buys, the outcome they want, and evidence of sustained demand. Stay here until the offer is solid and product-market fit is proven, even if the app already works.</li>
+    <li><strong>Product:</strong> With a solid offer and proven PMF, fix the delivery, quality, or activation bottleneck.</li>
+    <li><strong>Traffic:</strong> With the offer, PMF, and product working, reach more of the right customers.</li>
+    <li><strong>Business Model:</strong> If growth stalls despite those foundations, revisit earlier assumptions or examine pricing, costs, retention, and the business model overall.</li>
+  </ol>
+</details>

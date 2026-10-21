@@ -6,5 +6,5 @@
 Rails.application.config.filter_parameters += [
   :passw, :email, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn, :cvv, :cvc,
   :code, :state, :oauth, :refresh, :access_token, :meet_url, :transcript, :summary_notes, :session_analysis, :builder_session_chat_log, :cancellation_reason,
-  "cf-turnstile-response", :website
+  :stage_problem_analysis, "cf-turnstile-response", :website
 ]

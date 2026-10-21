@@ -9,7 +9,7 @@ class ProfilesController < ApplicationController
   def update
     current_user.transaction do
       current_user.assign_attributes(user_params)
-      current_user.public_profile_approved = false
+      current_user.public_profile_approved = false if current_user.changed? || current_user.attachment_changes.any?
       save_focus_product
       current_user.save!
     end
@@ -35,7 +35,7 @@ class ProfilesController < ApplicationController
   end
 
   def save_focus_product
-    attributes = params.fetch(:product, {}).permit(:name, :url)
+    attributes = params.fetch(:product, {}).permit(:name, :url, :stage_problem, :stage_problem_analysis)
     return if attributes[:name].blank? && attributes[:url].blank?
 
     product = current_user.focus_product || Product.new(user: current_user)

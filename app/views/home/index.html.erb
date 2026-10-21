@@ -76,7 +76,8 @@
                   <%= facilitator.name.to_s.first || "R" %>
                 <% end %>
               </div>
-              <div><h2><%= facilitator.name %></h2><p>Working on <%= link_to facilitator.focus_product&.name || "Loop Labs", facilitator.focus_product&.url || "https://looplabs.cc" %>. Keeping the room moving, the ass-kicking candid, and the red thread visible.</p></div>
+              <% product = facilitator.focus_product %>
+              <div><h2><%= facilitator.name %></h2><p>Working on <%= link_to_if product.nil? || product.url.present?, product&.name || "Loop Labs", product&.url || "https://looplabs.cc" %>. Keeping the room moving, the ass-kicking candid, and the red thread visible.</p></div>
             </div>
           <% end %>
         </div>
