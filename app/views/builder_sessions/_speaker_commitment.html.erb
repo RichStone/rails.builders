@@ -6,7 +6,6 @@
         <span aria-hidden="true">◆</span> <%= project.name %> <span aria-hidden="true">↗</span>
       <% end %><% else %><strong><%= project.name %></strong><% end %>
     </div>
-    <%= render "products/stage", product: project %>
   <% end %>
   <% if (promise = builder_session.previous_promise_for(builder)) %>
     <aside class="speaker-promise" aria-label="Your promise from your last session" data-previous-promise>
@@ -14,4 +13,5 @@
       <p><%= promise.body %></p>
     </aside>
   <% end %>
+  <%= render "products/stage", product: project %>
 <% end %>

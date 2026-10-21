@@ -58,6 +58,7 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     assert_selector ".live-session-stage [data-product-stage]", text: "1. Offer (PMF)"
     assert_selector ".live-session-stage [data-product-stage]", text: "repeat demand is still unproven"
     assert_selector "[data-previous-promise]", text: "Test the smaller onboarding flow with three customers."
+    assert_selector "[data-previous-promise] + [data-product-stage]", text: "repeat demand is still unproven"
     assert_selector "[data-session-prompts]", text: "One business challenge"
     capture_learning_screenshot("session-live-promise-desktop", ".live-session-stage")
 
@@ -69,6 +70,8 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     speaker.update!(speaker_started_at: Time.current - speaker.speaker_allotted_seconds + 90.seconds)
     visit builder_session_path(live_session)
     assert_selector ".live-session-stage.timer-amber [role='status']", text: "⚠️ Wrap up soon"
+    assert_operator find("[data-product-stage]").style("background-color").fetch("background-color"), :!=,
+      find(".live-session-stage").style("background-color").fetch("background-color")
     all(".speaker-context-label, .speaker-project a, .speaker-promise p").each do |element|
       assert_matches_style element, color: "rgba(69, 26, 3, 1)"
     end

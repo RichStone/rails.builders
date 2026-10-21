@@ -81,6 +81,16 @@
 
 .product-stage { margin: 14px 0; overflow-wrap: anywhere; }
 .product-stage p { margin: 6px 0 0; }
+.live-session-stage .product-stage {
+  max-width: 780px;
+  margin: 18px auto 24px;
+  padding: 16px 20px;
+  border: 1px solid #7dd3fc;
+  border-radius: 14px;
+  color: #0c4a6e;
+  background: #e0f2fe;
+  text-align: left;
+}
 .stage-guide { margin: 8px 0 16px; }
 .stage-guide summary { cursor: pointer; font-weight: 700; }
 .stage-guide li { margin: 8px 0; }
