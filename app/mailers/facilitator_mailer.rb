@@ -4,6 +4,7 @@ class FacilitatorMailer < ApplicationMailer
 
     @user = user
     @status = status
+    @url = builder_url(user)
     mail(
       to: facilitator.email,
       subject: "Rails.Builders: #{user.email} is now #{status.humanize}"

@@ -2,13 +2,9 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["checkbox", "unlock", "activation", "choice", "submit", "effects"]
-  static values = {
-    gated: { type: Boolean, default: true },
-    choiceControlsCheckboxes: { type: Boolean, default: false }
-  }
+  static values = { gated: { type: Boolean, default: true } }
 
   connect() {
-    this.syncCheckboxesFromChoice()
     this.complete = this.checkboxesComplete
     this.sync()
   }
@@ -17,17 +13,6 @@ export default class extends Controller {
     const row = event.currentTarget.closest("[data-readiness-checklist-row]")
     if (event.currentTarget.checked) this.playCheckEffect(row)
     this.sync()
-  }
-
-  toggleChoice() {
-    this.syncCheckboxesFromChoice()
-    this.sync()
-  }
-
-  syncCheckboxesFromChoice() {
-    if (!this.choiceControlsCheckboxesValue || !this.hasChoiceTarget) return
-
-    this.checkboxTargets.forEach((checkbox) => { checkbox.checked = this.choiceTarget.checked })
   }
 
   sync() {

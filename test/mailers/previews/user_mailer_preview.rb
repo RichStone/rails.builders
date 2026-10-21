@@ -7,14 +7,6 @@ class UserMailerPreview < ActionMailer::Preview
     UserMailer.newsletter_confirmation(preview_user, "preview-newsletter-token")
   end
 
-  def seat_offer
-    UserMailer.enrollment_status(preview_user, "offered")
-  end
-
-  def waitlist
-    UserMailer.enrollment_status(preview_user, "waitlisted", 3)
-  end
-
   def confirmed_seat
     UserMailer.enrollment_status(preview_user, "active")
   end

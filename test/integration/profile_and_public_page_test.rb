@@ -203,9 +203,9 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".dashboard-page > .dashboard-next-steps:nth-child(2)" do
       assert_select "li", text: /You’re an Active Builder/
       assert_select "a[href='#{edit_profile_path}']", text: /Make your profile public/
-      assert_select ".next-step-marker", count: 2
+      assert_select ".next-step-marker", count: 3
       assert_select "li.is-complete", count: 1
-      assert_select "li:not(.is-complete)", count: 1
+      assert_select "li:not(.is-complete)", count: 2
       assert_select ".sr-only", text: "Completed", count: 1
       assert_select ".sr-only", text: "Not completed", count: 1
     end
@@ -219,9 +219,9 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
 
     get dashboard_path
 
-    assert_select ".dashboard-program .queue-position", text: /Your current position is #1\. We’ll email you when a seat opens\./
+    assert_select ".dashboard-program .queue-position", text: /Your current position is #1\. We’ll email you once your place is approved\./
     assert_select ".dashboard-head .queue-position", count: 0
-    assert_select ".dashboard-next-steps li", text: /You’re on the waitlist/
+    assert_select ".dashboard-next-steps li", text: /Your request is with the team/
   end
 
   test "a first visit receives a nonempty CSP nonce shared by every script" do

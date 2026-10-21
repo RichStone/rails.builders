@@ -22,7 +22,7 @@
     <% if @builder.promotable_to_active? %>
       <%= form_with url: promote_builder_path(@builder), class: "stacked-form", data: { turbo_confirm: "Promote this Builder directly to Active Builder?" } do |form| %>
         <% if @program.calendar_connection&.status == "connected" %>
-          <label class="check-row"><%= form.check_box :send_calendar_notification, checked: false %><span><strong>Send a Google Calendar update</strong><small>Optional. Google may notify all guests, not only this Builder.</small></span></label>
+          <label class="check-row"><%= form.check_box :send_calendar_notification, checked: true %><span><strong>Send a Google Calendar update</strong><small>Optional. Google may notify all guests, not only this Builder.</small></span></label>
         <% elsif @program.calendar_connection %>
           <p>Reconnect Google Calendar before promotion to add this Builder to upcoming sessions.</p>
         <% end %>

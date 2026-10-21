@@ -178,10 +178,10 @@ class UserMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.decoded, url
     assert_includes mail.html_part.body.decoded, "If you didn’t request this link"
     assert_includes mail.text_part.body.decoded, "If you didn’t request this link"
-    assert_includes mail.html_part.body.decoded, "mark yourself as an Active Builder"
-    assert_includes mail.text_part.body.decoded, "mark yourself as an Active Builder"
-    assert_includes mail.html_part.body.decoded, "join the waitlist"
-    assert_includes mail.text_part.body.decoded, "join the waitlist"
+    assert_includes mail.html_part.body.decoded, "Join Builders"
+    assert_includes mail.text_part.body.decoded, "Join Builders"
+    assert_includes mail.html_part.body.decoded, "Join Builders"
+    assert_includes mail.text_part.body.decoded, "Join Builders"
     assert_match(/your turn is not confirmed/i, mail.html_part.body.decoded)
     assert_match(/your turn is not confirmed/i, mail.text_part.body.decoded)
     assert_includes mail.html_part.body.decoded, home_url
@@ -203,38 +203,14 @@ class UserMailerTest < ActionMailer::TestCase
     assert_no_match(/your turn is not confirmed/i, mail.text_part.body.decoded)
   end
 
-  test "seat offer delivers the dashboard action in both parts" do
+  test "pending requests do not send builders another email or an old offer reminder" do
     user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 3.days.from_now)
-    url = Rails.application.routes.url_helpers.dashboard_url(host: "example.com")
 
-    mail = UserMailer.enrollment_status(user)
-
-    assert_equal [ "builder@example.com" ], mail.to
-    assert_equal "A Rails.Builders seat is yours to confirm", mail.subject
-    assert_match(/confirm your Seat within 72 hours/i, mail.html_part.body.decoded)
-    assert_match(/confirm your Seat within 72 hours/i, mail.text_part.body.decoded)
-    assert_includes mail.html_part.body.decoded, "complete the readiness checklist"
-    assert_includes mail.text_part.body.decoded, "complete the readiness checklist"
-    assert_includes mail.html_part.body.decoded, url
-    assert_includes mail.text_part.body.decoded, url
-  end
-
-  test "offer reminder delivers the dashboard action in both parts" do
-    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 1.day.from_now)
-    url = Rails.application.routes.url_helpers.dashboard_url(host: "example.com")
-
-    mail = UserMailer.offer_reminder(user)
-
-    assert_equal [ "builder@example.com" ], mail.to
-    assert_equal "24 hours left to confirm your Rails.Builders seat", mail.subject
-    assert_includes mail.html_part.body.decoded, url
-    assert_includes mail.text_part.body.decoded, url
-  end
-
-  test "offer reminder is suppressed after the Seat Offer ends" do
-    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active")
-
-    assert_instance_of ActionMailer::Base::NullMail, UserMailer.offer_reminder(user).message
+    assert_no_emails do
+      UserMailer.enrollment_status(user, "offered").deliver_now
+      UserMailer.enrollment_status(user, "waitlisted").deliver_now
+      UserMailer.offer_reminder(user).deliver_now
+    end
   end
 
   test "newsletter confirmation keeps the optional action separate in both parts" do
@@ -249,33 +225,6 @@ class UserMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.decoded, url
     assert_includes mail.html_part.body.decoded, "separate from your Rails.Builders registration"
     assert_includes mail.text_part.body.decoded, "separate from your Rails.Builders registration"
-  end
-
-  test "waitlist outcome explains the position" do
-    Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
-    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
-    url = Rails.application.routes.url_helpers.dashboard_url(host: "example.com")
-
-    mail = UserMailer.enrollment_status(user)
-
-    assert_equal [ "builder@example.com" ], mail.to
-    assert_equal "You’re on the Rails.Builders waitlist", mail.subject
-    assert_includes mail.html_part.body.decoded, "#1"
-    assert_includes mail.text_part.body.decoded, "#1"
-    assert_includes mail.html_part.body.decoded, "We’ll email you when a Seat becomes available"
-    assert_includes mail.text_part.body.decoded, "We’ll email you when a Seat becomes available"
-    assert_includes mail.html_part.body.decoded, url
-    assert_includes mail.text_part.body.decoded, url
-  end
-
-  test "waitlist outcome uses the same queue guidance for every builder" do
-    Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
-    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
-
-    mail = UserMailer.enrollment_status(user)
-
-    assert_includes mail.html_part.body.decoded, "your turn arrives"
-    assert_includes mail.text_part.body.decoded, "your turn arrives"
   end
 
   test "inactive outcome explains the readiness-gated waitlist opt-in" do

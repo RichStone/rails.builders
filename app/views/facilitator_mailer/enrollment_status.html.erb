@@ -1,7 +1,7 @@
 <% content_for :preheader, "#{@user.email} is now #{@status.humanize}." %>
 
 <%= render "layouts/heading", eyebrow: "Facilitator update", title: "Enrollment changed." %>
-<p style="margin: 0 0 24px; color: #4f3d40; font-size: 16px; line-height: 26px;">A builder’s enrollment status changed.</p>
+<p style="margin: 0 0 24px; color: #4f3d40; font-size: 16px; line-height: 26px;"><%= @status.in?(%w[waitlisted offered]) ? "A builder has requested to join. Review their profile and confirm their place by promoting them to Active Builder when a seat is available." : "A builder’s enrollment status changed." %></p>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fffaf6" style="width: 100%; border: 1px solid #ead8d5; background-color: #fffaf6;">
   <tr>
@@ -13,3 +13,5 @@
     <td align="right" style="padding: 18px 20px; color: #7d0b25; font-size: 14px; line-height: 20px; font-weight: 700;"><%= @status.humanize %></td>
   </tr>
 </table>
+
+<%= render "layouts/button", label: "Review builder profile", url: @url %>

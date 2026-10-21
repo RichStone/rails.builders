@@ -104,24 +104,6 @@ class User < ApplicationRecord
     update!(enrollment_status: "offered", offer_expires_at: 72.hours.from_now, waitlist_joined_at: nil, waitlist_rank: nil)
   end
 
-  def accept_offer!
-    expired = false
-
-    with_lock do
-      return false unless offered?
-
-      if offer_expires_at <= Time.current
-        update!(enrollment_status: "expired", offer_expires_at: nil)
-        expired = true
-      else
-        update!(enrollment_status: "active", offer_expires_at: nil)
-      end
-    end
-
-    Program.current.promote_waitlist! if expired
-    !expired
-  end
-
   def expire_offer!
     expired = with_lock do
       next false unless offered?
@@ -202,12 +184,8 @@ class User < ApplicationRecord
     end
   end
 
-  def update_active_membership!(active:, readiness: [])
-    if active
-      return false unless offered? && Program.current.readiness_confirmed?(readiness)
-
-      return accept_offer!
-    end
+  def update_active_membership!(active:)
+    return false if active
 
     Program.current.release_seat! do
       with_lock do
@@ -350,12 +328,13 @@ class User < ApplicationRecord
     immediately_promotable = waitlisted? && !program.promotions_paused? && program.seat_available?
     return if immediately_promotable
 
-    UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later unless strike_limit_release
+    unless strike_limit_release || waitlisted? || offered?
+      UserMailer.enrollment_status(self, enrollment_status, waitlist_position).deliver_later
+    end
     AdministratorMailer.enrollment_status(self, enrollment_status).deliver_later if User.where(administrator: true).exists?
     User.where(facilitator: true, administrator: false).find_each do |facilitator|
       FacilitatorMailer.enrollment_status(facilitator, self, enrollment_status).deliver_later
     end
-    UserMailer.offer_reminder(self).deliver_later(wait_until: offer_expires_at - 24.hours) if offered? && offer_expires_at > 24.hours.from_now
   end
 
   def reset_attendance_streak

@@ -212,10 +212,10 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_select "h1", /Your account is ready/
     assert_select ".dashboard-next-steps" do
-      assert_select "li", text: /Get on the waitlist/
+      assert_select "li", text: /Join Builders/
       assert_select "a[href='#{edit_profile_path}']", text: /Make your profile public/
       assert_select "li.is-complete", count: 0
-      assert_select "li:not(.is-complete)", count: 2
+      assert_select "li:not(.is-complete)", count: 3
     end
     assert_select "input[name='readiness[]']", count: 6
     assert_select "[data-waitlist-readiness] [data-readiness-checklist-target='activation'][hidden]"
@@ -447,27 +447,33 @@ class RegistrationFlowTest < ActionDispatch::IntegrationTest
     assert_equal "inactive", user.reload.enrollment_status
     follow_redirect!
     assert_select "h1", /Your account is ready/
-    assert_select ".dashboard-next-steps li", text: /Get on the waitlist/
+    assert_select ".dashboard-next-steps li", text: /Join Builders/
     assert_select "input[name='readiness[]']", count: 6
     assert_select "[data-readiness-checklist-target='activation'][hidden]"
   end
 
-  test "general admission sends one offer outcome rather than a transient waitlist email" do
-    user = User.create!(email: "general@example.com")
+  test "joining notifies staff with a confirmation link without another builder email" do
+    admin = User.create!(email: "admin@example.com", administrator: true)
+    facilitator = User.create!(email: "facilitator@example.com", facilitator: true)
+    user = User.create!(email: "ready@example.com", verified_at: Time.current, enrollment_status: "inactive")
+    token = user.generate_token_for(:email_verification)
+    post verify_email_path, params: { token: token }
     clear_enqueued_jobs
     ActionMailer::Base.deliveries.clear
 
     perform_enqueued_jobs do
-      token = user.reload.generate_token_for(:email_verification)
-      get verify_email_path(token: token)
-      post verify_email_path, params: { token: token }
+      patch waitlist_path, params: { joined: "1", readiness: %w[0 1 2 3 4 5] }
       patch waitlist_path, params: { joined: "1", readiness: %w[0 1 2 3 4 5] }
     end
 
     assert user.reload.offered?
-    subjects = ActionMailer::Base.deliveries.map(&:subject)
-    assert_not_includes subjects, "You’re on the Rails.Builders waitlist"
-    assert_equal 1, subjects.count("A Rails.Builders seat is yours to confirm")
+    assert_equal "Your join request is already up to date.", flash[:notice]
+    assert_equal [ admin.email, facilitator.email ].sort, ActionMailer::Base.deliveries.flat_map(&:to).sort
+    url = Rails.application.routes.url_helpers.builder_url(user, host: "example.com")
+    ActionMailer::Base.deliveries.each do |mail|
+      assert_includes mail.html_part.body.decoded, url
+      assert_includes mail.text_part.body.decoded, url
+    end
   end
 
   private

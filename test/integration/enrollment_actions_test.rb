@@ -5,7 +5,7 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 10)
   end
 
-  test "offered builder can mark themselves active only after confirming every readiness point" do
+  test "builders wait for staff approval and gain the next session link only after activation" do
     facilitator = User.create!(email: "facilitator@example.com", verified_at: Time.current, facilitator: true)
     Program.current.update!(main_facilitator: facilitator)
     connection = Program.current.create_calendar_connection!(
@@ -16,38 +16,48 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
       oauth_token_json: "{}",
       status: "connected"
     )
+    upcoming = Program.current.builder_sessions.create!(
+      google_event_id: "next-session", title: "Next build",
+      scheduled_starts_at: 1.day.from_now, scheduled_ends_at: 1.day.from_now + 90.minutes,
+      meet_url: "https://meet.google.com/abc-defg-hij", time_zone: "Europe/Madrid"
+    )
     user = User.create!(email: "ready@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     sign_in_as(user)
 
     get dashboard_path
-    assert_select "[data-readiness-checklist-target='activation'][hidden]"
-    assert_select "input[name='readiness[]']", count: 6
-    assert_select "label", text: /I’m an Active Builder/
-    assert_select "form", text: /Accept Seat Offer/, count: 0
-    assert_select "form[data-controller~='membership-toggle']" do
-      assert_select "dialog", text: /Ready to become an Active Builder\?/
-      assert_select "dialog", text: /actually showing up and building stuff/
-      assert_select "button", text: "I’m ready — let’s build"
-      assert_select "input[type='submit']", text: /Confirm Active Builder/, count: 0
-    end
-
-    patch membership_path, params: { active: "1" }
+    assert_select "input[name='readiness[]']", count: 0
+    assert_select "form[action='#{membership_path}']", count: 0
+    assert_select "main", text: /a few days at most/
+    assert_select ".dashboard-next-steps li", count: 3
+    assert_select ".dashboard-next-steps li", text: /Join the next session/
+    assert_select "a[href='#{join_builder_session_path(upcoming)}']", count: 0
+    assert_no_match "meet.google.com", response.body
+    get join_builder_session_path(upcoming)
     assert_redirected_to dashboard_path
-    assert user.reload.offered?
-
-    assert_enqueued_with(job: GoogleCalendarAttendeeJob, args: [ connection.id, user.id, false ]) do
-      patch membership_path, params: { active: "1", readiness: %w[0 1 2 3 4 5] }
-    end
-    assert_redirected_to dashboard_path
-    assert user.reload.active?
-  end
-
-  test "builder can confirm readiness, withdraw, and explicitly rejoin" do
-    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 2.days.from_now)
-    sign_in_as(user)
 
     patch membership_path, params: { active: "1", readiness: %w[0 1 2 3 4 5] }
+    assert_redirected_to dashboard_path
+    assert user.reload.offered?, "a builder must not be able to approve their own seat"
+
+    sign_in_as(facilitator)
+    get builder_path(user)
+    assert_select "input[name='send_calendar_notification'][checked]"
+    assert_enqueued_with(job: GoogleCalendarAttendeeJob, args: [ connection.id, user.id, true ]) do
+      post promote_builder_path(user)
+    end
     assert user.reload.active?
+
+    sign_in_as(user)
+    get dashboard_path
+    assert_select ".dashboard-next-steps li", count: 3
+    assert_select "a[href='#{join_builder_session_path(upcoming)}']", text: "Join the next session"
+    get join_builder_session_path(upcoming)
+    assert_redirected_to "https://meet.google.com/abc-defg-hij"
+  end
+
+  test "builder can withdraw and explicitly request to rejoin" do
+    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active")
+    sign_in_as(user)
 
     post withdraw_seat_path
     assert_equal "withdrawn", user.reload.enrollment_status
@@ -56,7 +66,7 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     assert user.reload.offered?, "open capacity should immediately offer the newly joined builder"
     assert_redirected_to dashboard_path
     follow_redirect!
-    assert_select ".flash", text: /Your turn is open/
+    assert_select ".flash", text: /a few days at most/
   end
 
   test "builder can decline without being silently re-added" do
@@ -104,7 +114,8 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     get dashboard_path
     assert_select "[data-waitlist-readiness] [data-readiness-checklist-target='activation'][hidden]"
     assert_select "[data-waitlist-readiness] h3", text: "The readiness checklist"
-    assert_select "[data-waitlist-readiness] .membership-readiness > p", text: /shared ingredients behind the live sessions.*Tick them off to join the waitlist\./
+    assert_select "[data-waitlist-readiness] .readiness-promise", text: "Confirm the readiness promise to take your seat. Please check your email! 📧"
+    assert_select "[data-waitlist-readiness] .membership-readiness > p", text: /shared ingredients behind the live sessions.*Join Builders/
     assert_select "input[name='readiness[]']", count: 6
 
     patch waitlist_path, params: { joined: "1" }
@@ -117,6 +128,12 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
 
     get dashboard_path
     assert_select "input[name='joined'][checked]"
+    assert_select "input[name='readiness[]']", count: 0
+    assert_select "figure figcaption", text: "The Loop Monster is waiting with you"
+    assert_select "figure img[alt*='watch']"
+    assert_select ".dashboard-next-steps h2", text: "Next: make your public profile"
+    assert_select ".dashboard-next-steps li.is-complete", count: 1
+    assert_select ".dashboard-next-steps li.is-next a[href='#{edit_profile_path}']"
     assert_select "dialog", text: /Give up your spot\?/
     assert_select "dialog", text: /lose position #1.*but I was here before/
     assert_select "button", text: "Keep my spot"
@@ -147,9 +164,10 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
 
     user.update!(enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     get dashboard_path
-    assert_select "form[action='#{membership_path}'] [data-readiness-checklist-target='activation'][hidden]"
+    assert_select "form[action='#{membership_path}']", count: 0
+    assert_select "input[name='readiness[]']", count: 0
     assert_select "form", text: /Accept Seat Offer/, count: 0
-    assert_select "form[action='#{decline_offer_path}']", text: /Decline/
+    assert_select "form[action='#{decline_offer_path}']", text: "Cancel my request"
   end
 
   private
