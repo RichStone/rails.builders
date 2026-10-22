@@ -15,17 +15,19 @@ class FacilitatorMailerTest < ActionMailer::TestCase
 
   test "facilitators can independently stop enrollment and product updates or pause both" do
     facilitator = User.create!(email: "facilitator@example.com", facilitator: true, enrollment_notifications: false)
-    builder = User.create!(email: "builder@example.com")
+    builder = User.create!(email: "builder@example.com", name: "Ruby Builder")
+    product = builder.products.create!(name: "Useful App", focus: true)
+    builder.update!(public_profile: true)
 
     assert_no_emails { FacilitatorMailer.enrollment_status(facilitator, builder).deliver_now }
-    assert_emails(1) { FacilitatorMailer.product_digest(facilitator, [], Date.current).deliver_now }
+    assert_emails(1) { FacilitatorMailer.product_digest(facilitator, [ product.id ], Date.current).deliver_now }
     facilitator.update!(enrollment_notifications: true, product_update_notifications: false)
     assert_emails(1) { FacilitatorMailer.enrollment_status(facilitator, builder).deliver_now }
-    assert_no_emails { FacilitatorMailer.product_digest(facilitator, [], Date.current).deliver_now }
+    assert_no_emails { FacilitatorMailer.product_digest(facilitator, [ product.id ], Date.current).deliver_now }
     facilitator.update!(notifications_enabled: false, product_update_notifications: true)
     assert_no_emails do
       FacilitatorMailer.enrollment_status(facilitator, builder).deliver_now
-      FacilitatorMailer.product_digest(facilitator, [], Date.current).deliver_now
+      FacilitatorMailer.product_digest(facilitator, [ product.id ], Date.current).deliver_now
     end
   end
 
@@ -33,7 +35,7 @@ class FacilitatorMailerTest < ActionMailer::TestCase
     facilitator = User.create!(email: "facilitator@example.com", facilitator: true)
     builder = User.create!(email: "builder@example.com", name: "Ruby Builder")
     product = builder.products.create!(name: "Useful App", url: "https://product.example", focus: true)
-    builder.update!(public_profile: true, public_profile_approved: true)
+    builder.update!(public_profile: true)
     review_url = Rails.application.routes.url_helpers.facilitator_profile_reviews_url(anchor: "builder-#{builder.id}", host: "example.com")
 
     mail = FacilitatorMailer.product_digest(facilitator, [ product.id ], Date.new(2026, 8, 16))
@@ -47,5 +49,24 @@ class FacilitatorMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.decoded, "https://product.example"
     assert_includes mail.html_part.body.decoded, review_url
     assert_includes mail.text_part.body.decoded, review_url
+    assert_includes mail.html_part.body.decoded, "1 product update needs review"
+    assert_includes mail.text_part.body.decoded, "1 product update needs review"
+  end
+
+  test "product digest sends nothing when the selected products no longer need review" do
+    facilitator = User.create!(email: "facilitator@example.com", facilitator: true)
+    builder = User.create!(email: "builder@example.com", name: "Ruby Builder")
+    product = builder.products.create!(name: "Useful App", focus: true)
+    product_ids = [ product.id ]
+
+    builder.update!(public_profile: true, public_profile_approved: true)
+    assert_no_emails { FacilitatorMailer.product_digest(facilitator, product_ids, Date.current).deliver_now }
+
+    builder.update!(public_profile: false)
+    assert_no_emails { FacilitatorMailer.product_digest(facilitator, product_ids, Date.current).deliver_now }
+
+    product.destroy!
+    assert_no_emails { FacilitatorMailer.product_digest(facilitator, product_ids, Date.current).deliver_now }
+    assert_no_emails { FacilitatorMailer.product_digest(facilitator, [], Date.current).deliver_now }
   end
 end

@@ -1,6 +1,6 @@
 Rails.Builders product updates for <%= @day.to_fs(:long) %>
 
-<%= pluralize(@products.size, "product was", "products were") %> created or updated. Review any public profiles waiting for approval.
+<%= pluralize(@products.size, "product update needs", "product updates need") %> review. The public profiles below are waiting for approval.
 
 Open facilitator review queue:
 <%= @url %>
@@ -9,6 +9,6 @@ Open facilitator review queue:
 Builder: <%= product.user.name.presence || product.user.email %>
 <% if product.url.present? %>Open product: <%= product.url %>
 <% end %>
-<% if product.user.public_profile? %>Review profile: <%= facilitator_profile_reviews_url(anchor: "builder-#{product.user_id}") %><% else %>Profile is private. There’s no review action.<% end %>
+Review profile: <%= facilitator_profile_reviews_url(anchor: "builder-#{product.user_id}") %>
 
 <% end %>

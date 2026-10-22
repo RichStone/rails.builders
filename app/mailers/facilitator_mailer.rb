@@ -15,7 +15,9 @@ class FacilitatorMailer < ApplicationMailer
     return unless facilitator.reload.receives_product_updates?
 
     @day = day.to_date
-    @products = Product.includes(:user).where(id: product_ids).order(:updated_at, :id)
+    @products = Product.includes(:user).where(id: product_ids, users: { public_profile: true, public_profile_approved: false }).order(:updated_at, :id).to_a
+    return if @products.empty?
+
     @url = facilitator_profile_reviews_url
     mail(
       to: facilitator.email,
