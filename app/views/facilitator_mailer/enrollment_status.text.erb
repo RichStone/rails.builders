@@ -1,1 +1,7 @@
 Rails.Builders enrollment update: <%= @user.email %> is now <%= @status.humanize %>.
+
+Review builder profile:
+<%= @url %>
+
+<% if @status.in?(%w[waitlisted offered]) %>Review their profile and confirm their place by promoting them to Active Builder when a seat is available.
+<% end %>

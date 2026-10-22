@@ -17,6 +17,7 @@ module ActiveSupport
       Rails.cache.clear
       LoginSession.delete_all
       SessionReminder.delete_all
+      SessionCancellationDelivery.delete_all
       PeerFeedback.delete_all
       NextSessionPromise.delete_all
       BuilderSessionChatLog.delete_all

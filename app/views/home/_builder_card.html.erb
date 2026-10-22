@@ -10,7 +10,7 @@
   </div>
   <% if builder.publicly_visible? %>
     <div class="builder-copy"><h4><%= builder.name.presence || "Rails Builder" %></h4>
-      <% if builder.focus_product %><%= link_to builder.focus_product.name, builder.focus_product.url, class: "product-link", target: "_blank", rel: "noopener" %><% end %>
+      <% if builder.focus_product %><%= link_to_if builder.focus_product.url.present?, builder.focus_product.name, builder.focus_product.url, class: "product-link", target: "_blank", rel: "noopener" %><% end %>
       <% if builder.testimonial.present? %><blockquote>“<%= builder.testimonial %>”</blockquote><% end %>
     </div>
   <% else %>

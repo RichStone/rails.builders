@@ -19,7 +19,7 @@
       <% if builder.testimonial.present? %><blockquote>“<%= builder.testimonial %>”</blockquote><% end %>
       <ul>
         <% builder.products.each do |product| %>
-          <li><%= link_to product.name, product.url, target: "_blank", rel: "noopener" %><%= " · Focus product" if product.focus? %></li>
+          <li><%= link_to_if product.url.present?, product.name, product.url, target: "_blank", rel: "noopener" %><%= " · Focus product" if product.focus? %></li>
         <% end %>
       </ul>
       <%= button_to builder.public_profile_approved? ? "Remove approval" : "Approve for publication",

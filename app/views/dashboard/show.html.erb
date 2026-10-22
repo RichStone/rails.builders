@@ -7,7 +7,7 @@
       <p class="program-seats"><%= @program.capacity %> seats · <%= @program.occupied_seats %> reserved</p>
       <% if current_user.waitlisted? %>
         <% position = current_user.waitlist_position %>
-        <p class="queue-position"><strong>#<%= position %></strong><span>Your current position is <b>#<%= position %></b>. We’ll email you when a seat opens.</span></p>
+        <p class="queue-position"><strong>#<%= position %></strong><span>Your current position is <b>#<%= position %></b>. We’ll email you once your place is approved.</span></p>
       <% end %>
     </div>
     <div class="countdown dashboard-countdown" aria-hidden="true">
@@ -20,76 +20,101 @@
     <p class="countdown-label" data-countdown-target="label"><%= @program.started? ? "until current program ends" : "until the program begins" %></p>
   </section>
 
+  <% if (product = current_user.focus_product) %>
+    <section class="action-panel" data-current-problem>
+      <p class="eyebrow">Your focus product</p>
+      <h2><%= product.name %></h2>
+      <%= render "products/stage", product: product %>
+      <%= link_to "Update your stage & analysis", edit_profile_path, class: "button button-quiet" %>
+    </section>
+  <% end %>
+
   <section class="action-panel dashboard-next-steps">
-    <% enrollment_step_complete = current_user.active? || current_user.waitlisted? %>
+    <% enrollment_step_complete = current_user.active? || current_user.waitlisted? || current_user.offered? %>
     <% profile_step_complete = current_user.public_profile? %>
+    <% profile_is_next = enrollment_step_complete && !profile_step_complete %>
     <p class="eyebrow">Your path</p>
-    <h2>Next steps</h2>
+    <h2><%= profile_is_next ? "Next: make your public profile" : "Next steps" %></h2>
+    <% if profile_is_next %><p><%= current_user.active? ? "Your place is confirmed." : "Your request is in." %> Introduce yourself and the product you’re building. Publishing your profile is optional.</p><% end %>
     <ol>
       <li class="<%= "is-complete" if enrollment_step_complete %>"><span class="next-step-marker" aria-hidden="true"></span><span class="sr-only"><%= enrollment_step_complete ? "Completed" : "Not completed" %></span><div>
-        <% if current_user.offered? %>
-          <%= link_to "Become an Active Builder", "#membership" %><small>Confirm the readiness promise to take your seat.</small>
-        <% elsif current_user.active? %>
+        <% if current_user.active? %>
           <strong>You’re an Active Builder</strong><small>Your seat is confirmed.</small>
-        <% elsif current_user.waitlisted? %>
-          <strong>You’re on the waitlist</strong><small>Your queue position is shown above.</small>
+        <% elsif current_user.waitlisted? || current_user.offered? %>
+          <strong>Your request is with the team</strong><small>Give us a few days at most to confirm your place.</small>
         <% elsif current_user.waitlist_eligible? %>
-          <%= link_to "Get on the waitlist", "#waitlist" %><small>Complete the readiness promise when you’re ready.</small>
+          <%= link_to "Join Builders", "#waitlist" %><small>Toggle “Join Builders” after confirming your readiness.</small>
         <% else %>
           <strong>Enrollment is currently unavailable</strong>
         <% end %>
       </div></li>
-      <li class="<%= "is-complete" if profile_step_complete %>"><span class="next-step-marker" aria-hidden="true"></span><span class="sr-only"><%= profile_step_complete ? "Completed" : "Not completed" %></span><div><%= link_to(current_user.public_profile? ? "Manage your public profile on rails.builders" : "Make your profile public on rails.builders (if you want to)", edit_profile_path) %><small><%= profile_visibility_description(current_user) %></small></div></li>
+      <li class="<%= "is-complete" if profile_step_complete %> <%= "is-next" if profile_is_next %>"><span class="next-step-marker" aria-hidden="true"></span><span class="sr-only"><%= profile_step_complete ? "Completed" : "Not completed" %></span><div><%= link_to(current_user.public_profile? ? "Manage your public profile on rails.builders" : "Make your profile public on rails.builders (if you want to)", edit_profile_path, class: ("next-step-link" if profile_is_next)) %><small><%= profile_visibility_description(current_user) %></small></div></li>
+      <li><span class="next-step-marker" aria-hidden="true">3</span><div>
+        <% if current_user.active? && @next_session %>
+          <% if @next_session.meeting_code %>
+            <%= link_to "Join the next session", join_builder_session_path(@next_session), target: "_blank", rel: "noopener" %>
+          <% else %>
+            <%= link_to "Join the next session", builder_session_path(@next_session) %>
+          <% end %>
+          <small><%= @next_session.scheduled_starts_at.in_time_zone(@next_session.time_zone).strftime("%A, %-d %B at %H:%M %Z") %>. Your calendar invite has the details.</small>
+        <% elsif current_user.active? %>
+          <%= link_to "Join the next session", builder_sessions_path %><small>We’ll update your calendar invite when the next session is scheduled.</small>
+        <% else %>
+          <strong>Join the next session</strong><small>Once approved, you’ll receive a calendar invite and the meeting link will appear here.</small>
+        <% end %>
+      </div></li>
     </ol>
   </section>
 
   <div class="dashboard-head"><div><p class="eyebrow">Rails.Builders</p>
-    <% if current_user.offered? %><h1>Your seat is ready.</h1><p>Confirm by <%= current_user.offer_expires_at.to_fs(:long) %>. Your profile can wait.</p>
+    <% if current_user.offered? %><h1>Your request is with the team.</h1><p>Give us a few days at most to confirm your place. Once approved, you’ll receive a calendar invite and can join the next session.</p>
     <% elsif current_user.active? %><h1>You’re an active builder.</h1><p>Your seat in <%= @program.name %> is confirmed.</p>
-    <% elsif current_user.waitlisted? %><h1>You’re on the waitlist.</h1><p>You’re in the queue for <%= @program.name %>.</p>
-    <% elsif current_user.inactive? %><h1>Your account is ready.</h1><p>Complete the readiness check below when you’re ready to join the waitlist.</p>
+    <% elsif current_user.waitlisted? %><h1>You’re on the waitlist.</h1><p>Give us a few days at most to review your request. Once approved, you’ll receive a calendar invite and can join the next session.</p>
+    <% elsif current_user.inactive? %><h1>Your account is ready.</h1><p>Complete the readiness check below when you’re ready to join Builders.</p>
     <% elsif current_user.left_waitlist? %><h1>You left the waitlist.</h1><p>You can join the end of the queue again whenever the timing is right.</p>
     <% elsif current_user.removed? %><h1>Your enrollment was removed.</h1><p>An Administrator can restore your eligibility without granting a Seat.</p>
     <% elsif current_user.enrollment_status.in?(%w[declined expired withdrawn]) %><h1>Your seat is open.</h1><p>You’re not currently active or waiting. Join again whenever the timing is right.</p>
     <% else %><h1>Welcome back.</h1><p>Your Rails.Builders account is ready.</p><% end %>
-  </div><span class="status-pill"><%= current_user.enrollment_status.humanize %></span></div>
+  </div><span class="status-pill"><%= current_user.offered? ? "Awaiting confirmation" : current_user.enrollment_status.humanize %></span></div>
 
-  <% if current_user.offered? %><div class="action-panel"><h2>Your turn is open</h2><p>Your pending offer holds one of the <%= @program.capacity %> seats for 72 hours. Complete the readiness check below to claim it.</p><%= button_to "Decline this turn", decline_offer_path, class: "button button-quiet" %></div><% end %>
-  <div class="action-panel membership-panel" id="membership">
-    <h2>Your membership</h2>
-    <% if current_user.offered? || current_user.active? %>
-      <%= form_with url: membership_path, method: :patch, data: { controller: "readiness-checklist membership-toggle", readiness_checklist_gated_value: current_user.offered? } do %>
-        <div class="membership-activation" <%= "hidden" if current_user.offered? %> data-readiness-checklist-target="activation">
+  <% if current_user.active? %>
+    <div class="action-panel membership-panel" id="membership">
+      <h2>Your membership</h2>
+      <%= form_with url: membership_path, method: :patch, data: { controller: "membership-toggle" } do %>
+        <div class="membership-activation">
           <%= hidden_field_tag :active, "0" %>
-          <label class="check-row membership-switch"><%= check_box_tag :active, "1", current_user.active?, role: "switch", data: { readiness_checklist_target: "choice", membership_toggle_target: "choice", action: "change->readiness-checklist#toggleChoice change->membership-toggle#confirm" } %><span class="membership-switch-control" aria-hidden="true"></span><span><strong>I’m an Active Builder</strong><small>I’m joining the live sessions consistently and building alongside the guys.</small></span></label>
+          <label class="check-row membership-switch"><%= check_box_tag :active, "1", true, role: "switch", data: { membership_toggle_target: "choice", action: "change->membership-toggle#confirm" } %><span class="membership-switch-control" aria-hidden="true"></span><span><strong>I’m an Active Builder</strong><small>I’m joining the live sessions consistently and building alongside the guys.</small></span></label>
         </div>
-        <%= render "toggle_confirmation", id: "membership-confirm", title: current_user.active? ? "Hang up your hard hat?" : "Ready to become an Active Builder?", description: current_user.active? ? "You’ll leave Active Builders and return to civilian life. Your half-finished side projects may miss you—we hope it’s because you made a great exit instead." : "Plot twist: this switch comes with actually showing up and building stuff.", cancel_label: current_user.active? ? "Keep me building" : "Not yet", confirm_label: current_user.active? ? "Leave Active Builders" : "I’m ready — let’s build" %>
-        <div class="membership-readiness">
-          <h3><%= current_user.active? ? "Keep the readiness promise" : "First, check your readiness" %></h3>
-          <p><%= current_user.active? ? "These are the shared ingredients behind the live sessions." : "Your Active Builder checkbox unlocks when every answer is yes." %></p>
-          <%= render "shared/readiness_points", program: @program, checkbox_name: "readiness[]" %>
-          <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
-        </div>
+        <%= render "toggle_confirmation", id: "membership-confirm", title: "Hang up your hard hat?", description: "You’ll leave Active Builders and return to civilian life. Your half-finished side projects may miss you—we hope it’s because you made a great exit instead.", cancel_label: "Keep me building", confirm_label: "Leave Active Builders" %>
       <% end %>
-    <% else %>
-      <p>Active Builder status becomes available when you receive a Seat Offer.</p>
-    <% end %>
-  </div>
+    </div>
+  <% elsif current_user.offered? %>
+    <div class="action-panel waitlist-panel" id="waitlist">
+      <h2>Waiting for confirmation</h2>
+      <%= render "waiting_monster" %>
+      <%= button_to "Cancel my request", decline_offer_path, class: "button button-quiet" %>
+    </div>
+  <% end %>
   <% if current_user.waitlisted? || current_user.waitlist_eligible? %>
     <div class="action-panel waitlist-panel" id="waitlist" data-waitlist-readiness>
-      <h2>Waitlist</h2>
-      <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist membership-toggle", readiness_checklist_gated_value: !current_user.waitlisted?, readiness_checklist_choice_controls_checkboxes_value: true } do %>
+      <h2><%= current_user.waitlisted? ? "Waiting for confirmation" : "Join Builders" %></h2>
+      <%= form_with url: waitlist_path, method: :patch, data: { controller: "readiness-checklist membership-toggle", readiness_checklist_gated_value: !current_user.waitlisted? } do %>
         <div class="membership-activation" <%= "hidden" unless current_user.waitlisted? %> data-readiness-checklist-target="activation">
           <%= hidden_field_tag :joined, "0" %>
-          <label class="check-row membership-switch"><%= check_box_tag :joined, "1", current_user.waitlisted?, role: "switch", data: { readiness_checklist_target: "choice", membership_toggle_target: "choice", action: "change->readiness-checklist#toggleChoice change->membership-toggle#confirm" } %><span class="membership-switch-control" aria-hidden="true"></span><span><strong>Join the waitlist</strong><small><%= current_user.waitlisted? ? "Turn this off to leave the queue without changing your account." : "I’m ready for a Seat Offer when my turn comes." %></small></span></label>
+          <label class="check-row membership-switch"><%= check_box_tag :joined, "1", current_user.waitlisted?, role: "switch", data: { readiness_checklist_target: "choice", membership_toggle_target: "choice", action: "change->membership-toggle#confirm" } %><span class="membership-switch-control" aria-hidden="true"></span><span><strong>Join Builders</strong><small><%= current_user.waitlisted? ? "Turn this off to cancel your request without changing your account." : "The team will review your request and confirm your place." %></small></span></label>
         </div>
-        <%= render "toggle_confirmation", id: "waitlist-confirm", title: current_user.waitlisted? ? "Give up your spot?" : "Ready to join the waitlist?", description: current_user.waitlisted? ? "You’ll lose position ##{current_user.waitlist_position} in the waitlist. The queue is unlikely to respect “but I was here before.”" : "Plot twist: this switch means you’re ready for a Seat Offer when your turn comes.", cancel_label: current_user.waitlisted? ? "Keep my spot" : "Not yet", confirm_label: current_user.waitlisted? ? "Leave the waitlist" : "Put me on the list" %>
-        <div class="membership-readiness">
-          <h3><%= current_user.waitlisted? ? "Keep the readiness promise" : "The readiness checklist" %></h3>
-          <p><%= current_user.waitlisted? ? "These are the shared ingredients behind the live sessions." : "These are the shared ingredients behind the live sessions. If the direction feels right, but you are missing some of these, you still have time to get them in until the start of the sessions, just get your spot then! Tick them off to join the waitlist." %></p>
-          <%= render "shared/readiness_points", program: @program, checkbox_name: "readiness[]" %>
-          <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
-        </div>
+        <%= render "toggle_confirmation", id: "waitlist-confirm", title: current_user.waitlisted? ? "Give up your spot?" : "Ready to join Builders?", description: current_user.waitlisted? ? "You’ll lose position ##{current_user.waitlist_position} in the waitlist. The queue is unlikely to respect “but I was here before.”" : "We’ll notify the admins and facilitators. Give us a few days at most to confirm your place. Once approved, you’ll receive a calendar invite and can join the next session.", cancel_label: current_user.waitlisted? ? "Keep my spot" : "Not yet", confirm_label: current_user.waitlisted? ? "Leave the waitlist" : "Join Builders" %>
+        <% if current_user.waitlisted? %>
+          <%= render "waiting_monster" %>
+        <% else %>
+          <div class="membership-readiness">
+            <h3>The readiness checklist</h3>
+            <p class="readiness-promise">Confirm the readiness promise to take your seat. Please check your email! 📧</p>
+            <p>These are the shared ingredients behind the live sessions. If the direction feels right, but you are missing some of these, you still have time to get them in until the start of the sessions, just get your spot then! Tick them off, then toggle “Join Builders”.</p>
+            <%= render "shared/readiness_points", program: @program, checkbox_name: "readiness[]" %>
+            <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
+          </div>
+        <% end %>
       <% end %>
     </div>
   <% end %>

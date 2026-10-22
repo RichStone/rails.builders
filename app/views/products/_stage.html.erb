@@ -1,0 +1,6 @@
+<% if product %>
+  <div class="product-stage" data-product-stage>
+    <strong>Stage problem: <%= product.stage_problem_label %></strong>
+    <% if product.stage_problem_analysis.present? %><p><%= product.stage_problem_analysis %></p><% end %>
+  </div>
+<% end %>

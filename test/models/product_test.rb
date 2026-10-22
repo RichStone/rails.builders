@@ -1,6 +1,19 @@
 require "test_helper"
 
 class ProductTest < ActiveSupport::TestCase
+  test "private stage edits normalize and encrypt analysis while preserving public approval" do
+    user = User.create!(email: "builder@example.com", name: "Builder")
+    product = user.products.create!(name: "App", url: "https://example.com", focus: true)
+    user.update!(public_profile: true, public_profile_approved: true)
+
+    product.update!(stage_problem: " offer ", stage_problem_analysis: "  Retention is still unproven.  ")
+
+    assert_equal "offer", product.reload.stage_problem
+    assert_equal "Retention is still unproven.", product.stage_problem_analysis
+    assert_not_includes product.ciphertext_for(:stage_problem_analysis), "Retention is still unproven."
+    assert user.reload.public_profile_approved?
+  end
+
   test "a builder can switch focus between multiple products" do
     user = User.create!(email: "builder@example.com")
     first = user.products.create!(name: "First", url: "https://first.example", focus: true)

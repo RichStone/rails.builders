@@ -2,9 +2,9 @@
   <% if (project = builder.focus_product) %>
     <div class="speaker-project" data-speaker-project>
       <span class="speaker-context-label">Currently building</span>
-      <%= link_to project.url, target: "_blank", rel: "noopener noreferrer" do %>
+      <% if project.url.present? %><%= link_to project.url, target: "_blank", rel: "noopener noreferrer" do %>
         <span aria-hidden="true">◆</span> <%= project.name %> <span aria-hidden="true">↗</span>
-      <% end %>
+      <% end %><% else %><strong><%= project.name %></strong><% end %>
     </div>
   <% end %>
   <% if (promise = builder_session.previous_promise_for(builder)) %>
@@ -13,4 +13,5 @@
       <p><%= promise.body %></p>
     </aside>
   <% end %>
+  <%= render "products/stage", product: project %>
 <% end %>

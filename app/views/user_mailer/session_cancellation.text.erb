@@ -1,0 +1,27 @@
+Hey <%= @recipient_name %>,
+
+<%= @session_date.strftime("%A") %>’s Rails Builders session (<%= @session_date.strftime("%-d %B") %>) is canceled. <%= @builder_session.cancellation_reason %>
+
+<% if @promise %>
+You now have more time to work on what you promised:
+
+Your last recorded promise · <%= @promise.builder_session.scheduled_starts_at.in_time_zone(@promise.builder_session.time_zone).strftime("%-d %B") %>
+“<%= @promise.body %>”
+<%= builder_session_url(@promise.builder_session) %>
+<% else %>
+You now have more time to work on your next small win. We don’t have a recorded promise for you yet, so pick something worth showing us.
+<% end %>
+
+[Illustration: A determined Loop Monster hacking on a Rust app on his MacBook.]
+The Loop Monster is already arguing with the Rust compiler. He calls it progress.
+
+<% if @next_session %>
+See you <%= @next_session.scheduled_starts_at.in_time_zone(@next_session.time_zone).strftime("%A %-d %B at %H:%M %Z") %>.
+Session details: <%= builder_session_url(@next_session) %>
+<% else %>
+There isn’t another session scheduled yet. Check Sessions for the next date:
+<%= builder_sessions_url %>
+<% end %>
+
+Sincerely yours,
+Rich and Otto Labot

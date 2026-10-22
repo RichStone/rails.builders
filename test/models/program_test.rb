@@ -5,6 +5,16 @@ class ProgramTest < ActiveSupport::TestCase
     @program = Program.create!(name: "Continuous", starts_on: Date.new(2026, 8, 20), ends_on: Date.new(2026, 12, 17), capacity: 1)
   end
 
+  test "waiting for staff confirmation does not automatically expire a reserved seat" do
+    builder = User.create!(email: "waiting@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 1.hour.ago)
+
+    @program.expire_offers!
+    assert builder.reload.offered?
+
+    @program.expire_offers!(confirmed_by_staff: true)
+    assert_equal "expired", builder.reload.enrollment_status
+  end
+
   test "a facilitator never consumes a seat" do
     User.create!(email: "facilitator@example.com", facilitator: true, enrollment_status: "active", verified_at: Time.current)
     assert_equal 0, @program.occupied_seats

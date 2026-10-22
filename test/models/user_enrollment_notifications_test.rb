@@ -27,7 +27,7 @@ class UserEnrollmentNotificationsTest < ActiveJob::TestCase
       builder.opt_into_waitlist!(readiness: %w[0 1 2 3 4 5])
       program.update!(promotions_paused: false)
       program.promote_waitlist!
-      builder.accept_offer!
+      builder.promote_to_active!
     end
 
     operational_mail = ActionMailer::Base.deliveries.select { |mail| mail.subject.start_with?("Rails.Builders:") }

@@ -1,7 +1,8 @@
 class BuilderSessionsController < ApplicationController
   before_action :require_session_member
-  before_action :require_session_operator, only: %i[sync_calendar start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing]
-  before_action :set_builder_session, only: %i[show join start cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing heartbeat]
+  before_action :require_session_operator, only: %i[sync_calendar start cancel cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing]
+  before_action :require_recent_authentication, only: :cancel
+  before_action :set_builder_session, only: %i[show join start cancel cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing heartbeat]
   before_action :queue_stale_calendar_sync, only: :index
 
   def index
@@ -63,6 +64,23 @@ class BuilderSessionsController < ApplicationController
     cancelled = @builder_session.cancel_start!(expected_started_at: params[:run_started_at])
     redirect_to @builder_session,
       (cancelled ? { notice: "Mistaken session start discarded." } : { alert: "That session run had already changed." })
+  end
+
+  def cancel
+    unless params[:confirm_cancellation] == "1"
+      return redirect_to @builder_session, alert: "Confirm the dated session before canceling it."
+    end
+
+    requested = @builder_session.request_cancellation!(
+      reason: params[:cancellation_reason],
+      expected_scheduled_starts_at: params[:expected_scheduled_starts_at]
+    )
+    queue_session_cancellation if requested
+    redirect_to @builder_session, notice: requested ?
+      "Session canceled. Reminders have stopped; Calendar removal and cancellation emails are pending." :
+      "Cancellation has already been requested for this session."
+  rescue ActiveRecord::RecordInvalid
+    redirect_to @builder_session, alert: "The session could not be canceled. Check that it is still upcoming, reconnect and sync its original Calendar, and provide a reason."
   end
 
   def pause
@@ -175,6 +193,12 @@ class BuilderSessionsController < ApplicationController
   end
 
   private
+
+  def queue_session_cancellation
+    SessionCancellationJob.perform_later(@builder_session.id)
+  rescue StandardError => error
+    Rails.error.report(error, handled: true, context: { builder_session_id: @builder_session.id })
+  end
 
   def set_builder_session
     @builder_session = Program.current.builder_sessions.find(params[:id])

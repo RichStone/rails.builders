@@ -76,7 +76,8 @@
                   <%= facilitator.name.to_s.first || "R" %>
                 <% end %>
               </div>
-              <div><h2><%= facilitator.name %></h2><p>Working on <%= link_to facilitator.focus_product&.name || "Loop Labs", facilitator.focus_product&.url || "https://looplabs.cc" %>. Keeping the room moving, the ass-kicking candid, and the red thread visible.</p></div>
+              <% product = facilitator.focus_product %>
+              <div><h2><%= facilitator.name %></h2><p>Working on <%= link_to_if product.nil? || product.url.present?, product&.name || "Loop Labs", product&.url || "https://looplabs.cc" %>. Keeping the room moving, the ass-kicking candid, and the red thread visible.</p></div>
             </div>
           <% end %>
         </div>
@@ -181,9 +182,9 @@
     </div>
 
     <div id="inactive-builders" class="builder-group">
-      <%= render "builder_group_title", title: "Still prepping for the Build", icon: "🛠️", tooltip: "Signed up, but not yet ready to commit to the Build" %>
+      <%= render "builder_group_title", title: "Dormant Builders", icon: "😴", tooltip: "Just signed up or left cohort" %>
       <div class="builder-grid">
-        <% @inactive_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index, private_label: "Still prepping for the Build" %><% end %>
+        <% @inactive_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index, private_label: "Dormant Builder" %><% end %>
       </div>
     </div>
 

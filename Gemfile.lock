@@ -282,7 +282,7 @@ GEM
     parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
-    posthog-ruby (3.26.4)
+    posthog-ruby (3.27.0)
       concurrent-ruby (~> 1)
     pp (0.6.4)
       prettyprint
@@ -396,7 +396,7 @@ GEM
       logger
     rubyzip (3.7.0)
     securerandom (0.4.1)
-    selenium-webdriver (4.50.0)
+    selenium-webdriver (4.51.0)
       base64 (~> 0.2)
       logger (~> 1.4)
       rubyzip (>= 1.2.2, < 4.0)
@@ -500,7 +500,7 @@ DEPENDENCIES
   kamal (~> 2.0)
   letter_opener
   letter_opener_web (~> 3.0)
-  posthog-ruby (~> 3.26)
+  posthog-ruby (~> 3.27)
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.4)

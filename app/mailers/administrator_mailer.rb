@@ -5,7 +5,7 @@ class AdministratorMailer < ApplicationMailer
 
     @user = user
     @status = status
-    @url = edit_admin_user_url(user)
+    @url = builder_url(user)
     mail(
       to: recipients,
       subject: "Rails.Builders: #{user.email} is now #{status.humanize}"

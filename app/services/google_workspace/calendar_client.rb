@@ -3,6 +3,8 @@ require "time"
 
 module GoogleWorkspace
   class CalendarClient
+    UnsafeEventDeletion = Class.new(StandardError)
+
     PAGE_SIZE = 2_500
     CALENDAR_LIST_FIELDS = "items(id,summary,summaryOverride,timeZone,dataOwner,primary,deleted),nextPageToken"
     EVENT_FIELDS = [
@@ -82,6 +84,27 @@ module GoogleWorkspace
       Array(event.attendees).filter_map do |attendee|
         attendee.email.to_s.downcase if attendee.response_status == "declined"
       end
+    end
+
+    def delete_event(event_id:)
+      event = service.get_event(connection.google_calendar_id, event_id, fields: "status,recurrence,etag")
+      return true if event.status == "cancelled"
+      raise UnsafeEventDeletion, "Refusing to delete a recurring series from a single-session cancellation" if event.recurrence.present?
+      raise UnsafeEventDeletion, "Calendar event version is missing; retry after refreshing the event" if event.etag.blank?
+
+      options = Google::Apis::RequestOptions.default.dup
+      options.header = { "If-Match" => event.etag }
+      service.delete_event(connection.google_calendar_id, event_id, send_updates: "all", options:)
+      true
+    rescue Google::Apis::ClientError => error
+      return true if error.status_code == 410
+      raise unless error.status_code == 404
+
+      # Google also returns 404 when access to the calendar has been revoked.
+      calendar = service.get_calendar_list(connection.google_calendar_id, fields: "id,accessRole")
+      raise error unless calendar.id == connection.google_calendar_id && calendar.access_role == "owner"
+
+      true
     end
 
     private

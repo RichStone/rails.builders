@@ -1,6 +1,18 @@
 require "test_helper"
 
 class FacilitatorMailerTest < ActionMailer::TestCase
+  test "enrollment update links to the builder profile where staff can confirm them" do
+    facilitator = User.create!(email: "facilitator@example.com", facilitator: true)
+    builder = User.create!(email: "builder@example.com", enrollment_status: "waitlisted")
+    url = Rails.application.routes.url_helpers.builder_url(builder, host: "example.com")
+
+    mail = FacilitatorMailer.enrollment_status(facilitator, builder)
+
+    assert_equal [ facilitator.email ], mail.to
+    assert_includes mail.html_part.body.decoded, url
+    assert_includes mail.text_part.body.decoded, url
+  end
+
   test "facilitators can independently stop enrollment and product updates or pause both" do
     facilitator = User.create!(email: "facilitator@example.com", facilitator: true, enrollment_notifications: false)
     builder = User.create!(email: "builder@example.com")

@@ -21,11 +21,11 @@ One of nine available participant places in Continuous. Confirmed Active Builder
 _Avoid_: Waitlist position, account
 
 **Seat Offer**:
-A time-limited invitation to take a Seat. A recipient has three days to confirm before the app automatically offers the capacity to someone else.
+A Seat reservation for a person awaiting Administrator or Facilitator confirmation. Staff can confirm the Builder from their private Builder management profile or explicitly release an old reservation to offer capacity to someone else. Waiting requests do not expire automatically. Builders cannot activate their own Seat.
 _Avoid_: Seat, waitlist notification
 
 **Readiness Check**:
-The Program-owned checklist a verified person confirms before either the “Join the waitlist” or “I’m an Active Builder” control appears. Completing the checklist is an explicit readiness statement, not an automated audit of the person’s product, offer, AI use, Rails use, funnel, or checkout.
+The Program-owned checklist a verified person confirms once before the “Join Builders” control appears. After joining, the dashboard shows the waiting Loop Monster instead of asking for the same checklist again. Completing the checklist is an explicit readiness statement, not an automated audit of the person’s product, offer, AI use, Rails use, funnel, or checkout.
 _Avoid_: Application review, eligibility test
 
 **OG Priority**:
@@ -33,7 +33,7 @@ The initial admission phase in which available Seat Offers go only to verified O
 _Avoid_: Permanent eligibility rule
 
 **Active Builder**:
-A Rails Builder who has confirmed a Seat in Continuous. Active Builder status continues until the person withdraws, reaches the Program's consecutive absence limit, an Administrator removes them, or their account is deleted; the program finish date does not end it automatically.
+A Rails Builder whose Seat in Continuous has been confirmed by an Administrator or Facilitator. Active Builder status continues until the person withdraws, reaches the Program's consecutive absence limit, an Administrator removes them, or their account is deleted; the program finish date does not end it automatically.
 _Avoid_: OG Builder, Registrant, Facilitator
 
 **Inactive Builder**:
@@ -49,7 +49,7 @@ A verified Registrant who has neither a Seat nor a pending Seat Offer. Waitlist 
 _Avoid_: Member, Seat
 
 **Waitlist Opt-In**:
-The explicit action by which an Inactive Builder completes the Readiness Check and joins the end of the waitlist.
+The explicit “Join Builders” action by which an Inactive Builder completes the Readiness Check and requests a place in the waitlist. The dashboard asks them to allow a few days at most for staff review, highlights the optional public profile step, and unlocks the next-session meeting link only after staff activation. The request emails staff a private Builder management link; the Builder receives their enrollment confirmation and Calendar invite after approval.
 _Avoid_: Automatic re-enrollment
 
 **Waitlist Opt-Out**:
@@ -65,12 +65,20 @@ A person's name, image, products, and testimonial. Every field remains private u
 _Avoid_: Account, waitlist profile
 
 **Product**:
-An app or business a Rails Builder is building, identified by a name and URL. A Public Builder Profile may contain multiple Products.
+An app, business, or offer a Rails Builder is developing, identified by a name and an optional URL. A Product can exist before it has a public website, and a Public Builder Profile may contain multiple Products.
 _Avoid_: Project, product link
 
 **Focus Product**:
 The one Product a Rails Builder identifies as their main focus right now. The public Builder card leads with the Focus Product and may expand to reveal the others.
 _Avoid_: Primary account, only product
+
+**Stage Problem**:
+A Product’s current bottleneck: Offer (PMF), Product, Traffic, or Business Model. A working app does not establish product-market fit; a solid offer and proven fit come before Product or Traffic, and stalled growth can prompt a return to earlier stages or a business-model review.
+_Avoid_: Builder rank, maturity score
+
+**Stage Problem Analysis**:
+A one- or two-sentence, revisable explanation of a Product’s current bottleneck and the evidence or uncertainty behind that assessment. It is private Program context shared by the Builder, Facilitators, Administrators, and Active Builders.
+_Avoid_: Public product description, proven diagnosis
 
 **Anonymous Builder Card**:
 A public placeholder representing a homepage-listed Builder whose Public Builder Profile is private or awaiting approval, without revealing their identity or app. Each card has a stable, server-generated nerd alias and its own decorative visual treatment, and can become a Public Builder Profile when its Builder opts in.

@@ -4,13 +4,25 @@
   <p><%= @builder.email %></p>
   <p><%= link_to "← All Builders", builders_path %><% if current_user.administrator? %> · <%= link_to "Edit full Administrator record", edit_admin_user_path(@builder) %><% end %></p>
 
+  <section class="product-list" data-builder-products>
+    <h2>Products & current problems</h2>
+    <% @builder.products.each do |product| %>
+      <h3><%= product.name %><%= " · Focus product" if product.focus? %></h3>
+      <%= form_with model: product, url: stage_product_path(product), method: :patch, class: "stacked-form compact-product-form" do |form| %>
+        <%= render "products/stage_fields", form: form %>
+        <%= form.submit "Save stage", class: "button button-quiet" %>
+      <% end %>
+    <% end %>
+    <% if @builder.products.empty? %><p>No product added yet. The Builder can add their focus product from Profile & products.</p><% end %>
+  </section>
+
   <section class="product-list">
     <h2>Enrollment</h2>
     <p>Status: <strong><%= @builder.enrollment_status.humanize %></strong></p>
     <% if @builder.promotable_to_active? %>
       <%= form_with url: promote_builder_path(@builder), class: "stacked-form", data: { turbo_confirm: "Promote this Builder directly to Active Builder?" } do |form| %>
         <% if @program.calendar_connection&.status == "connected" %>
-          <label class="check-row"><%= form.check_box :send_calendar_notification, checked: false %><span><strong>Send a Google Calendar update</strong><small>Optional. Google may notify all guests, not only this Builder.</small></span></label>
+          <label class="check-row"><%= form.check_box :send_calendar_notification, checked: true %><span><strong>Send a Google Calendar update</strong><small>Optional. Google may notify all guests, not only this Builder.</small></span></label>
         <% elsif @program.calendar_connection %>
           <p>Reconnect Google Calendar before promotion to add this Builder to upcoming sessions.</p>
         <% end %>

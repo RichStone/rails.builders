@@ -86,10 +86,10 @@ class UserTest < ActiveSupport::TestCase
     assert user.reload.offered?
   end
 
-  test "recipient confirms a current offer without completing a profile" do
+  test "staff can confirm a current offer without a public profile" do
     user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "offered", offer_expires_at: 72.hours.from_now)
 
-    assert user.accept_offer!
+    assert user.promote_to_active!
     assert_equal "active", user.reload.enrollment_status
     assert_equal "present", user.slack_desired_state
     assert_nil user.name
