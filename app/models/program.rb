@@ -71,7 +71,10 @@ class Program < ApplicationRecord
     end
   end
 
-  def expire_offers!
+  def expire_offers!(confirmed_by_staff: false)
+    # Old queued hourly commands must not expire requests awaiting staff review.
+    return unless confirmed_by_staff
+
     User.offered.where(offer_expires_at: ..Time.current).find_each(&:expire_offer!)
   end
 

@@ -75,7 +75,7 @@ class BuildersTest < ActionDispatch::IntegrationTest
     get builder_path(@builder)
 
     assert_select "form[action='#{promote_builder_path(@builder)}']" do
-      assert_select "input[name='send_calendar_notification'][type='checkbox']:not([checked])"
+      assert_select "input[name='send_calendar_notification'][type='checkbox'][checked]"
       assert_select "small", text: /notify all guests/
     end
 

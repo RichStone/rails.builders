@@ -293,10 +293,10 @@ class AdminTest < ActionDispatch::IntegrationTest
 
     get edit_admin_user_path(@builder)
     assert_select "input[type='checkbox'][name='user[active]']:not([checked])"
-    assert_select "input[type='checkbox'][name='send_calendar_notification']:not([checked])"
+    assert_select "input[type='checkbox'][name='send_calendar_notification'][checked]"
 
     assert_enqueued_with(job: GoogleCalendarAttendeeJob, args: [ connection.id, @builder.id, true ]) do
-      patch admin_user_path(@builder), params: { user: { active: "1" }, send_calendar_notification: "1" }
+      patch admin_user_path(@builder), params: { user: { active: "1" } }
     end
 
     assert_redirected_to admin_root_path

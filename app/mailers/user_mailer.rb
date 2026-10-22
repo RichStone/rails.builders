@@ -2,7 +2,7 @@ class UserMailer < ApplicationMailer
   def verification(user, token)
     @user = user
     @url = verify_email_url(token: token)
-    @show_readiness_callout = user.enrollment_status.in?(%w[unverified offered])
+    @show_readiness_callout = user.enrollment_status == "unverified"
     mail(to: user.email, subject: "Your Rails.Builders sign-in link")
   end
 
@@ -17,24 +17,20 @@ class UserMailer < ApplicationMailer
     mail(to: user.email, subject: "Confirm your Rails.Builders identity")
   end
 
-  def enrollment_status(user, status = user.enrollment_status, waitlist_position = user.waitlist_position)
+  def enrollment_status(user, status = user.enrollment_status, _waitlist_position = nil)
     user.reload if user.persisted?
     return unless user.receives_enrollment_notifications?
+    return if status.in?(%w[waitlisted offered])
 
     @user = user
     @status = status
-    @waitlist_position = waitlist_position
     @url = dashboard_url
     @content = enrollment_content
     mail(to: user.email, subject: @content.fetch(:subject))
   end
 
-  def offer_reminder(user)
-    @user = user
-    return unless user.reload.offered? && user.receives_enrollment_notifications?
-
-    @url = dashboard_url
-    mail(to: user.email, subject: "24 hours left to confirm your Rails.Builders seat")
+  # Keep already queued reminders harmless now that staff confirm requests.
+  def offer_reminder(_user)
   end
 
   def session_reminder(user, builder_session)
@@ -44,6 +40,30 @@ class UserMailer < ApplicationMailer
     @session_time = format_session_time(builder_session)
     @url = builder_session_url(builder_session)
     mail(to: user.email, subject: "Reminder: #{builder_session.title}")
+  end
+
+  def session_cancellation(user, builder_session)
+    user.reload if user.persisted?
+    builder_session.reload if builder_session.persisted?
+    return unless user.receives_session_cancellations? && builder_session.state == "cancelled" &&
+      builder_session.cancellation_requested_at? && builder_session.cancellation_calendar_deleted_at?
+
+    @builder_session = builder_session
+    @recipient_name = user.name.to_s.split.first || "Builder"
+    @session_date = builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone)
+    @promise = user.next_session_promises.joins(:builder_session)
+      .where(builder_sessions: { program_id: builder_session.program_id, state: "completed" })
+      .where("builder_sessions.scheduled_starts_at < ?", builder_session.scheduled_starts_at)
+      .where.not(builder_session_id: BuilderSessionTranscript.where(state: "deleted").select(:builder_session_id))
+      .includes(:builder_session).order("builder_sessions.scheduled_starts_at DESC, builder_sessions.id DESC").first
+    @next_session = builder_session.program.builder_sessions.where(state: "ready")
+      .where("scheduled_starts_at > ?", [ builder_session.scheduled_starts_at, Time.current ].max)
+      .order(:scheduled_starts_at, :id).first
+    attachments.inline["loop-monster-rust-mac.png"] = Rails.root.join("app/assets/images/loop-monster-rust-mac.png").binread
+    attachments["loop-monster-rust-mac.png"].content_id = "loop-monster-rust-mac"
+    mail(to: user.email, reply_to: "rich@looplabs.cc",
+      subject: "#{@session_date.strftime('%-d %b')} session canceled. Your side project approves.",
+      options: { idempotency_key: "session-cancellation-#{builder_session.id}-#{user.id}" })
   end
 
   def strike_limit_reached(user, attendance)
@@ -71,26 +91,6 @@ class UserMailer < ApplicationMailer
         headline: "Choose your next step.",
         description: "Open your dashboard and complete the readiness checklist before joining the waitlist. You’re not on the waitlist yet; your place in the queue begins only when you explicitly join.",
         button_label: "Open your dashboard"
-      }
-    when "offered"
-      {
-        subject: "A Rails.Builders seat is yours to confirm",
-        preheader: "A Seat is held for you for 72 hours. Confirm or decline it now.",
-        eyebrow: "Seat Offer · Action required",
-        headline: "A Seat is yours.",
-        description: "Confirm your Seat within 72 hours. Rails.Builders is holding your place until then. Open your dashboard, complete the readiness checklist, and mark yourself as an Active Builder. If you decline, Rails.Builders can offer it to the next builder.",
-        button_label: "Review your Seat Offer",
-        note: "Your turn is not confirmed until you mark yourself as an Active Builder. Your profile can stay private."
-      }
-    when "waitlisted"
-      {
-        subject: "You’re on the Rails.Builders waitlist",
-        preheader: "You’re ##{@waitlist_position} on the Rails.Builders waitlist.",
-        eyebrow: "Enrollment update",
-        headline: "You’re on the waitlist.",
-        description: "You’re in line. We’ll email you when a Seat becomes available and your turn arrives.",
-        button_label: "View your waitlist status",
-        position: @waitlist_position
       }
     when "active"
       next_session = Program.current.builder_sessions.where(state: "ready", scheduled_starts_at: Time.current..).order(:scheduled_starts_at).first

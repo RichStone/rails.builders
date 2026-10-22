@@ -74,6 +74,8 @@ class GoogleCalendarSync
 
   def reconcile_event!(event)
     session = program.builder_sessions.find_or_initialize_by(google_event_id: event.fetch(:id))
+    session.lock! if session.persisted?
+    return if session.cancellation_requested_at?
     return unless session.new_record? || session.state.in?(%w[ready cancelled])
 
     if event[:status] == "cancelled"
@@ -83,6 +85,7 @@ class GoogleCalendarSync
 
     session.assign_attributes(
       assigned_facilitator: session.assigned_facilitator || program.main_facilitator,
+      source_calendar_id: connection.google_calendar_id,
       title: event[:title].presence || "Rails.Builders Session",
       description: event[:description],
       location: event[:location],

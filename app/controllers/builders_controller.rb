@@ -12,7 +12,7 @@ class BuildersController < ApplicationController
   end
 
   def promote
-    send_calendar_notification = ActiveModel::Type::Boolean.new.cast(params[:send_calendar_notification])
+    send_calendar_notification = ActiveModel::Type::Boolean.new.cast(params.fetch(:send_calendar_notification, "1"))
     if @builder.promote_to_active!(send_calendar_notification:)
       connection = Program.current.calendar_connection
       notice = "Builder promoted to Active Builder."

@@ -24,27 +24,27 @@ class RegistrationTest < ApplicationSystemTestCase
 
     assert_text "Your account is ready."
     within("[data-waitlist-readiness]") do
-      assert_no_text "Join the waitlist"
+      assert_no_selector ".membership-activation:not([hidden])"
       all(".readiness-item label").each(&:click)
-      assert_text "Join the waitlist"
+      assert_selector ".membership-activation:not([hidden])"
       # Wait for the entrance animation so the label does not move during the click.
       assert_selector ".membership-activation", style: { opacity: "1" }
       find(".membership-activation label").click
-      assert_text "Ready to join the waitlist?"
-      click_button "Put me on the list"
+      assert_text "Ready to join Builders?"
+      click_button "Join Builders"
     end
 
     assert_text "You’re on the waitlist."
     assert_text "#1"
     within("[data-waitlist-readiness]") do
-      assert_selector "input[name='readiness[]']:checked", count: 6, visible: :all
+      assert_no_selector "input[name='readiness[]']", visible: :all
 
       find(".membership-activation label").click
       assert_no_selector "input[name='readiness[]']:checked", visible: :all
       assert_text "You’ll lose position #1 in the waitlist."
       click_button "Keep my spot"
       assert_selector "input[name='joined']:checked", visible: :all
-      assert_selector "input[name='readiness[]']:checked", count: 6, visible: :all
+      assert_no_selector "input[name='readiness[]']", visible: :all
     end
     assert_link "Profile"
   end
@@ -80,25 +80,22 @@ class RegistrationTest < ApplicationSystemTestCase
     assert_no_selector "input[name='newsletter_opt_in']", visible: :all
   end
 
-  test "offered builder unlocks Active Builder status with the readiness checklist" do
+  test "offered builder waits for staff with a completed joining step and a prominent profile step" do
     user = User.create!(email: "ready@example.com", enrollment_status: "offered", offer_expires_at: 2.days.from_now)
     visit verify_email_path(token: user.generate_token_for(:email_verification))
 
-    within(".membership-panel") do
-      assert_no_text "I’m an Active Builder"
-      all(".readiness-item label").each(&:click)
-      assert_text "I’m an Active Builder"
-      assert_selector ".membership-activation", style: { opacity: "1" }
-      find(".membership-activation label").click
-      assert_text "Ready to become an Active Builder?"
-      click_button "I’m ready — let’s build"
+    assert_text "Your request is with the team."
+    assert_text "a few days at most"
+    assert_text "The Loop Monster is waiting with you"
+    assert_no_selector "input[name='readiness[]']", visible: :all
+    within(".dashboard-next-steps") do
+      assert_text "Next: make your public profile"
+      assert_selector "li.is-complete", count: 1
+      assert_selector "li.is-next a", text: "Make your profile public"
+      assert_text "Join the next session"
+      assert_no_link "Join the next session"
     end
-
-    assert_text "You’re an active builder."
-    assert user.reload.active?
-    within(".membership-panel") do
-      assert_no_selector "input[name='readiness[]']:checked", visible: :all
-    end
+    assert user.reload.offered?
   end
 
   test "active builder can reconsider before releasing their Seat" do

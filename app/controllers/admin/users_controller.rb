@@ -7,7 +7,7 @@ class Admin::UsersController < Admin::BaseController
     program = Program.current
     attributes = user_params
     active = ActiveModel::Type::Boolean.new.cast(params.require(:user)[:active]) if params.require(:user).key?(:active)
-    send_calendar_notification = ActiveModel::Type::Boolean.new.cast(params[:send_calendar_notification])
+    send_calendar_notification = ActiveModel::Type::Boolean.new.cast(params.fetch(:send_calendar_notification, "1"))
     updated = false
     program.with_lock do
       @user.public_profile_approved = false if (attributes.keys & %w[name testimonial avatar public_profile]).any?

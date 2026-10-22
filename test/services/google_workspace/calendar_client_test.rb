@@ -4,7 +4,8 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
   Calendar = Google::Apis::CalendarV3
 
   class FakeService
-    attr_reader :calendar_list_calls, :event_calls, :event_get_calls, :event_patch_calls
+    attr_reader :calendar_list_calls, :event_calls, :event_get_calls, :event_patch_calls, :event_delete_calls, :calendar_get_calls
+    attr_accessor :delete_error, :event_get_error, :calendar_error, :calendar_access_role
 
     def initialize(calendar_pages: [], event_pages: [], events: {})
       @calendar_pages = calendar_pages
@@ -14,9 +15,18 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
       @event_calls = []
       @event_get_calls = []
       @event_patch_calls = []
+      @event_delete_calls = []
+      @calendar_get_calls = []
+      @calendar_access_role = "owner"
     end
 
     def get_calendar_list(calendar_id, fields:)
+      if fields == "id,accessRole"
+        @calendar_get_calls << { calendar_id:, fields: }
+        raise calendar_error if calendar_error
+
+        return Calendar::CalendarListEntry.new(id: calendar_id, access_role: calendar_access_role)
+      end
       raise unless calendar_id == "primary"
       raise unless fields == "id"
 
@@ -35,12 +45,21 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
 
     def get_event(calendar_id, event_id, **options)
       @event_get_calls << options.merge(calendar_id:, event_id:)
+      raise event_get_error if event_get_error
+
       @events.fetch(event_id)
     end
 
     def patch_event(calendar_id, event_id, event, **options)
       @event_patch_calls << options.merge(calendar_id:, event_id:, event:)
       @events.fetch(event_id).attendees = event.attendees
+    end
+
+    def delete_event(calendar_id, event_id, **options)
+      @event_delete_calls << options.merge(calendar_id:, event_id:)
+      raise delete_error if delete_error
+
+      @events.fetch(event_id).status = "cancelled"
     end
   end
 
@@ -303,5 +322,120 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
     assert_equal 0, GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service).remove_attendee_from_upcoming_events(
       calendar_id: "sessions@group.calendar.google.com", starts_at:, ends_at: starts_at + 1.month, email: "builder@example.com")
     assert_empty service.event_patch_calls
+  end
+
+  test "refuses to delete a recurring master even when a stale session still holds its old one-off id" do
+    service = FakeService.new(events: {
+      "formerly-single" => Calendar::Event.new(status: "confirmed", recurrence: [ "RRULE:FREQ=WEEKLY" ], etag: '"new-series-version"')
+    })
+    connection = Struct.new(:google_calendar_id).new("sessions@group.calendar.google.com")
+    client = GoogleWorkspace::CalendarClient.new(connection:, service:)
+
+    assert_raises(GoogleWorkspace::CalendarClient::UnsafeEventDeletion) { client.delete_event(event_id: "formerly-single") }
+    assert_empty service.event_delete_calls
+    assert_equal "confirmed", service.get_event(connection.google_calendar_id, "formerly-single").status
+  end
+
+  test "deletes only the supplied recurring occurrence and notifies every guest" do
+    service = FakeService.new(events: {
+      "series" => Calendar::Event.new(status: "confirmed"),
+      "series_20261022T153000Z" => Calendar::Event.new(recurring_event_id: "series", status: "confirmed", etag: '"occurrence-version"'),
+      "series_20261029T163000Z" => Calendar::Event.new(recurring_event_id: "series", status: "confirmed")
+    })
+    connection = Struct.new(:google_calendar_id).new("sessions@group.calendar.google.com")
+    client = GoogleWorkspace::CalendarClient.new(connection:, service:)
+
+    assert client.delete_event(event_id: "series_20261022T153000Z")
+
+    assert_equal [ {
+      calendar_id: connection.google_calendar_id,
+      event_id: "series_20261022T153000Z",
+      send_updates: "all"
+    } ], service.event_delete_calls.map { |call| call.except(:options) }
+    assert_equal({ "If-Match" => '"occurrence-version"' }, service.event_delete_calls.first[:options].header)
+    assert_equal [ {
+      calendar_id: connection.google_calendar_id, event_id: "series_20261022T153000Z", fields: "status,recurrence,etag"
+    } ], service.event_get_calls
+    assert_equal "cancelled", service.get_event(connection.google_calendar_id, "series_20261022T153000Z").status
+    assert_equal "confirmed", service.get_event(connection.google_calendar_id, "series").status
+    assert_equal "confirmed", service.get_event(connection.google_calendar_id, "series_20261029T163000Z").status
+    assert_empty service.event_calls
+  end
+
+  test "already deleted events are idempotent while 404 requires retained calendar ownership" do
+    connection = Struct.new(:google_calendar_id).new("sessions@group.calendar.google.com")
+    service = FakeService.new(events: { "deleted-occurrence" => Calendar::Event.new(status: "confirmed", etag: '"version"') })
+    client = GoogleWorkspace::CalendarClient.new(connection:, service:)
+    service.delete_error = Google::Apis::ClientError.new("Resource has been deleted", status_code: 410)
+
+    assert client.delete_event(event_id: "deleted-occurrence")
+    assert_empty service.calendar_get_calls
+
+    service.delete_error = Google::Apis::ClientError.new("Not Found", status_code: 404)
+    assert client.delete_event(event_id: "deleted-occurrence")
+    assert_equal [ { calendar_id: connection.google_calendar_id, fields: "id,accessRole" } ], service.calendar_get_calls
+
+    service.calendar_access_role = "reader"
+    assert_raises(Google::Apis::ClientError) { client.delete_event(event_id: "deleted-occurrence") }
+    service.calendar_error = Google::Apis::ClientError.new("Calendar unavailable", status_code: 404)
+    assert_raises(Google::Apis::ClientError) { client.delete_event(event_id: "deleted-occurrence") }
+  end
+
+  test "a missing preflight event still requires ownership and a cancelled one needs no deletion" do
+    connection = Struct.new(:google_calendar_id).new("sessions@group.calendar.google.com")
+    service = FakeService.new(events: { "cancelled" => Calendar::Event.new(status: "cancelled") })
+    client = GoogleWorkspace::CalendarClient.new(connection:, service:)
+    assert client.delete_event(event_id: "cancelled")
+    assert_empty service.event_delete_calls
+
+    service.event_get_error = Google::Apis::ClientError.new("Not Found", status_code: 404)
+    assert client.delete_event(event_id: "missing")
+    service.calendar_access_role = "reader"
+    assert_raises(Google::Apis::ClientError) { client.delete_event(event_id: "missing") }
+    assert_empty service.event_delete_calls
+  end
+
+  test "an event changed into a series after preflight fails the conditional deletion" do
+    event = Calendar::Event.new(status: "confirmed", etag: '"single-version"')
+    service = FakeService.new(events: { "single" => event })
+    service.define_singleton_method(:delete_event) do |calendar_id, event_id, **options|
+      event.recurrence = [ "RRULE:FREQ=WEEKLY" ]
+      event.etag = '"series-version"'
+      unless options[:options].header["If-Match"] == event.etag
+        raise Google::Apis::ClientError.new("Precondition Failed", status_code: 412)
+      end
+      event.status = "cancelled"
+    end
+    connection = Struct.new(:google_calendar_id).new("sessions@group.calendar.google.com")
+    client = GoogleWorkspace::CalendarClient.new(connection:, service:)
+
+    assert_equal 412, assert_raises(Google::Apis::ClientError) { client.delete_event(event_id: "single") }.status_code
+    assert_equal "confirmed", event.status
+    assert_raises(GoogleWorkspace::CalendarClient::UnsafeEventDeletion) { client.delete_event(event_id: "single") }
+  end
+
+  test "refuses unversioned deletions" do
+    service = FakeService.new(events: { "single" => Calendar::Event.new(status: "confirmed") })
+    connection = Struct.new(:google_calendar_id).new("sessions@group.calendar.google.com")
+    client = GoogleWorkspace::CalendarClient.new(connection:, service:)
+
+    assert_raises(GoogleWorkspace::CalendarClient::UnsafeEventDeletion) { client.delete_event(event_id: "single") }
+    assert_empty service.event_delete_calls
+  end
+
+  test "deletion propagates authorization rate limit and server failures" do
+    connection = Struct.new(:google_calendar_id).new("sessions@group.calendar.google.com")
+    service = FakeService.new(events: { "occurrence" => Calendar::Event.new(status: "confirmed", etag: '"version"') })
+    client = GoogleWorkspace::CalendarClient.new(connection:, service:)
+    [
+      Google::Apis::AuthorizationError.new("Unauthorized", status_code: 401),
+      Google::Apis::ClientError.new("Forbidden", status_code: 403),
+      Google::Apis::ClientError.new("Rate limited", status_code: 429),
+      Google::Apis::ServerError.new("Backend Error", status_code: 500)
+    ].each do |error|
+      service.delete_error = error
+      assert_same error, assert_raises(error.class) { client.delete_event(event_id: "occurrence") }
+    end
+    assert_empty service.calendar_get_calls
   end
 end

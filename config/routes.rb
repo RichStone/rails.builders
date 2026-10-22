@@ -31,6 +31,7 @@ Rails.application.routes.draw do
     member do
       get :join
       post :start
+      post :cancel
       post :cancel_start
       post :pause
       post :resume
@@ -50,6 +51,7 @@ Rails.application.routes.draw do
   resource :notification_preferences, path: "notifications", only: %i[show update]
   resources :products, only: %i[create update destroy] do
     patch :focus, on: :member
+    patch :stage, on: :member
   end
   post "offer/decline", to: "enrollments#decline", as: :decline_offer
   patch "membership", to: "enrollments#membership", as: :membership

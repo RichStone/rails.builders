@@ -25,7 +25,7 @@ class Admin::ProgramsController < Admin::BaseController
   end
 
   def expire_offers
-    @program.expire_offers!
+    @program.expire_offers!(confirmed_by_staff: true)
     redirect_to admin_root_path, notice: "Expired offers were released."
   end
 

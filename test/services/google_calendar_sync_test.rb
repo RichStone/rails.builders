@@ -63,6 +63,8 @@ class GoogleCalendarSyncTest < ActiveSupport::TestCase
     assert_equal "Builder Clinic", synced.title
     assert_equal "https://meet.google.com/abc-defg-hij", synced.meet_url
     assert_not_includes synced.read_attribute_before_type_cast(:meet_url), "abc-defg-hij"
+    assert_equal @connection.google_calendar_id, synced.source_calendar_id
+    assert_not_includes synced.read_attribute_before_type_cast(:source_calendar_id), @connection.google_calendar_id
     assert_equal @facilitator, synced.assigned_facilitator
     assert_equal "cancelled", existing.reload.state
     assert_nil @program.builder_sessions.find_by(google_event_id: "all-day")
@@ -129,6 +131,7 @@ class GoogleCalendarSyncTest < ActiveSupport::TestCase
     GoogleCalendarSync.new(connection: @connection, client: client).call
 
     assert_equal "After", upcoming.reload.title
+    assert_equal @connection.google_calendar_id, upcoming.source_calendar_id
     assert_equal "Started snapshot", started.reload.title
   end
 
@@ -261,6 +264,56 @@ class GoogleCalendarSyncTest < ActiveSupport::TestCase
 
     assert_equal "connected", @connection.reload.status
     assert_nil @connection.last_error_code
+  end
+
+  test "a confirmed Calendar snapshot cannot restore a manually cancelled occurrence" do
+    events = [
+      event_hash(id: "series_20261022T153000Z", title: "This Thursday"),
+      event_hash(id: "series_20261029T163000Z", title: "Next Thursday").merge(
+        starts_at: Time.zone.parse("2026-10-29 17:30"),
+        ends_at: Time.zone.parse("2026-10-29 19:00")
+      )
+    ]
+    GoogleCalendarSync.new(connection: @connection, client: FakeClient.new(events)).call
+    session = @program.builder_sessions.find_by!(google_event_id: events.first[:id])
+    requested_at = Time.current
+    client = Object.new
+    client.define_singleton_method(:list_events) do |**|
+      session.update!(state: "cancelled", cancellation_requested_at: requested_at, cancellation_reason: "An important appointment.")
+      events
+    end
+
+    GoogleCalendarSync.new(connection: @connection, client:).call
+
+    assert_equal "cancelled", session.reload.state
+    assert_in_delta requested_at, session.cancellation_requested_at, 0.000001
+    assert_equal "ready", @program.builder_sessions.find_by!(google_event_id: events.second[:id]).state
+  end
+
+  test "reloads a session under lock before applying an event loaded before cancellation" do
+    event = event_hash(id: "event-1", title: "Before")
+    sync = GoogleCalendarSync.new(connection: @connection, client: FakeClient.new([ event ]))
+    sync.call
+    event[:title] = "Changed before cancellation"
+    sessions = @program.builder_sessions
+    find_session = sessions.method(:find_or_initialize_by)
+    requested_at = Time.current
+    find_stale_session = lambda do |**attributes|
+      session = find_session.call(**attributes)
+      BuilderSession.where(id: session.id).update_all(
+        state: "cancelled", cancellation_requested_at: requested_at, cancellation_reason: "An important appointment."
+      )
+      session
+    end
+
+    with_stubbed_singleton_method(sync, :program, @program) do
+      with_stubbed_singleton_method(sessions, :find_or_initialize_by, find_stale_session) { sync.call }
+    end
+
+    session = sessions.find_by!(google_event_id: event[:id])
+    assert_equal "cancelled", session.state
+    assert_equal "Before", session.title
+    assert_in_delta requested_at, session.cancellation_requested_at, 0.000001
   end
 
   private

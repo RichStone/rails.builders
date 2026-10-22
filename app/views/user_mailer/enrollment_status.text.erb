@@ -1,8 +1,6 @@
 <%= @content.fetch(:headline) %>
 
-<% if @content.key?(:position) %>Your current waitlist position is #<%= @content[:position] %>.
-
-<% end %><%= @content.fetch(:description) %>
+<%= @content.fetch(:description) %>
 <% if @content[:note] %>
 
 <%= @content[:note] %><% end %>

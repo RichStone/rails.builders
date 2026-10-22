@@ -46,7 +46,7 @@ gem "ruby-vips", "~> 2.0", require: false
 gem "resend"
 
 # Sync the Program calendar and import structured Google Meet transcripts.
-gem "google-apis-calendar_v3", "~> 0.57"
+gem "google-apis-calendar_v3", "~> 0.58"
 gem "google-apis-meet_v2", "~> 0.15"
 gem "googleauth", "~> 1.17"
 
@@ -84,4 +84,4 @@ end
 
 # Honeybadger owns error monitoring; PostHog owns product analytics.
 gem "honeybadger", "~> 6.9"
-gem "posthog-ruby", "~> 3.26", require: "posthog"
+gem "posthog-ruby", "~> 3.27", require: "posthog"

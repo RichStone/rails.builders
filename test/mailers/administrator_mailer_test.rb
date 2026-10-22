@@ -19,7 +19,7 @@ class AdministratorMailerTest < ActionMailer::TestCase
     User.create!(email: "first-admin@example.com", administrator: true)
     User.create!(email: "second-admin@example.com", administrator: true)
     builder = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active")
-    url = Rails.application.routes.url_helpers.edit_admin_user_url(builder, host: "example.com")
+    url = Rails.application.routes.url_helpers.builder_url(builder, host: "example.com")
 
     mail = AdministratorMailer.enrollment_status(builder)
 
