@@ -6,6 +6,9 @@ servers:
     - <%= ENV.fetch("KAMAL_HOST") %>
 
 proxy:
+  run:
+    repository: richwhale/kamal-proxy
+    version: v0.9.2.20261024
   ssl: <%= ENV.fetch("KAMAL_PROXY_SSL") == "true" %>
   forward_headers: true
   hosts:
