@@ -73,7 +73,7 @@ The one Product a Rails Builder identifies as their main focus right now. The pu
 _Avoid_: Primary account, only product
 
 **Stage Problem**:
-A Product’s current bottleneck: Offer (PMF), Product, Traffic, or Business Model. A working app does not establish product-market fit; a solid offer and proven fit come before Product or Traffic, and stalled growth can prompt a return to earlier stages or a business-model review.
+A Product’s current bottleneck: Offer, Product, Traffic, or Business Model. Offer covers who buys and the promised outcome; Product covers delivery, quality, and activation; Traffic covers reaching the right customers. Stalled growth can prompt a return to earlier stages or a business-model review.
 _Avoid_: Builder rank, maturity score
 
 **Stage Problem Analysis**:

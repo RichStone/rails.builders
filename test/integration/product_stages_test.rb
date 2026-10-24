@@ -14,8 +14,8 @@ class ProductStagesTest < ActionDispatch::IntegrationTest
     sign_in_as(@builder)
 
     get edit_profile_path
-    assert_select "form.profile-form select[name='product[stage_problem]'] option", text: "1. Offer (PMF)"
-    assert_select "details.stage-guide", text: /Stay here until the offer is solid and product-market fit is proven/
+    assert_select "form.profile-form select[name='product[stage_problem]'] option", text: "1. Offer"
+    assert_select "details.stage-guide", text: /Clarify who buys, the outcome they want, and how you present and price the offer/
 
     patch profile_path, params: {
       user: { name: "Builder" },
@@ -24,7 +24,7 @@ class ProductStagesTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to dashboard_path
     follow_redirect!
-    assert_select "[data-current-problem] [data-product-stage]", text: /1. Offer \(PMF\).*sustained demand is not proven/m
+    assert_select "[data-current-problem] [data-product-stage]", text: /1. Offer.*sustained demand is not proven/m
     assert_equal "offer", @product.reload.stage_problem
     assert @builder.reload.public_profile_approved?
   end
@@ -63,7 +63,7 @@ class ProductStagesTest < ActionDispatch::IntegrationTest
     get builder_session_path(session)
     assert_select "[data-speaker-project] strong", text: "New offer"
     assert_select "[data-speaker-project] a", count: 0
-    assert_select ".live-session-stage [data-product-stage]", text: /1. Offer \(PMF\)/
+    assert_select ".live-session-stage [data-product-stage]", text: /1. Offer/
   end
 
   test "facilitators and administrators update another builder's assessment without editing public product fields" do
@@ -144,7 +144,7 @@ class ProductStagesTest < ActionDispatch::IntegrationTest
     session.start!(facilitator: @facilitator)
     session.finish_current_speaker! until session.current_speaker_attendance.user == @builder
     get builder_session_path(session)
-    assert_select ".live-session-stage [data-product-stage]", text: /1. Offer \(PMF\)/
+    assert_select ".live-session-stage [data-product-stage]", text: /1. Offer/
 
     delete sign_out_path
     get root_path

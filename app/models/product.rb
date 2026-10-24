@@ -1,6 +1,6 @@
 class Product < ApplicationRecord
   STAGE_PROBLEMS = {
-    "offer" => "1. Offer (PMF)",
+    "offer" => "1. Offer",
     "product" => "2. Product",
     "traffic" => "3. Traffic",
     "business_model" => "4. Business Model"

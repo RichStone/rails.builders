@@ -55,7 +55,7 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     visit builder_session_path(live_session)
 
     assert_link "Tiny Onboarding", href: "https://example.com/onboarding"
-    assert_selector ".live-session-stage [data-product-stage]", text: "1. Offer (PMF)"
+    assert_selector ".live-session-stage [data-product-stage]", text: "1. Offer"
     assert_selector ".live-session-stage [data-product-stage]", text: "repeat demand is still unproven"
     assert_selector "[data-previous-promise]", text: "Test the smaller onboarding flow with three customers."
     assert_selector "[data-previous-promise] + [data-product-stage]", text: "repeat demand is still unproven"
@@ -87,7 +87,7 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     visit edit_profile_path
 
     within("form.profile-form") do
-      select "1. Offer (PMF)", from: "Stage problem"
+      select "1. Offer", from: "Stage problem"
       fill_in "Stage problem analysis", with: "The product works, but repeat demand is unproven."
       click_button "Save profile"
     end
