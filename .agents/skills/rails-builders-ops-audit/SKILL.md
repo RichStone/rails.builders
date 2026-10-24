@@ -65,6 +65,39 @@ If an authenticated provider capability is unavailable, continue the independent
 
 Do not repair findings during the audit. A failed health check, database integrity failure, unexpected network exposure, or failed deployment is a stop condition: skip dependency mutations and report the smallest next action.
 
+## Version currency
+
+Rich's policy is to keep all hosted apps on the latest stable versions whenever
+compatible, including new major versions. On every audit, compare this app's
+declared and deployed Ruby, Rails, Bundler, application dependencies, and active
+container/proxy tooling with current stable upstream releases. Include any other
+runtime actually used by the app, plus pending host security packages. Check
+official release notes, security advisories, and support/EOL status afresh; do not
+rely only on Dependabot PRs, lockfile constraints, or a vulnerability scanner.
+In particular, a current patch on an older Ruby branch is still behind the latest
+stable Ruby major. A lack of demonstrated attacker-controlled input does not
+remove a runtime security update from the findings.
+
+Use read-only version metadata and dependency outdated checks, distinguishing
+the latest version allowed by current constraints from the latest stable release.
+Verify the running container's runtime and image version; an updated source pin
+alone does not prove deployment. Shared-host checks must stay read-only and must
+not access neighboring apps' credentials or private data.
+
+Record installed/deployed and latest stable versions, official release links,
+security/support impact, and the smallest update action for each gap. Recommend
+the latest stable major unless a concrete compatibility failure prevents it;
+record that evidence and a supported interim patch when applicable. Untested
+compatibility is an open verification task, not evidence that an upgrade is
+impossible. Record the full comparison privately, summarize actionable gaps in
+the report, and notify when a new release or changed risk makes a gap actionable;
+do not repeat unchanged non-actionable findings as alerts. An unavailable version
+check must not be reported as current.
+
+This detection policy does not expand the mutation gates below. Major upgrades,
+Ruby/Rails/toolchain changes, and other ineligible updates need a separately
+authorized, tested change; do not silently merge or deploy them during an audit.
+
 ## Dependabot sweep
 
 During every scheduled or manual audit, evaluate all open PRs whose author is `app/dependabot` and automatically handle each candidate that passes every gate below.
@@ -88,6 +121,8 @@ Lead the overall result and individual findings with status emojis: ✅ for a pa
 - a sanitized diagnosis and suggested fix for every new or recurring Honeybadger production error, or the smallest next diagnostic when the evidence is insufficient;
 - the potential-spam assessment and interval;
 - Dependabot PR numbers and actions taken or safe reasons for skipping them;
+- version currency, including runtime majors, security patches, and concrete
+  compatibility blockers or the next verification needed;
 - any unavailable checks and the smallest next action.
 
 Every mentioned issue, finding, blocker, skipped check, unavailable integration, or unresolved item must include at least one complete sentence of sanitized context explaining what was observed and why it matters. Never refer only to "previously reported findings" or similar shorthand; restate enough context for each report to stand on its own.
