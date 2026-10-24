@@ -84,6 +84,11 @@ Verify the running container's runtime and image version; an updated source pin
 alone does not prove deployment. Shared-host checks must stay read-only and must
 not access neighboring apps' credentials or private data.
 
+Also cover every hosted Ruby app on the shared host, including RAD and Software
+Makers, using only service/image metadata and `ruby --version`. Flag a runtime
+gap per app without reading its environment, databases, or private application
+data. Detailed dependency checks remain scoped to this repository.
+
 Record installed/deployed and latest stable versions, official release links,
 security/support impact, and the smallest update action for each gap. Recommend
 the latest stable major unless a concrete compatibility failure prevents it;
