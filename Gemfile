@@ -16,7 +16,7 @@ gem "turbo-rails"
 gem "stimulus-rails"
 
 # Render the facilitator-authored Markdown in private session notes and analysis.
-gem "commonmarker", "~> 2.8"
+gem "commonmarker", "~> 2.10"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
