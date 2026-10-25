@@ -18,9 +18,10 @@ sudo --preserve-env=HONEYBADGER_API_KEY ./install
 unset HONEYBADGER_API_KEY
 ```
 
-The installer verifies the pinned Honeybadger CLI release checksum, stores the
-key in `/etc/rails-builders/monitoring` with mode `0600`, and enables the
-`rails-builders-host-metrics.service`. Later installer runs preserve the key.
+The installer uses Docker Buildx to test and build the pinned Honeybadger CLI
+source with Go 1.27.3, stores the key in `/etc/rails-builders/monitoring` with mode
+`0600`, and enables the `rails-builders-host-metrics.service`. Later installer
+runs preserve the key and restart the service to load the rebuilt binary.
 
 Verify the service locally:
 

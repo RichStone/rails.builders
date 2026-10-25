@@ -8,10 +8,21 @@
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=4.0.9
+
+# Rebuild the current Thruster release with the Go security patches.
+FROM --platform=$BUILDPLATFORM golang:1.27.3 AS thruster
+WORKDIR /src
+ADD https://github.com/basecamp/thruster.git#669643fa3ebc6c4daaba8b5210561f03e33f8c53 .
+ARG TARGETOS TARGETARCH
+RUN go test ./... && \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /thrust ./cmd/thrust
+
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
 WORKDIR /rails
+
+RUN gem update --system 4.0.23 --no-document
 
 # Install base packages
 RUN apt-get update -qq && \
@@ -67,10 +78,11 @@ USER 1000:1000
 # Copy built artifacts: gems, application
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
+COPY --from=thruster /thrust /usr/local/bin/thrust
 
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # Start server via Thruster by default, this can be overwritten at runtime
 EXPOSE 80
-CMD ["./bin/thrust", "./bin/rails", "server"]
+CMD ["thrust", "./bin/rails", "server"]
