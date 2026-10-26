@@ -251,13 +251,13 @@ GEM
       net-protocol
     net-protocol (0.4.0)
       timeout
-    net-scp (4.1.1)
+    net-scp (4.1.2)
       net-ssh (>= 2.6.5, < 9.0.0)
-    net-sftp (4.0.1)
+    net-sftp (4.0.2)
       net-ssh (>= 5.0.0, < 9.0.0)
     net-smtp (0.5.2)
       net-protocol
-    net-ssh (7.3.7)
+    net-ssh (7.3.8)
       logger
     nio4r (2.7.5)
     nokogiri (1.19.4-aarch64-linux-gnu)
@@ -292,7 +292,7 @@ GEM
       actionpack (>= 7.0.0)
       activesupport (>= 7.0.0)
       rack
-    pstore (0.2.1)
+    pstore (0.3.0)
     public_suffix (7.0.5)
     puma (8.0.2)
       nio4r (~> 2.0)
