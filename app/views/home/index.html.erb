@@ -91,14 +91,14 @@
       <h2>How to join</h2>
       <p>Bring one product to focus on. Build alongside fellow devs.</p>
     </div>
-    <details class="section-reveal join-reveal">
+    <details class="section-reveal join-reveal" open>
       <summary class="section-reveal-trigger join-reveal-trigger">
         <span class="reveal-ruby" aria-hidden="true"><i>◆</i><i>◆</i><i>◆</i></span>
-        <span><strong>Crack open the build path</strong><small>See all four steps</small></span>
+        <span><strong>Your path to joining</strong><small>Four steps to build together</small></span>
       </summary>
       <div class="steps">
-        <article><span>01</span><h3>Join with your email</h3><p>Complete the readiness check and join the waitlist. When a seat opens and your turn arrives, it’s yours to confirm for 72 hours.</p></article>
-        <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Add as many products as you like (hopefully ONE 😉).</p></article>
+        <article><span>01</span><h3>Join with your email</h3><p>Verify your email, complete the readiness check, and request a place. The team will confirm your place within a few days.</p></article>
+        <article><span>02</span><h3>Choose the thing you’ll ship</h3><p>Focus on one product. Add its name and current stage to your profile; making your profile public is optional.</p></article>
         <article><span>03</span><h3>Build with company</h3><p>Weekly live sessions where builders share what’s working, learn from each other, and keep shipping.</p></article>
         <article><span>04</span><h3>Keep the context</h3><p>Session history, Slack chat and transcripts keep each conversation available and the learning crisp for useful next moves.</p></article>
       </div>
@@ -116,32 +116,25 @@
         <article><h3>Live contact preferred</h3><p>The meat of being an active Rails Builder is the live sessions—this is where most of the action happens. The rest of the time, we want you to focus on building.</p></article>
         <article><h3>Small by design</h3><p><%= @program.capacity %> active seats keep the room useful, familiar, and accountable.</p></article>
         <article><h3>Your product stays yours</h3><p>Keep your profile private, or publish your work on rails.builders when you’re ready.</p></article>
-        <article><h3>Registration never closes</h3><p>Join the queue anytime. When a seat opens, you get 72 hours to make it yours.</p></article>
+        <article><h3>Registration never closes</h3><p>Request a place anytime. The team reviews requests and confirms places as seats become available.</p></article>
         <article><h3>Private Slack channel</h3><p>Not the central piece, but it’s there when you want to connect with Rich, ask the group a question, or ask Otto Labot—our robotic Lab Bot—anything about previous sessions or changes to the rails.builders app.</p></article>
       </div>
     </details>
   </section>
 
-  <section class="program-format" data-controller="program-format" data-program-format>
+  <section class="program-format" data-program-format>
     <div class="format-heading">
       <p class="eyebrow">Proven session format in a gamified cohort.</p>
       <h2>How the <%= @program.name %> works</h2>
-      <p>Press the ruby and follow the train.</p>
+      <p>Here’s what to expect when you build with the group.</p>
     </div>
     <div class="format-terminal">
-      <div class="format-launcher">
-        <button type="button" class="format-play" data-program-format-target="play" data-action="program-format#start" aria-label="Play the Program format">
-          <span>◆</span><small>play</small>
-        </button>
-        <span class="format-launch-track" aria-hidden="true"></span>
-      </div>
-      <ol class="format-points" aria-live="polite">
+      <ol class="format-points">
         <% @program.format_points_list.each do |point| %>
-          <li hidden data-program-format-target="item"><%= point %></li>
+          <li><%= point %></li>
         <% end %>
       </ol>
-      <div class="format-progress" hidden data-program-format-target="progress" aria-hidden="true"><span>🚂</span></div>
-      <%= link_to "I love it 🤝", join_path, class: "button format-handshake", hidden: true, data: { analytics_placement: "format", program_format_target: "handshake" } %>
+      <%= link_to "I love it 🤝", join_path, class: "button format-handshake", data: { analytics_placement: "format" } %>
     </div>
   </section>
 
@@ -152,7 +145,7 @@
       <p>If the direction feels right, but you are missing some of these, you still have time to get them in until the start of the sessions, just get your spot then!</p>
     </div>
     <details class="readiness-reveal">
-      <summary aria-label="Open the readiness checklist"><span aria-hidden="true">?</span></summary>
+      <summary><span aria-hidden="true">✓</span>Check your readiness</summary>
       <div class="readiness-card" data-controller="readiness-checklist">
         <%= render "shared/readiness_points", program: @program %>
         <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>

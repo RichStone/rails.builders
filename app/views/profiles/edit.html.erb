@@ -1,4 +1,8 @@
 <main class="narrow-page"><p class="eyebrow">Your corner of rails.builders</p><h1>Profile & products</h1><p>Your email <strong><%= current_user.email %></strong> stays private.</p>
+  <% errors = current_user.errors.full_messages + @product.errors.full_messages %>
+  <% if errors.any? %>
+    <div class="form-errors" role="alert" tabindex="-1" autofocus><h2>Check your profile</h2><ul><% errors.each do |message| %><li><%= message %></li><% end %></ul><p>Your changes are still here. Correct the details below and save again.</p></div>
+  <% end %>
   <%= form_with model: current_user, url: profile_path, class: "stacked-form profile-form" do |form| %>
     <%= form.label :name %><%= form.text_field :name, maxlength: 100, placeholder: "Your name" %>
     <%= form.label :avatar, "Bio or company picture" %>
@@ -7,7 +11,7 @@
     <%= form.label :testimonial, "What would you say about Rails.Builders?" %><%= form.text_area :testimonial, rows: 4, maxlength: 2000, placeholder: "A short, honest note…" %>
     <fieldset><legend>Focus product</legend><%= fields_for :product, @product do |product_fields| %><%= product_fields.label :name, "App name" %><%= product_fields.text_field :name, maxlength: 120 %><%= product_fields.label :url, "App URL (optional)" %><%= product_fields.url_field :url, maxlength: 2048, placeholder: "https://" %><%= render "products/stage_fields", form: product_fields, prefix: "focus_product" %><% end %></fieldset>
     <label class="check-row publication"><%= form.check_box :public_profile %><span><strong>Ask to show my profile publicly on rails.builders</strong><small>A facilitator reviews your picture, name, testimonial, and product links before publication. Email stays private.</small></span></label>
-    <%= form.submit "Save profile", class: "button button-primary" %>
+    <%= form.submit "Save profile", class: "button button-primary", data: { turbo_submits_with: "Saving profile…" } %>
   <% end %>
   <section class="product-list product-list-disabled"><h2>Add another product</h2><fieldset class="stacked-form" disabled><label for="paused_product_name">App name</label><input id="paused_product_name" type="text"><label for="paused_product_url">App URL</label><input id="paused_product_url" type="url" placeholder="https://"><button type="button" class="button button-quiet">Add product</button></fieldset><p>We want you to focus on one main product for now during the sessions. 😉</p></section>
   <section class="product-list"><h2>Sign-in security</h2><p>Sign-ins last up to 400 days. Sign out everywhere if a device is lost or you suspect someone else has access.</p><%= button_to "Sign out all devices", sign_out_all_path, method: :delete, class: "button button-quiet", form: { data: { turbo_confirm: "Sign out on all devices, including this browser?" } } %></section>

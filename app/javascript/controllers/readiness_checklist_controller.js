@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["checkbox", "unlock", "activation", "choice", "submit", "effects"]
+  static targets = ["checkbox", "unlock", "activation", "choice", "submit", "effects", "progress"]
   static values = { gated: { type: Boolean, default: true } }
 
   connect() {
@@ -19,6 +19,10 @@ export default class extends Controller {
     const complete = this.checkboxesComplete
     const wasComplete = this.complete
     this.complete = complete
+    if (this.hasProgressTarget) {
+      const checked = this.checkboxTargets.filter((checkbox) => checkbox.checked).length
+      this.progressTarget.textContent = complete ? "All checked. You’re ready to join!" : `${checked} of ${this.checkboxTargets.length} checked`
+    }
 
     this.unlockTargets.forEach((target) => { target.hidden = !complete })
     this.activationTargets.forEach((target) => {

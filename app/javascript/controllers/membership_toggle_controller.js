@@ -16,12 +16,6 @@ export default class extends Controller {
     this.dialogTarget.showModal()
   }
 
-  accept(event) {
-    event.currentTarget.disabled = true
-    this.dialogTarget.close()
-    this.element.requestSubmit()
-  }
-
   cancel(event) {
     event.preventDefault()
     this.dialogTarget.close()

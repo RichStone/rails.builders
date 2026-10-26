@@ -114,7 +114,7 @@ class EnrollmentActionsTest < ActionDispatch::IntegrationTest
     get dashboard_path
     assert_select "[data-waitlist-readiness] [data-readiness-checklist-target='activation'][hidden]"
     assert_select "[data-waitlist-readiness] h3", text: "The readiness checklist"
-    assert_select "[data-waitlist-readiness] .readiness-promise", text: "Confirm the readiness promise to take your seat. Please check your email! 📧"
+    assert_select "[data-waitlist-readiness] .readiness-promise", text: "Check each point, then request your place."
     assert_select "[data-waitlist-readiness] .membership-readiness > p", text: /shared ingredients behind the live sessions.*Join Builders/
     assert_select "input[name='readiness[]']", count: 6
 

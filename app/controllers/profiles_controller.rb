@@ -15,7 +15,7 @@ class ProfilesController < ApplicationController
     end
     redirect_to dashboard_path, notice: "Your profile is updated."
   rescue ActiveRecord::RecordInvalid
-    @product = current_user.focus_product || Product.new(user: current_user)
+    @product ||= current_user.focus_product || Product.new(user: current_user)
     render :edit, status: :unprocessable_content
   end
 
@@ -38,8 +38,8 @@ class ProfilesController < ApplicationController
     attributes = params.fetch(:product, {}).permit(:name, :url, :stage_problem, :stage_problem_analysis)
     return if attributes[:name].blank? && attributes[:url].blank?
 
-    product = current_user.focus_product || Product.new(user: current_user)
-    product.update!(attributes)
-    product.make_focus!
+    @product = current_user.focus_product || Product.new(user: current_user)
+    @product.update!(attributes)
+    @product.make_focus!
   end
 end

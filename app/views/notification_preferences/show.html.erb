@@ -40,6 +40,6 @@
       <% end %>
     </fieldset>
     <p>Sign-in links and newsletter confirmations you request will still be sent. The separate Loop Labs newsletter and Google Calendar reminders are managed through their own unsubscribe or calendar settings.</p>
-    <%= form.submit "Save preferences", class: "button button-primary" %>
+    <%= form.submit "Save preferences", class: "button button-primary", data: { turbo_submits_with: "Saving preferences…" } %>
   <% end %>
 </main>

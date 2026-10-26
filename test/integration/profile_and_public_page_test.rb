@@ -139,15 +139,16 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select ".cohort-strip .eyebrow", text: "Next cohort"
   end
 
-  test "the public page reveals the Program-owned session format" do
+  test "the public page makes the Program-owned session format immediately readable" do
     @program.update!(name: "Continuous Rails.Builders Edition", format_points: "🚂 First stop\n💬 Last stop")
 
     get root_path
 
     assert_select "[data-program-format]" do
       assert_select "h2", text: /How the Continuous Rails.Builders Edition works/
-      assert_select "[data-program-format-target='item'][hidden]", count: 2
-      assert_select "button[data-action='program-format#start']"
+      assert_select ".format-points li:not([hidden])", count: 2
+      assert_select ".format-points li", text: "🚂 First stop"
+      assert_select ".format-points li", text: "💬 Last stop"
       assert_select "a[href='#{join_path}']", text: "I love it 🤝"
     end
   end
@@ -159,7 +160,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
 
     assert_select ".program-format + #readiness.readiness-section" do
       assert_select "h2", text: "Am I ready to join?"
-      assert_select "details:not([open]) > summary", text: "?"
+      assert_select "details:not([open]) > summary", text: /Check your readiness/
       assert_select "input[data-readiness-checklist-target='checkbox']", count: 2
       assert_select ".readiness-smallprint", text: /give Rich a ping/
       assert_select "[data-readiness-checklist-target='unlock'][hidden]", text: /That’s all you need!/
@@ -167,11 +168,11 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the public page keeps joining steps and group principles behind reveal controls" do
+  test "the public page shows joining steps and offers optional group principles" do
     get root_path
 
-    assert_select "#how-it-works details.section-reveal:not([open])" do
-      assert_select "summary", text: /Crack open the build path/
+    assert_select "#how-it-works details.section-reveal[open]" do
+      assert_select "summary", text: /Your path to joining/
       assert_select ".steps article", count: 4
     end
     assert_select ".benefits details.section-reveal:not([open])" do
@@ -489,6 +490,24 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_not @user.reload.public_profile?
+    assert_select "[role='alert']", text: /requires your name and a focus product/
+  end
+
+  test "invalid product details explain the error and retain the draft" do
+    sign_in_as(@user)
+
+    patch profile_path, params: {
+      user: { name: "Draft Builder" },
+      product: { name: "Draft App", stage_problem_analysis: "Still testing the offer" }
+    }
+
+    assert_response :unprocessable_content
+    assert_select "[role='alert']", text: /Stage problem can.t be blank/
+    assert_select "input[name='user[name]'][value='Draft Builder']"
+    assert_select "input[name='product[name]'][value='Draft App']"
+    assert_select "textarea[name='product[stage_problem_analysis]']", text: "Still testing the offer"
+    assert_nil @user.reload.name
+    assert_empty @user.products
   end
 
   test "builder can manage multiple products and choose the focus" do

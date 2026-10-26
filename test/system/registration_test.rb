@@ -117,6 +117,52 @@ class RegistrationTest < ApplicationSystemTestCase
     assert_equal "withdrawn", user.reload.enrollment_status
   end
 
+  test "profile validation explains the problem and keeps the draft on mobile" do
+    user = User.create!(email: "mobile-profile@example.com", verified_at: Time.current)
+    page.current_window.resize_to(390, 844)
+    sign_in_as(user)
+    click_link "Profile", exact: true
+
+    fill_in "Name", with: "Mobile Builder"
+    within("form.profile-form") do
+      fill_in "App name", with: "Draft App"
+      fill_in "Stage problem analysis", with: "Testing the offer with customers"
+    end
+    click_button "Save profile"
+
+    assert_selector "[role='alert']", text: "Stage problem can't be blank"
+    assert_selector ".form-errors:focus"
+    assert page.evaluate_script("document.querySelector('.form-errors').getBoundingClientRect().top >= 0"), "Validation should bring the error into view"
+    within("form.profile-form") do
+      assert_field "App name", with: "Draft App"
+      assert_field "Stage problem analysis", with: "Testing the offer with customers"
+      select "1. Offer", from: "Stage problem"
+    end
+    click_button "Save profile"
+    assert_text "Your profile is updated."
+    assert_text "Draft App"
+    assert_equal "offer", user.reload.focus_product.stage_problem
+  ensure
+    page.current_window.resize_to(1280, 900)
+  end
+
+  test "all member navigation stays visible on a narrow phone" do
+    user = User.create!(email: "mobile-nav@example.com", verified_at: Time.current,
+      administrator: true, facilitator: true, enrollment_status: "active")
+    page.current_window.resize_to(320, 844)
+    sign_in_as(user)
+
+    within(".site-header nav") do
+      %w[Dashboard Sessions Attendance Builders Profile Notifications Admin].each { |label| assert_link label }
+      assert_link "Sign out"
+      assert_selector "a[aria-current='page']", text: "Dashboard"
+    end
+    assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth"), "Page should fit the phone"
+    assert page.evaluate_script("[...document.querySelectorAll('.site-header nav a')].every(link => { const rect = link.getBoundingClientRect(); return rect.x >= 0 && rect.right <= innerWidth && rect.height >= 44 })"), "Every navigation link should fit and have a usable touch target"
+  ensure
+    page.current_window.resize_to(1280, 900)
+  end
+
   private
 
   def sign_in_as(user)
