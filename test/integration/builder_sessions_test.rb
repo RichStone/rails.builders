@@ -43,6 +43,36 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     )
   end
 
+  test "an exercise appears above its session timer without carrying into the next session" do
+    body = 'Describe your product starting with "When [YOUR IDEAL CUSTOMER] needs XYZ they [USE YOUR PRODUCT]"'
+    @builder_session.create_exercise!(body: body)
+    next_session = @program.builder_sessions.create!(
+      google_event_id: "next-exercise-session", title: "Next session",
+      scheduled_starts_at: 1.week.from_now, scheduled_ends_at: 1.week.from_now + 1.hour,
+      time_zone: "Europe/Madrid"
+    )
+    sign_in_as(@builder)
+
+    get builder_session_path(@builder_session)
+    assert_select "[data-session-exercise] h2", text: "Today's exercise"
+    assert_select "[data-session-exercise] p", text: body
+    assert_select "[data-session-exercise] img[alt='The Loop Monster teaching with a book and pointer']"
+
+    @builder_session.start!(facilitator: @facilitator)
+    get builder_session_path(@builder_session)
+    assert_select ".live-session-timer > [data-session-exercise] + .live-session-stage"
+    assert_select "[data-session-exercise] p", text: body
+
+    get builder_session_path(next_session)
+    assert_select "[data-session-exercise]", count: 0
+    assert_not_includes response.body, body
+
+    next_session.create_exercise!(body: "Show one thing you shipped this week.")
+    get builder_session_path(next_session)
+    assert_select "[data-session-exercise] p", text: "Show one thing you shipped this week."
+    assert_not_includes response.body, "YOUR IDEAL CUSTOMER"
+  end
+
   test "the homepage shows an upcoming session without private session data" do
     @builder_session.update!(
       title: "Product teardown · meet.google.com/abc-defg-hij",

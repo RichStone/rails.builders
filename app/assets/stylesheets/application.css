@@ -177,6 +177,15 @@ button, input, textarea, select { font: inherit; }
 .calendar-connection { margin: -30px 0 55px; padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: white; }.calendar-connection h2 { margin-bottom: 10px; font-size: 28px; }.calendar-connection p { margin: 7px 0; color: var(--muted); }.calendar-connection .button-row { margin-top: 20px; }
 
 .live-session-timer { display: contents; }
+.session-exercise { margin-bottom: 20px; padding: 22px; border: 1px solid #a3cbb8; border-radius: 22px; display: flex; align-items: center; gap: 22px; color: #194b3d; background: #e9f5ee; }
+.session-exercise img { width: 112px; height: auto; flex: 0 0 auto; }
+.session-exercise div { min-width: 0; }
+.session-exercise h2 { margin-bottom: 12px; font-size: 26px; }
+.session-exercise p { margin: 0; font-size: clamp(17px, 2vw, 21px); font-weight: 600; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .session-exercise { padding: 20px; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .session-exercise img { width: 88px; }
+}
 .live-session-timer,.live-session-builders { min-width: 0; }
 @media (min-width: 1051px) {
   .live-session-layout { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(360px,1fr); gap: 24px; }

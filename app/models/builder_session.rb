@@ -11,6 +11,7 @@ class BuilderSession < ApplicationRecord
   has_many :pauses, class_name: "BuilderSessionPause", dependent: :restrict_with_error
   has_one :transcript, class_name: "BuilderSessionTranscript", dependent: :restrict_with_error
   has_one :chat_log, class_name: "BuilderSessionChatLog", dependent: :restrict_with_error
+  has_one :exercise, class_name: "BuilderSessionExercise", dependent: :restrict_with_error
   has_many :next_session_promises, dependent: :restrict_with_error
   has_many :peer_feedbacks, dependent: :restrict_with_error
   has_many :session_reminders, dependent: :destroy

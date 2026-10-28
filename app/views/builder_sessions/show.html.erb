@@ -28,6 +28,7 @@
       <% end %>
     </section>
   <% elsif @builder_session.state == "ready" %>
+    <%= render "exercise", builder_session: @builder_session %>
     <section class="session-ready-panel">
       <h2>Ready when the room is.</h2>
       <p>The Calendar event supplies the core default. Choose each phase before starting.</p>
@@ -101,6 +102,7 @@
     <% run_token = @builder_session.run_token %>
     <div class="live-session-layout">
       <div class="live-session-timer">
+        <%= render "exercise", builder_session: @builder_session %>
         <section class="live-session-stage <%= "is-paused" if @builder_session.paused? %>"
           data-controller="session-timer"
           data-session-timer-seconds-value="<%= @builder_session.clock_seconds %>"

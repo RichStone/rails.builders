@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_160000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -74,6 +74,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_100000) do
     t.string "source", null: false
     t.datetime "updated_at", null: false
     t.index ["builder_session_id"], name: "index_builder_session_chat_logs_on_builder_session_id", unique: true
+  end
+
+  create_table "builder_session_exercises", force: :cascade do |t|
+    t.integer "builder_session_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["builder_session_id"], name: "index_builder_session_exercises_on_builder_session_id", unique: true
   end
 
   create_table "builder_session_pauses", force: :cascade do |t|
@@ -300,6 +308,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_100000) do
   add_foreign_key "builder_session_attendances", "builder_sessions"
   add_foreign_key "builder_session_attendances", "users"
   add_foreign_key "builder_session_chat_logs", "builder_sessions"
+  add_foreign_key "builder_session_exercises", "builder_sessions"
   add_foreign_key "builder_session_pauses", "builder_sessions"
   add_foreign_key "builder_session_transcripts", "builder_sessions"
   add_foreign_key "builder_sessions", "programs"

@@ -33,6 +33,31 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     )
   end
 
+  test "a session exercise stays above the live timer on desktop and mobile" do
+    @builder_session.create_exercise!(body: 'Describe your product starting with "When [YOUR IDEAL CUSTOMER] needs XYZ they [USE YOUR PRODUCT]"')
+    @builder_session.start!(facilitator: @facilitator, pre_core_duration_seconds: 10.minutes.to_i)
+    sign_in_as(@builder)
+    visit builder_session_path(@builder_session)
+
+    assert_selector ".live-session-timer > [data-session-exercise] + .live-session-stage"
+    assert_text "Today's exercise"
+    assert_text "When [YOUR IDEAL CUSTOMER] needs XYZ they [USE YOUR PRODUCT]"
+
+    [ [ 1280, 1000 ], [ 390, 844 ] ].each do |width, height|
+      page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
+        width: width, height: height, deviceScaleFactor: 1, mobile: width < 600)
+      assert_equal width, page.evaluate_script("window.innerWidth")
+      image = find("[data-session-exercise] img")
+      assert image.evaluate_script("this.complete && this.naturalWidth > 0"), "Teacher illustration must load"
+      exercise_rect = find("[data-session-exercise]").rect
+      assert_operator exercise_rect.y + exercise_rect.height, :<=, find(".live-session-stage").rect.y
+      assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth"), "Exercise must fit the viewport"
+      page.save_screenshot(Rails.root.join("tmp/screenshots/session-exercise-#{width}.png"))
+    end
+  ensure
+    page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+  end
+
   test "public schedule becomes a shared live room with role-specific controls" do
     visit root_path
     assert_text "Browser session"

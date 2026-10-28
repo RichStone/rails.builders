@@ -21,6 +21,7 @@ module ActiveSupport
       PeerFeedback.delete_all
       NextSessionPromise.delete_all
       BuilderSessionChatLog.delete_all
+      BuilderSessionExercise.delete_all
       BuilderSessionTranscript.delete_all
       BuilderSessionPause.delete_all
       BuilderSessionAttendance.delete_all

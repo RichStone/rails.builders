@@ -1,0 +1,9 @@
+<% if (exercise = builder_session.exercise) %>
+  <aside class="session-exercise" aria-labelledby="session-exercise-heading" data-session-exercise>
+    <%= image_tag "loop-monster-teacher.png", alt: "The Loop Monster teaching with a book and pointer", width: 128, height: 128 %>
+    <div>
+      <h2 id="session-exercise-heading">Today's exercise</h2>
+      <p><%= exercise.body %></p>
+    </div>
+  </aside>
+<% end %>
