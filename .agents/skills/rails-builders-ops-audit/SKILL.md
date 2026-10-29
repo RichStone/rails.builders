@@ -121,6 +121,8 @@ Return a concise private audit summary:
 
 Lead the overall result and individual findings with status emojis: ✅ for a passed check, 🐛 for a confirmed application bug, ⚠️ for maintenance, unavailable checks, or an unresolved concern, and 🚨 for an active outage or urgent security incident. Keep the explanatory context alongside each emoji; use ✅ only when the check was actually verified.
 
+Prefix quantitative statistics summaries with 📊, including signup, verification, abuse, email, resource, and authentication counts. State the measured interval and timezone for time-windowed counters. Keep the status emojis above for health results and findings.
+
 - overall production status;
 - sanitized check results and prioritized findings;
 - a sanitized diagnosis and suggested fix for every new or recurring Honeybadger production error, or the smallest next diagnostic when the evidence is insufficient;
