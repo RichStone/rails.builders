@@ -20,9 +20,16 @@ export default class extends Controller {
       },
       credentials: "same-origin"
     }).catch(() => null)
+    if (!this.element.isConnected) return
+    if (response?.status === 422 || response?.redirected) {
+      this.disconnect()
+      window.location.reload()
+      return
+    }
     if (!response?.ok) return
 
     const state = await response.json()
+    if (!this.element.isConnected) return
     if (state.version !== this.versionValue) window.Turbo.visit(window.location.href, { action: "replace" })
   }
 }

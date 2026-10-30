@@ -43,6 +43,42 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     )
   end
 
+  test "a stale heartbeat token is rejected after sign-in and a refreshed page can synchronize" do
+    previous_forgery_protection = ActionController::Base.allow_forgery_protection
+    sign_in_as(@builder)
+    ActionController::Base.allow_forgery_protection = true
+    @builder_session.start!(facilitator: @facilitator, pre_core_duration_seconds: 1.minute)
+
+    get builder_session_path(@builder_session)
+    assert_response :success
+    stale_token = html_document.at_css("meta[name='csrf-token']")["content"]
+
+    post verify_email_path,
+      params: { token: @builder.reload.generate_token_for(:email_verification) },
+      headers: { "X-CSRF-Token" => stale_token }
+    assert_redirected_to dashboard_path
+    travel 2.minutes
+
+    assert_no_changes -> { @builder_session.reload.attributes } do
+      patch heartbeat_builder_session_path(@builder_session),
+        headers: { "Accept" => "application/json", "X-CSRF-Token" => stale_token }
+      assert_response :unprocessable_content
+    end
+    assert_equal "connection", @builder_session.state
+
+    get builder_session_path(@builder_session)
+    assert_response :success
+    fresh_token = html_document.at_css("meta[name='csrf-token']")["content"]
+    patch heartbeat_builder_session_path(@builder_session),
+      headers: { "Accept" => "application/json", "X-CSRF-Token" => fresh_token }
+
+    assert_response :success
+    assert_equal "builder_updates", @builder_session.reload.state
+    assert_equal "builder_updates", response.parsed_body.fetch("state")
+  ensure
+    ActionController::Base.allow_forgery_protection = previous_forgery_protection
+  end
+
   test "an exercise appears above its session timer without carrying into the next session" do
     body = 'Describe your product starting with "When [YOUR IDEAL CUSTOMER] needs XYZ they [USE YOUR PRODUCT]"'
     @builder_session.create_exercise!(body: body)

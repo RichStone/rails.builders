@@ -50,6 +50,12 @@ export default class extends Controller {
       headers: { "Accept": "application/json", "X-CSRF-Token": token },
       credentials: "same-origin"
     }).catch(() => null)
+    if (!this.element.isConnected) return
+    if (response?.status === 422 || response?.redirected) {
+      this.disconnect()
+      window.location.reload()
+      return
+    }
     if (!response?.ok) return
 
     const state = await response.json()
