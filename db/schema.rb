@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_30_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_30_130000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -158,6 +158,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_090000) do
     t.index ["program_id", "state", "scheduled_starts_at"], name: "idx_on_program_id_state_scheduled_starts_at_ab613453a0"
     t.index ["program_id"], name: "index_builder_sessions_on_one_active_program", unique: true, where: "state IN ('connection', 'builder_updates', 'closing', 'hangout')"
     t.index ["program_id"], name: "index_builder_sessions_on_program_id"
+  end
+
+  create_table "community_statistics", force: :cascade do |t|
+    t.integer "cohorts_count", default: 6, null: false
+    t.integer "cohort_finishers_count", default: 35, null: false
+    t.integer "registrants_count", default: 0, null: false
   end
 
   create_table "login_sessions", force: :cascade do |t|

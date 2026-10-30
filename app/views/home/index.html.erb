@@ -181,12 +181,23 @@
       </div>
     </div>
 
+    <div id="all-time-builders" class="builder-group">
+      <div class="group-title"><h3>All-time Builders</h3></div>
+      <dl class="community-stats">
+        <div><dt>Cohorts since 2025</dt><dd><%= @community_statistics.cohorts_count %></dd></div>
+        <div><dt>All-time Builders who finished a cohort</dt><dd><%= @community_statistics.cohort_finishers_count %></dd></div>
+        <div><dt>Registrants since the app launched in September 2026</dt><dd><%= @community_statistics.registrants_count %></dd></div>
+      </dl>
+    </div>
+
+    <% if @past_builders.any? %>
     <div id="past-builders" class="builder-group">
       <%= render "builder_group_title", title: "Past Builders", icon: "🔥", tooltip: "They built with the group before the current cohort" %>
       <div class="builder-grid">
         <% @past_builders.each_with_index do |builder, index| %><%= render "builder_card", builder: builder, index: index, private_label: "Past Builder" %><% end %>
       </div>
     </div>
+    <% end %>
   </section>
 
   <section class="final-cta">

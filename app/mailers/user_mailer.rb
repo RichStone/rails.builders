@@ -1,4 +1,16 @@
 class UserMailer < ApplicationMailer
+  self.delivery_job = UserMailDeliveryJob
+
+  def profile_annihilated(email, name, deleted_user_id)
+    @recipient_name = name.to_s.split.first || "Builder"
+    @url = join_url(protocol: "https")
+    @account_deleted = true
+    attachments.inline["loop-monster-goodbye.png"] = Rails.root.join("app/assets/images/loop-monster-goodbye.png").binread
+    attachments["loop-monster-goodbye.png"].content_id = "loop-monster-goodbye"
+    mail(to: email, reply_to: "rich@looplabs.cc", subject: "Your Rails.Builders profile has been annihilated 💥",
+      options: { idempotency_key: "profile-annihilated-#{deleted_user_id}" })
+  end
+
   def verification(user, token)
     @user = user
     @url = verify_email_url(token: token)

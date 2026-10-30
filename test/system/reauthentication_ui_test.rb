@@ -25,7 +25,7 @@ class ReauthenticationUiSystemTest < ApplicationSystemTestCase
       visit admin_root_path
 
       assert_difference -> { ActionMailer::Base.deliveries.size }, 1 do
-        perform_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+        perform_enqueued_jobs only: UserMailer.delivery_job do
           click_button_and_wait_for_navigation "Allow calendar notes access"
           assert_current_path reauthentication_path
           assert_text "We’ve emailed you a confirmation link."
@@ -35,7 +35,7 @@ class ReauthenticationUiSystemTest < ApplicationSystemTestCase
       assert_empty authorization_calls
       assert_equal "connected", @connection.reload.status
 
-      assert_no_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+      assert_no_enqueued_jobs only: UserMailer.delivery_job do
         page.refresh
         assert_text "We’ve emailed you a confirmation link."
         assert_button "Resend confirmation email"

@@ -54,17 +54,21 @@ class User < ApplicationRecord
   before_validation :clear_public_profile_approval_without_opt_in
   before_update -> { self.sign_in_token_version += 1 }, if: :will_save_change_to_email?
   after_update :revoke_login_sessions, if: -> { (saved_changes.keys & %w[email administrator facilitator]).any? }
+  after_save :count_confirmed_registration, if: -> { saved_change_to_verified_at? && verified_at_before_last_save.nil? && verified? }
   after_update_commit :enqueue_calendar_invitation, if: :saved_change_to_enrollment_status?
   after_update_commit :deliver_enrollment_notifications, if: :saved_change_to_enrollment_status?
   after_update_commit :capture_enrollment_conversion, if: :saved_change_to_enrollment_status?
   before_update :reset_attendance_streak, if: -> { will_save_change_to_enrollment_status? && active? }
   before_destroy :prevent_last_verified_administrator_deletion
+  after_destroy_commit :deliver_profile_goodbye, if: -> { waitlist_eligible? && !public_profile? && !administrator? && !facilitator? }
 
   scope :og, -> { where(og: true) }
   scope :active, -> { where(enrollment_status: "active") }
   scope :offered, -> { where(enrollment_status: "offered") }
   scope :waitlisted, -> { where(enrollment_status: "waitlisted") }
   scope :publicly_visible, -> { where(public_profile: true, public_profile_approved: true) }
+  scope :dormant, -> { where.not(verified_at: nil).where(enrollment_status: WAITLIST_ELIGIBLE_STATUSES) }
+  scope :dormant_without_public_profile, -> { dormant.where(public_profile: false, administrator: false, facilitator: false) }
   scope :avatar_first, -> { left_joins(:avatar_attachment).order(ActiveStorage::Attachment.arel_table[:id].eq(nil)) }
 
   def verified? = verified_at.present?
@@ -272,6 +276,14 @@ class User < ApplicationRecord
   end
 
   private
+
+  def deliver_profile_goodbye
+    UserMailer.profile_annihilated(email, name, id).deliver_later
+  end
+
+  def count_confirmed_registration
+    CommunityStatistic.current.increment!(:registrants_count) if verified_at >= CommunityStatistic::REGISTRATIONS_SINCE
+  end
 
   def revoke_login_sessions
     login_sessions.delete_all

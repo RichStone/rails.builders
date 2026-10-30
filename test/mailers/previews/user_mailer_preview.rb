@@ -1,4 +1,8 @@
 class UserMailerPreview < ActionMailer::Preview
+  def profile_annihilated
+    UserMailer.profile_annihilated("builder@example.com", "Casey", "preview")
+  end
+
   def verification
     UserMailer.verification(preview_user, "preview-verification-token")
   end

@@ -15,6 +15,7 @@ module ActiveSupport
 
     setup do
       Rails.cache.clear
+      CommunityStatistic.delete_all
       LoginSession.delete_all
       SessionReminder.delete_all
       SessionCancellationDelivery.delete_all

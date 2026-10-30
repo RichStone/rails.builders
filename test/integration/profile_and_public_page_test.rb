@@ -96,7 +96,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_no_match(/\bOGs?\b/, response.body)
-    assert_select "#past-builders h3", text: "Past Builders"
+    assert_select "#all-time-builders h3", text: "All-time Builders"
   end
 
   test "the site serves its red ruby favicon" do
@@ -301,6 +301,7 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
   end
 
   test "builder groups explain themselves with clickable icons" do
+    User.create!(email: "past@example.com", og: true)
     get root_path
 
     assert_select "#builders[data-controller~='viewport-nudge']"

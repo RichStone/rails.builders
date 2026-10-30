@@ -2,7 +2,7 @@
 
 ---
 Rails.Builders · Build in public. Ship with ~~Rails~~ Rust?
-Configure your notifications: <%= notification_preferences_url %>
+<% unless @account_deleted %>Configure your notifications: <%= notification_preferences_url %><% end %>
 Website: <%= root_url %>
 Privacy: <%= privacy_url %>
 Terms: <%= terms_url %>
