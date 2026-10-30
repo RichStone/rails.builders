@@ -1,8 +1,15 @@
 <main class="narrow-page">
   <p class="eyebrow">Account security</p>
   <h1>Confirm it’s you.</h1>
-  <p>Before making sensitive changes, confirm your email with a fresh link. Open it in this browser within 15 minutes, then retry your change.</p>
-  <%= button_to "Email me a confirmation link", reauthentication_path, class: "button button-primary" %>
+  <% if session[:reauthentication_email_sent_at] %>
+    <p>We’ve emailed you a confirmation link. Open it in this browser within 15 minutes.</p>
+  <% end %>
+  <% if session.dig(:reauthentication_context, "calendar_notes_connection_id") %>
+    <p>After confirming, you’ll continue to Google to allow read-only access to calendar notes.</p>
+  <% else %>
+    <p>After confirming, you can return to your change.</p>
+  <% end %>
+  <%= button_to "Resend confirmation email", reauthentication_path, class: "button button-primary" %>
   <% if @development_token %><div class="local-tools"><strong>Local development</strong><%= link_to "Open confirmation link", edit_reauthentication_path(token: @development_token), class: "button button-primary" %></div><% end %>
   <p><%= link_to "Back to dashboard", dashboard_path %></p>
 </main>

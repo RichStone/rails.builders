@@ -60,7 +60,12 @@ class ApplicationController < ActionController::Base
   def require_recent_authentication
     return if current_login_session&.recently_authenticated?
 
-    redirect_to reauthentication_path, alert: "Confirm your email before making this change, then try it again."
+    session[:reauthentication_context] = reauthentication_context
+    redirect_to reauthentication_path
+  end
+
+  def reauthentication_context
+    nil
   end
 
   def require_administrator

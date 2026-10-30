@@ -277,7 +277,127 @@ class AdminCalendarConnectionsTest < ActionDispatch::IntegrationTest
     assert_equal original, connection.reload.attributes
   end
 
+  test "stale notes access sends confirmation then resumes the same calendar authorization" do
+    connection = connected_calendar
+    original = connection.attributes
+    travel 16.minutes
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(**) { flunk "Google must wait for email confirmation" }) do
+      post authorize_notes_admin_calendar_connection_path
+      assert_redirected_to reauthentication_path
+      perform_enqueued_jobs { follow_redirect! }
+    end
+    assert_select "button", text: "Resend confirmation email"
+    token = confirmation_token
+    get edit_reauthentication_path(token: token)
+    assert_response :success
+    assert_select "form[data-turbo='false'] button", text: "Confirm identity"
+    patch reauthentication_path, params: { token: token, return_to: "https://example.com/untrusted" }
+    assert_redirected_to authorize_notes_admin_calendar_connection_path
+    assert_equal original, connection.reload.attributes
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(token_store: nil, **) { FakeAuthorization.new(token_store:) }) do
+      follow_redirect!
+      assert_redirected_to %r{\Ahttps://accounts\.google\.com/}
+      with_stubbed_singleton_method(GoogleWorkspace::CalendarClient, :new, ->(**) { FakeCalendarClient.new }) do
+        get callback_admin_calendar_connection_path, params: { code: "authorization-code", state: "signed" }
+      end
+    end
+    assert_redirected_to admin_root_path
+    assert_includes connection.reload.oauth_token_json, "new-notes-grant"
+    get authorize_notes_admin_calendar_connection_path
+    assert_redirected_to admin_root_path
+  end
+
+  test "calendar writes always require recent authentication" do
+    connection = connected_calendar
+    original = connection.attributes
+    travel 16.minutes
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(**) { flunk "Stale login must not change Google credentials" }) do
+      post admin_calendar_connection_path
+      assert_redirected_to reauthentication_path
+      patch admin_calendar_connection_path, params: { calendar_id: "new" }
+      assert_redirected_to reauthentication_path
+      post sync_admin_calendar_connection_path
+      assert_redirected_to reauthentication_path
+      delete admin_calendar_connection_path
+      assert_redirected_to reauthentication_path
+    end
+    assert_equal original, connection.reload.attributes
+  end
+
+  test "notes authorization cannot start from a direct GET or an expired continuation" do
+    connected_calendar
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(**) { flunk "No authorized continuation" }) do
+      get authorize_notes_admin_calendar_connection_path
+      assert_redirected_to admin_root_path
+      head authorize_notes_admin_calendar_connection_path
+      assert_redirected_to admin_root_path
+      travel 16.minutes
+      post authorize_notes_admin_calendar_connection_path
+      perform_enqueued_jobs { follow_redirect! }
+      travel 14.minutes
+      patch reauthentication_path, params: { token: confirmation_token }
+      assert_redirected_to authorize_notes_admin_calendar_connection_path
+      travel 2.minutes
+      get authorize_notes_admin_calendar_connection_path
+      assert_redirected_to admin_root_path
+    end
+  end
+
+  test "a changed calendar or another sensitive action cannot reuse notes intent" do
+    connection = connected_calendar
+    travel 16.minutes
+    post authorize_notes_admin_calendar_connection_path
+    perform_enqueued_jobs { follow_redirect! }
+    patch reauthentication_path, params: { token: confirmation_token }
+    connection.destroy!
+    connected_calendar
+    get authorize_notes_admin_calendar_connection_path
+    assert_redirected_to admin_root_path
+
+    travel 16.minutes
+    post authorize_notes_admin_calendar_connection_path
+    perform_enqueued_jobs { follow_redirect! }
+    delete admin_calendar_connection_path
+    patch reauthentication_path, params: { token: confirmation_token }
+    assert_redirected_to admin_root_path
+    assert @program.reload.calendar_connection
+  end
+
+  test "email confirmation restarts an expired notes callback with fresh OAuth state" do
+    connection = connected_calendar
+    original = connection.attributes
+    verifiers = []
+    authorization = ->(code_verifier: nil, **) do
+      verifiers << code_verifier
+      FakeAuthorization.new
+    end
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, authorization) do
+      post authorize_notes_admin_calendar_connection_path
+      travel 16.minutes
+      get callback_admin_calendar_connection_path, params: { code: "expired-authorization-code", state: "old-state" }
+      assert_redirected_to reauthentication_path
+      perform_enqueued_jobs { follow_redirect! }
+      patch reauthentication_path, params: { token: confirmation_token }
+      assert_redirected_to authorize_notes_admin_calendar_connection_path
+      follow_redirect!
+      assert_redirected_to %r{\Ahttps://accounts\.google\.com/}
+    end
+    assert_equal 2, verifiers.size
+    assert_not_equal verifiers.first, verifiers.last
+    assert_equal original, connection.reload.attributes
+  end
+
   private
+
+  def confirmation_token
+    mail = ActionMailer::Base.deliveries.last
+    assert_equal "Confirm your Rails.Builders identity", mail.subject
+    url = URI.extract(mail.text_part.body.decoded).find { |value| value.include?("/reauthentication/edit") }
+    Rack::Utils.parse_query(URI(url).query).fetch("token")
+  end
 
   def connected_calendar
     @program.create_calendar_connection!(facilitator: @facilitator, google_account_email: @facilitator.email,

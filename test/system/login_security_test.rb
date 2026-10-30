@@ -14,14 +14,12 @@ class LoginSecuritySystemTest < ApplicationSystemTestCase
     assert_current_path dashboard_path
     travel 16.minutes
     visit edit_admin_user_path(@builder)
-    accept_confirm { click_button "Grant Administrator role" }
-    assert_text "Confirm it’s you."
-    assert_not @builder.reload.administrator?
-
     perform_enqueued_jobs do
-      click_button "Email me a confirmation link"
-      assert_text "Check your inbox."
+      accept_confirm { click_button "Grant Administrator role" }
+      assert_text "We’ve emailed you a confirmation link."
     end
+    assert_button "Resend confirmation email"
+    assert_not @builder.reload.administrator?
     mail = ActionMailer::Base.deliveries.last
     url = URI.extract(mail.text_part.body.decoded).find { |value| value.include?("/reauthentication/edit") }
     visit URI(url).request_uri

@@ -5,7 +5,8 @@ class Admin::CalendarConnectionsController < Admin::BaseController
     def delete(_id) = self.token = nil
   end
 
-  before_action :require_recent_authentication, only: :callback
+  # Keep the inherited check on every write; these GET entry points need it too.
+  before_action -> { require_recent_authentication }, only: %i[callback authorize_notes]
   before_action :set_program
   before_action :set_connection, except: :create
 
@@ -34,6 +35,12 @@ class Admin::CalendarConnectionsController < Admin::BaseController
   end
 
   def authorize_notes
+    unless request.post?
+      context = session.delete(:resume_calendar_notes)
+      unless context&.dig("calendar_notes_connection_id") == @connection.id && context.fetch("requested_at", 0) > 15.minutes.ago.to_i
+        return redirect_to admin_root_path, alert: "Choose Allow calendar notes access to continue."
+      end
+    end
     unless @connection.status.in?(%w[connected error])
       return redirect_to admin_root_path, alert: "Connect the Sessions calendar before allowing notes access."
     end
@@ -125,6 +132,15 @@ class Admin::CalendarConnectionsController < Admin::BaseController
   end
 
   private
+
+  def reauthentication_context
+    connection_id = if action_name == "authorize_notes" && request.post?
+      Program.current.calendar_connection&.id
+    elsif action_name == "callback"
+      session[:google_notes_connection_id]
+    end
+    { "calendar_notes_connection_id" => connection_id, "requested_at" => Time.current.to_i } if connection_id
+  end
 
   def redirect_to_google_authorization
     code_verifier = GoogleWorkspace::Authorization.generate_code_verifier

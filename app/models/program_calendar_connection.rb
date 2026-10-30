@@ -14,6 +14,18 @@ class ProgramCalendarConnection < ApplicationRecord
   validates :status, inclusion: { in: STATUSES }
   validate :facilitator_matches_program
 
+  # Reflects the saved grant; syncing detects permissions revoked at Google.
+  def calendar_notes_access_granted?
+    token = JSON.parse(oauth_token_json.to_s)
+    return false unless token.is_a?(Hash)
+
+    scopes = token["scope"]
+    scopes = scopes.split if scopes.is_a?(String)
+    scopes.is_a?(Array) && scopes.include?(GoogleWorkspace::Authorization::NOTES_SCOPE)
+  rescue JSON::ParserError
+    false
+  end
+
   private
 
   def facilitator_matches_program

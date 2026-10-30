@@ -126,8 +126,53 @@ class LoginSecurityTest < ActionDispatch::IntegrationTest
     assert_no_enqueued_emails do
       post reauthentication_path
     end
-    assert_redirected_to reauthentication_path
+    assert_response :too_many_requests
     assert_match "Too many confirmation requests", flash[:alert]
+  end
+
+  test "a blocked change sends the first confirmation email automatically without refresh spam" do
+    builder = User.create!(email: "builder@example.com", verified_at: Time.current)
+    sign_in_as(@user)
+    travel 16.minutes
+
+    post grant_administrator_admin_user_path(builder)
+    assert_redirected_to reauthentication_path
+    assert_enqueued_emails 1 do
+      follow_redirect!
+    end
+    assert_select "button", text: "Resend confirmation email"
+    assert_includes response.body, "We’ve emailed you a confirmation link."
+    assert_no_enqueued_emails do
+      4.times { get reauthentication_path }
+      post grant_administrator_admin_user_path(builder)
+      follow_redirect!
+    end
+    2.times do
+      assert_enqueued_emails(1) { post reauthentication_path }
+    end
+    assert_no_enqueued_emails { post reauthentication_path }
+    assert_response :too_many_requests
+    assert_not builder.reload.administrator?
+  end
+
+  test "automatic email cannot bypass the resend limit in another login" do
+    sign_in_as(@user)
+    other_device = open_session
+    other_device.post verify_email_path, params: { token: @user.reload.generate_token_for(:email_verification) }
+    travel 16.minutes
+
+    3.times { post reauthentication_path }
+
+    assert_no_enqueued_emails do
+      other_device.get reauthentication_path
+    end
+    assert_equal 429, other_device.response.status
+  end
+
+  test "returning to confirmation after success does not send another email" do
+    sign_in_as(@user)
+    assert_no_enqueued_emails { get reauthentication_path }
+    assert_redirected_to admin_root_path
   end
 
   test "changing an account email revokes existing sessions and pending sign-in links" do

@@ -2,5 +2,8 @@
   <p class="eyebrow">Account security</p>
   <h1>Confirm your identity.</h1>
   <p>This allows sensitive changes for the next 15 minutes. You’ll stay signed in.</p>
-  <%= button_to "Confirm identity", reauthentication_path, method: :patch, params: { token: @token }, class: "button button-primary" %>
+  <% if session.dig(:reauthentication_context, "calendar_notes_connection_id") %>
+    <p>Next, you’ll continue to Google to allow read-only access to calendar notes.</p>
+  <% end %>
+  <%= button_to "Confirm identity", reauthentication_path, method: :patch, params: { token: @token }, class: "button button-primary", form: { data: { turbo: false } } %>
 </main>

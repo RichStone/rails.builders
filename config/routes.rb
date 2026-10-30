@@ -69,6 +69,7 @@ Rails.application.routes.draw do
       get :callback
       post :sync
       post :authorize_notes
+      get :authorize_notes
     end
     resources :users, only: %i[edit update destroy] do
       post :retry_newsletter, on: :member
