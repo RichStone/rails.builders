@@ -47,11 +47,16 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
       page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride",
         width: width, height: height, deviceScaleFactor: 1, mobile: width < 600)
       assert_equal width, page.evaluate_script("window.innerWidth")
-      image = find("[data-session-exercise] img")
-      assert image.evaluate_script("this.complete && this.naturalWidth > 0"), "Teacher illustration must load"
-      exercise_rect = find("[data-session-exercise]").rect
-      assert_operator exercise_rect.y + exercise_rect.height, :<=, find(".live-session-stage").rect.y
-      assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth"), "Exercise must fit the viewport"
+      assert_selector "[data-session-exercise] img" do |image|
+        image.evaluate_script("this.complete && this.naturalWidth > 0")
+      end
+      # Resize reflows asynchronously; compare both boxes in one browser evaluation.
+      assert_selector ".live-session-timer > [data-session-exercise]" do |exercise|
+        exercise.evaluate_script("this.getBoundingClientRect().bottom <= this.nextElementSibling.getBoundingClientRect().top")
+      end
+      assert_selector "html" do |html|
+        html.evaluate_script("this.scrollWidth <= window.innerWidth")
+      end
       page.save_screenshot(Rails.root.join("tmp/screenshots/session-exercise-#{width}.png"))
     end
   ensure
