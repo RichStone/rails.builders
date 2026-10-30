@@ -1,8 +1,7 @@
 class UserMailer < ApplicationMailer
   self.delivery_job = UserMailDeliveryJob
 
-  def profile_annihilated(email, name, deleted_user_id)
-    @recipient_name = name.to_s.split.first || "Builder"
+  def profile_annihilated(email, _name, deleted_user_id)
     @url = join_url(protocol: "https")
     @account_deleted = true
     attachments.inline["loop-monster-goodbye.png"] = Rails.root.join("app/assets/images/loop-monster-goodbye.png").binread

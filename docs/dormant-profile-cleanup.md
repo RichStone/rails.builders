@@ -10,7 +10,7 @@ After a qualifying account deletion commits, `UserMailer.profile_annihilated` qu
 
 ## Approval before cleanup
 
-Rich requested the rendered email and an exact candidate list before the proposed batch deletion. That batch remains pending his approval. The private production snapshot and rendered preview live outside the public repository in `~/.local/share/rails-builders/dormant-cleanup-2026-10-30/`. Recheck each approved ID against the current scope immediately before using `delete_account!`; skip accounts whose eligibility changed. Do not recreate a candidate list and delete additional accounts under an old approval.
+Rich reviewed the rendered email and exact candidate list, then approved the 18-account batch on October 30, 2026, with revised email copy. Run that one-time cleanup after deploying the revised templates, verifying each successful send with its provider message ID. The private production snapshot, preview and delivery receipts live outside the public repository in `~/.local/share/rails-builders/dormant-cleanup-2026-10-30/`. Recheck each approved ID against the current scope immediately before using `delete_account!`; skip accounts whose eligibility changed. Do not recreate a candidate list and delete additional accounts under an old approval.
 
 Development email preview: `/rails/mailers/user_mailer/profile_annihilated`.
 
