@@ -17,6 +17,7 @@ class BuilderSessionTranscript < ApplicationRecord
   encrypts :content
   encrypts :summary_notes
   encrypts :session_analysis
+  encrypts :calendar_notes
   encrypts :google_conference_record_name
   encrypts :google_transcript_names
 
@@ -25,7 +26,8 @@ class BuilderSessionTranscript < ApplicationRecord
   validates :attempts, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :last_error_code, length: { maximum: 100 }, allow_nil: true
   validates :content, length: { maximum: 1.megabyte }, allow_nil: true
-  validates :summary_notes, :session_analysis, length: { maximum: 1.megabyte }, allow_nil: true
+  validates :summary_notes, :session_analysis, :calendar_notes, length: { maximum: 1.megabyte }, allow_nil: true
+  validates :calendar_notes_error_code, length: { maximum: 100 }, allow_nil: true
   validates :content, presence: true, if: -> { state == "ready" }
   validates :wispr_meeting_id, length: { maximum: 100 }, uniqueness: true, allow_nil: true
 
@@ -84,6 +86,10 @@ class BuilderSessionTranscript < ApplicationRecord
           content: nil,
           summary_notes: nil,
           session_analysis: nil,
+          calendar_notes: nil,
+          calendar_notes_synced_at: nil,
+          calendar_notes_next_attempt_at: nil,
+          calendar_notes_error_code: nil,
           google_conference_record_name: nil,
           google_transcript_names: nil,
           next_attempt_at: nil,

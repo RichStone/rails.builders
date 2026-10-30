@@ -110,6 +110,39 @@ class GoogleWorkspace::CalendarClientTest < ActiveSupport::TestCase
     assert service.calendar_list_calls.all? { |call| call[:min_access_role] == "owner" }
   end
 
+  test "reads distinct native notes attachments from the exact session occurrence and original calendar" do
+    start = Time.utc(2026, 10, 29, 16, 30)
+    session = BuilderSession.new(google_event_id: "instance", source_calendar_id: "original-calendar", scheduled_starts_at: start)
+    service = FakeService.new(events: { "instance" => Calendar::Event.new(
+      id: "instance", status: "confirmed", start: Calendar::EventDateTime.new(date_time: start),
+      attachments: [
+        Calendar::EventAttachment.new(file_id: "notes-doc", title: "Notes by Gemini", mime_type: "application/vnd.google-apps.document"),
+        Calendar::EventAttachment.new(file_id: "notes-doc", title: "Notes by Gemini", mime_type: "application/vnd.google-apps.document"),
+        Calendar::EventAttachment.new(file_id: "shared-doc", title: "Notes - Builders", mime_type: "application/vnd.google-apps.document"),
+        Calendar::EventAttachment.new(file_id: "other-doc", title: "Product specification", mime_type: "application/vnd.google-apps.document"),
+        Calendar::EventAttachment.new(file_id: "pdf", title: "Notes", mime_type: "application/pdf"),
+        Calendar::EventAttachment.new(file_id: "../../outside", title: "Notes", mime_type: "application/vnd.google-apps.document")
+      ]
+    ) })
+    client = GoogleWorkspace::CalendarClient.new(connection: Object.new, service: service)
+
+    assert_equal [ { id: "notes-doc", title: "Notes by Gemini" }, { id: "shared-doc", title: "Notes - Builders" } ], client.notes_attachments(session)
+    assert_equal "original-calendar", service.event_get_calls.sole[:calendar_id]
+    assert_equal "instance", service.event_get_calls.sole[:event_id]
+  end
+
+  test "refuses notes from a changed or cancelled calendar occurrence" do
+    start = Time.utc(2026, 10, 29, 16, 30)
+    session = BuilderSession.new(google_event_id: "instance", source_calendar_id: "calendar", scheduled_starts_at: start)
+    event = Calendar::Event.new(id: "instance", status: "confirmed", start: Calendar::EventDateTime.new(date_time: start + 1.hour))
+    client = GoogleWorkspace::CalendarClient.new(connection: Object.new, service: FakeService.new(events: { "instance" => event }))
+
+    assert_raises(GoogleWorkspace::CalendarClient::SessionEventMismatch) { client.notes_attachments(session) }
+    event.start.date_time = start
+    event.status = "cancelled"
+    assert_raises(GoogleWorkspace::CalendarClient::SessionEventMismatch) { client.notes_attachments(session) }
+  end
+
   test "expands timed recurring events across every page and safely extracts Google Meet links" do
     starts_at = Time.utc(2026, 8, 20)
     ends_at = Time.utc(2026, 12, 18)

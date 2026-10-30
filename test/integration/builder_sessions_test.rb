@@ -963,7 +963,7 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
 
     assert_select ".transcript-processing", text: /Automatic transcript unavailable/
     assert_select ".manual-transcript", count: 0
-    assert_select "[data-controller='session-refresh']", count: 0
+    assert_select ".transcript-panel[data-controller='session-refresh']", count: 0
   end
 
   test "facilitators correct an automatic close while Builders cannot change session times" do

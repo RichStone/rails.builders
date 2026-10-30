@@ -1,8 +1,8 @@
 class BuilderSessionsController < ApplicationController
   before_action :require_session_member
-  before_action :require_session_operator, only: %i[sync_calendar start cancel cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing]
+  before_action :require_session_operator, only: %i[sync_calendar sync_notes start cancel cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing]
   before_action :require_recent_authentication, only: :cancel
-  before_action :set_builder_session, only: %i[show join start cancel cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing heartbeat]
+  before_action :set_builder_session, only: %i[show join sync_notes start cancel cancel_start pause resume advance next_speaker push_speaker_back queue_speaker finish attendance facilitator speaker_order timing heartbeat]
   before_action :queue_stale_calendar_sync, only: :index
 
   def index
@@ -35,6 +35,13 @@ class BuilderSessionsController < ApplicationController
     else
       redirect_to builder_sessions_path, alert: "The Sessions calendar needs an Administrator to reconnect it."
     end
+  end
+
+  def sync_notes
+    queued = @builder_session.request_calendar_notes_sync!
+    redirect_to @builder_session, (queued ?
+      { notice: "Calendar notes sync queued." } :
+      { alert: "Calendar notes can only be synced for a completed session whose record has not been deleted." })
   end
 
   def start

@@ -4,6 +4,7 @@ require "time"
 module GoogleWorkspace
   class CalendarClient
     UnsafeEventDeletion = Class.new(StandardError)
+    SessionEventMismatch = Class.new(StandardError)
 
     PAGE_SIZE = 2_500
     CALENDAR_LIST_FIELDS = "items(id,summary,summaryOverride,timeZone,dataOwner,primary,deleted),nextPageToken"
@@ -84,6 +85,24 @@ module GoogleWorkspace
       Array(event.attendees).filter_map do |attendee|
         attendee.email.to_s.downcase if attendee.response_status == "declined"
       end
+    end
+
+    def notes_attachments(builder_session)
+      calendar_id = builder_session.source_calendar_id.presence || connection.google_calendar_id
+      event = service.get_event(calendar_id, builder_session.google_event_id,
+        fields: "id,status,start(dateTime),attachments(fileId,title,mimeType)")
+      unless event.id == builder_session.google_event_id && event.status != "cancelled" && event.start&.date_time &&
+          parse_time(event.start&.date_time) == builder_session.scheduled_starts_at
+        raise SessionEventMismatch, "Calendar event no longer matches the session"
+      end
+
+      Array(event.attachments).filter_map do |attachment|
+        next unless attachment.mime_type == "application/vnd.google-apps.document"
+        next unless attachment.title.to_s.match?(/\bnotes?\b/i)
+        next unless attachment.file_id.to_s.match?(/\A[a-zA-Z0-9_-]+\z/)
+
+        { id: attachment.file_id, title: attachment.title }
+      end.uniq { |attachment| attachment[:id] }
     end
 
     def delete_event(event_id:)

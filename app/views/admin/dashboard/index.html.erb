@@ -42,6 +42,8 @@
       <p><strong><%= @calendar_connection.google_calendar_name %></strong> · <%= @calendar_connection.google_account_email %></p>
       <p>Last synced <%= @calendar_connection.last_synced_at ? time_ago_in_words(@calendar_connection.last_synced_at) + " ago" : "never" %>.</p>
       <div class="button-row"><%= button_to "Sync now", sync_admin_calendar_connection_path, class: "button button-primary" %><%= link_to "Change calendar", admin_calendar_connection_path, class: "button button-quiet" %><%= button_to "Disconnect", admin_calendar_connection_path, method: :delete, class: "button button-quiet", form: { data: { turbo_confirm: "Disconnect the Sessions calendar?" } } %></div>
+      <p>Calendar notes sync needs read-only Google Docs access. Grant it once using the main facilitator’s Google account.</p>
+      <%= button_to "Allow calendar notes access", authorize_notes_admin_calendar_connection_path, class: "button button-quiet", form: { data: { turbo: false } } %>
     <% else %>
       <p>Connect the dedicated secondary calendar owned by the main facilitator. Upcoming sessions will follow it automatically.</p>
       <% if @calendar_connection %><p>Status: <%= @calendar_connection.status.humanize %></p><% end %>

@@ -1,0 +1,57 @@
+<section class="session-record" data-session-calendar-notes
+  <% if transcript&.calendar_notes_next_attempt_at && !transcript.state.in?(%w[pending processing]) %>
+    data-controller="session-refresh"
+    data-session-refresh-url-value="<%= heartbeat_builder_session_path(builder_session) %>"
+    data-session-refresh-version-value="<%= builder_session.updated_at.iso8601(6) %>"
+  <% end %>>
+  <div class="session-analysis-panel">
+    <div class="section-heading"><p class="eyebrow">From the calendar invite</p><h2>Meeting notes</h2></div>
+    <div role="status" data-calendar-notes-status>
+      <% if transcript&.calendar_notes_synced_at %>
+        <p>Last synced <%= transcript.calendar_notes_synced_at.in_time_zone(builder_session.time_zone).strftime("%-d %B %Y at %H:%M %Z") %>.</p>
+      <% end %>
+      <% if transcript&.calendar_notes_error_code.present? %>
+        <p>
+          <% if transcript.calendar_notes_error_code == "GoogleNotesPermissionRequired" %>
+            <% if current_user.administrator? %>
+              Allow read-only Google Docs access in <%= link_to "Administration", admin_root_path %>, then sync again.
+            <% else %>
+              Ask an Administrator to allow read-only Google Docs access, then sync again.
+            <% end %>
+          <% elsif transcript.calendar_notes_error_code == "GoogleAuthorizationRequired" %>
+            <% if current_user.administrator? %>
+              Reconnect Google in <%= link_to "Administration", admin_root_path %>, then sync again.
+            <% else %>
+              Ask an Administrator to reconnect Google, then sync again.
+            <% end %>
+          <% elsif transcript.calendar_notes_error_code == "Google::Apis::ClientError" %>
+            Google could not read the attached notes. Ask an Administrator to check document access and Google Docs API setup, then sync again.
+          <% elsif transcript.calendar_notes_error_code.in?(%w[CalendarConnectionMissing CalendarMismatch]) %>
+            Ask an Administrator to reconnect this session’s original calendar, then sync again.
+          <% elsif transcript.calendar_notes_error_code == "NotesNotFound" %>
+            No meeting notes are attached to this calendar invite yet. Try syncing again after Google adds them.
+          <% else %>
+            Meeting notes could not be synced. Try again.
+          <% end %>
+        </p>
+      <% elsif transcript&.calendar_notes_next_attempt_at && transcript.calendar_notes_next_attempt_at <= Time.current %>
+        <p>Calendar notes sync queued.</p>
+      <% elsif transcript&.calendar_notes_next_attempt_at && transcript.calendar_notes_synced_at && transcript.calendar_notes_attempted_at && transcript.calendar_notes_synced_at >= transcript.calendar_notes_attempted_at %>
+        <p>Notes will refresh automatically one hour after the session ends.</p>
+      <% elsif transcript&.calendar_notes_next_attempt_at && transcript.calendar_notes_attempted_at %>
+        <p>Syncing calendar notes.</p>
+      <% elsif transcript&.calendar_notes_synced_at.nil? %>
+        <p>Notes sync automatically one hour after the session ends.</p>
+      <% end %>
+    </div>
+    <% if session_operator? %>
+      <%= button_to "Sync notes from calendar invite", sync_notes_builder_session_path(builder_session), class: "button button-quiet" %>
+    <% end %>
+  </div>
+  <% if transcript&.calendar_notes.present? %>
+    <details class="session-artifact-panel" data-calendar-notes-document>
+      <summary><span><small>Google Calendar</small>Read meeting notes</span><strong aria-hidden="true">+</strong></summary>
+      <div class="session-markdown" data-calendar-notes-content><%= render_session_markdown(transcript.calendar_notes, links: true) %></div>
+    </details>
+  <% end %>
+</section>

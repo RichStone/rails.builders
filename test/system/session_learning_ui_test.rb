@@ -45,6 +45,36 @@ class SessionLearningUiSystemTest < ApplicationSystemTestCase
     page.current_window.resize_to(1280, 900)
   end
 
+  test "facilitators sync calendar notes while the spoken transcript is processing" do
+    @program.create_calendar_connection!(facilitator: @facilitator, google_account_email: @facilitator.email,
+      google_calendar_id: "session-calendar", google_calendar_name: "Sessions", oauth_token_json: "{}", status: "connected")
+    @session.update!(source_calendar_id: "session-calendar")
+    @session.transcript.update!(state: "processing", content: nil)
+    sign_in_as(@facilitator)
+    visit builder_session_path(@session)
+    click_button_and_wait_for_navigation "Sync notes from calendar invite"
+    assert_text "Calendar notes sync queued."
+
+    client = Object.new
+    client.define_singleton_method(:notes_for) do |_session|
+      "## Full notes\n\nAda tested a shorter onboarding flow.\n\n[Open source document](https://docs.google.com/document/d/example-notes/edit)"
+    end
+    with_stubbed_singleton_method(GoogleWorkspace::NotesClient, :new, ->(**) { client }) do
+      GoogleCalendarNotesSyncJob.perform_now(@session.id)
+    end
+    visit builder_session_path(@session)
+    find("[data-calendar-notes-document] > summary").click
+    assert_selector "[data-calendar-notes-content]", text: "Ada tested a shorter onboarding flow."
+    assert_link "Open source document", href: "https://docs.google.com/document/d/example-notes/edit"
+    assert_text "Processing transcript"
+    capture_learning_screenshot("calendar-notes-desktop", "[data-session-calendar-notes]")
+    page.current_window.resize_to(390, 1000)
+    assert_no_horizontal_overflow
+    capture_learning_screenshot("calendar-notes-mobile", "[data-session-calendar-notes]")
+  ensure
+    page.current_window.resize_to(1280, 900)
+  end
+
   test "the current speaker has a readable emphasized promise and project on desktop and mobile" do
     @builder.products.create!(name: "Tiny Onboarding", url: "https://example.com/onboarding", focus: true, stage_problem: "offer", stage_problem_analysis: "The app works; repeat demand is still unproven.")
     live_session = @program.builder_sessions.create!(google_event_id: "live-learning-browser", title: "One useful next move", scheduled_starts_at: Time.current, scheduled_ends_at: 1.hour.from_now, time_zone: "Europe/Berlin")

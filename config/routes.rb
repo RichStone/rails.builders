@@ -30,6 +30,7 @@ Rails.application.routes.draw do
     resource :chat_log, only: %i[create update], controller: "builder_session_chat_logs"
     member do
       get :join
+      post :sync_notes
       post :start
       post :cancel
       post :cancel_start
@@ -67,6 +68,7 @@ Rails.application.routes.draw do
     resource :calendar_connection, only: %i[show create update destroy] do
       get :callback
       post :sync
+      post :authorize_notes
     end
     resources :users, only: %i[edit update destroy] do
       post :retry_newsletter, on: :member

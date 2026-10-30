@@ -1,4 +1,10 @@
 class Admin::CalendarConnectionsController < Admin::BaseController
+  NotesTokenStore = Struct.new(:token) do
+    def load(_id) = token
+    def store(_id, value) = self.token = value
+    def delete(_id) = self.token = nil
+  end
+
   before_action :require_recent_authentication, only: :callback
   before_action :set_program
   before_action :set_connection, except: :create
@@ -19,23 +25,33 @@ class Admin::CalendarConnectionsController < Admin::BaseController
     end
 
     replace_connection_for(facilitator)
-    code_verifier = GoogleWorkspace::Authorization.generate_code_verifier
-    session[:google_oauth_code_verifier] = code_verifier
-    url = authorization(code_verifier:).authorization_url(
-      request:,
-      redirect_to: admin_calendar_connection_path,
-      login_hint: facilitator.email
-    )
-    redirect_to url, allow_other_host: true
+    session.delete(:google_notes_connection_id)
+    redirect_to_google_authorization
   rescue StandardError => error
     session.delete(:google_oauth_code_verifier)
     record_connection_error(error)
     redirect_to admin_root_path, alert: "Google Calendar authorization could not be started."
   end
 
+  def authorize_notes
+    unless @connection.status.in?(%w[connected error])
+      return redirect_to admin_root_path, alert: "Connect the Sessions calendar before allowing notes access."
+    end
+
+    session[:google_notes_connection_id] = @connection.id
+    redirect_to_google_authorization
+  rescue StandardError => error
+    session.delete(:google_notes_connection_id)
+    session.delete(:google_oauth_code_verifier)
+    Rails.logger.warn("Calendar notes authorization failed (#{error.class.name})")
+    redirect_to admin_root_path, alert: "Notes access could not be started. The existing Calendar connection is unchanged."
+  end
+
   def callback
+    notes_connection_id = session.delete(:google_notes_connection_id)
     code_verifier = session.delete(:google_oauth_code_verifier)
     raise ArgumentError, "Missing OAuth verifier" if code_verifier.blank?
+    return complete_notes_authorization(notes_connection_id:, code_verifier:) if notes_connection_id
 
     authorizer = authorization(code_verifier:)
     authorizer.authorize!(request)
@@ -57,8 +73,13 @@ class Admin::CalendarConnectionsController < Admin::BaseController
     @connection.update!(google_account_email: account_email, status: "authorizing", last_error_code: nil)
     redirect_to admin_calendar_connection_path, notice: "Google account connected. Choose the Sessions calendar."
   rescue StandardError => error
-    record_connection_error(error)
-    redirect_to admin_root_path, alert: "Google Calendar authorization failed. Please reconnect it."
+    if notes_connection_id
+      Rails.logger.warn("Calendar notes authorization failed (#{error.class.name})")
+      redirect_to admin_root_path, alert: "Notes access was not changed. Allow read-only Google Docs access and try again."
+    else
+      record_connection_error(error)
+      redirect_to admin_root_path, alert: "Google Calendar authorization failed. Please reconnect it."
+    end
   end
 
   def update
@@ -105,6 +126,43 @@ class Admin::CalendarConnectionsController < Admin::BaseController
 
   private
 
+  def redirect_to_google_authorization
+    code_verifier = GoogleWorkspace::Authorization.generate_code_verifier
+    session[:google_oauth_code_verifier] = code_verifier
+    url = authorization(code_verifier:).authorization_url(
+      request:, redirect_to: admin_calendar_connection_path, login_hint: @connection.facilitator.email
+    )
+    redirect_to url, allow_other_host: true
+  end
+
+  def complete_notes_authorization(notes_connection_id:, code_verifier:)
+    raise ArgumentError, "Google connection changed" unless @connection.id == notes_connection_id
+
+    previous_token = @connection.oauth_token_json
+    previous_version = @connection.updated_at
+    token_store = NotesTokenStore.new
+    authorizer = authorization(code_verifier:, token_store:)
+    authorizer.authorize!(request)
+    credentials = authorizer.credentials
+    raise GoogleWorkspace::AuthorizationRequired unless credentials && authorizer.notes_credentials
+    raise GoogleWorkspace::AuthorizationRequired if JSON.parse(token_store.token).fetch("refresh_token", nil).blank?
+
+    account_email = GoogleWorkspace::CalendarClient.new(connection: @connection, credentials:).account_email.to_s.downcase
+    unless ActiveSupport::SecurityUtils.secure_compare(account_email, @connection.facilitator.email.downcase)
+      authorizer.revoke!
+      return redirect_to admin_root_path, alert: "Connect the main facilitator’s Google account."
+    end
+
+    @connection.with_lock do
+      unless @connection.updated_at == previous_version && @connection.oauth_token_json == previous_token
+        raise ArgumentError, "Google connection changed"
+      end
+
+      @connection.update!(oauth_token_json: token_store.token)
+    end
+    redirect_to admin_root_path, notice: "Calendar notes access granted. You can sync notes from the session."
+  end
+
   def set_program
     @program = Program.current
   end
@@ -144,11 +202,12 @@ class Admin::CalendarConnectionsController < Admin::BaseController
     @connection.save!
   end
 
-  def authorization(connection: @connection, code_verifier: nil)
+  def authorization(connection: @connection, code_verifier: nil, token_store: nil)
     GoogleWorkspace::Authorization.new(
       connection:,
       callback_uri: google_callback_uri,
-      code_verifier:
+      code_verifier:,
+      token_store:
     )
   end
 

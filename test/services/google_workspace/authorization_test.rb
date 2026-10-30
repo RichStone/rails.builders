@@ -52,7 +52,8 @@ class GoogleWorkspace::AuthorizationTest < ActiveSupport::TestCase
     assert_equal "force", params.fetch("approval_prompt")
     assert_equal "S256", params.fetch("code_challenge_method")
     assert_equal "otto@looplabs.cc", params.fetch("login_hint")
-    assert_equal GoogleWorkspace::Authorization::SCOPES.sort, params.fetch("scope").split.sort
+    assert_equal (GoogleWorkspace::Authorization::SCOPES + [ GoogleWorkspace::Authorization::NOTES_SCOPE ]).sort, params.fetch("scope").split.sort
+    assert_equal "true", params.fetch("include_granted_scopes")
     assert_includes GoogleWorkspace::Authorization::SCOPES, Google::Apis::CalendarV3::AUTH_CALENDAR_EVENTS_OWNED
     assert_not_includes GoogleWorkspace::Authorization::SCOPES, Google::Apis::CalendarV3::AUTH_CALENDAR_EVENTS_OWNED_READONLY
     assert request.session.key?(Google::Auth::WebUserAuthorizer::XSRF_KEY)
@@ -67,12 +68,28 @@ class GoogleWorkspace::AuthorizationTest < ActiveSupport::TestCase
       expiration_time_millis: 1.hour.from_now.to_i * 1000
     }.to_json)
 
-    credentials = GoogleWorkspace::Authorization.new(
+    authorization = GoogleWorkspace::Authorization.new(
       connection: @connection,
       client_id: @client_id
-    ).credentials
+    )
+    credentials = authorization.credentials
 
     assert_equal "access-secret", credentials.access_token
     assert_equal "refresh-secret", credentials.refresh_token
+    assert_nil authorization.notes_credentials
+  end
+
+  test "a notes grant supplies notes credentials without broad Drive access" do
+    @connection.update!(oauth_token_json: {
+      client_id: "client-id", access_token: "access-secret", refresh_token: "refresh-secret",
+      scope: GoogleWorkspace::Authorization::SCOPES + [ GoogleWorkspace::Authorization::NOTES_SCOPE ],
+      expiration_time_millis: 1.hour.from_now.to_i * 1000
+    }.to_json)
+
+    authorization = GoogleWorkspace::Authorization.new(connection: @connection, client_id: @client_id)
+
+    assert authorization.credentials
+    assert authorization.notes_credentials
+    assert_not_includes authorization.notes_credentials.scope, "https://www.googleapis.com/auth/drive.readonly"
   end
 end

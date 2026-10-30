@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_28_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_30_090000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -112,7 +112,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_160000) do
     t.text "summary_notes"
     t.datetime "updated_at", null: false
     t.string "wispr_meeting_id"
+    t.text "calendar_notes"
+    t.datetime "calendar_notes_synced_at"
+    t.datetime "calendar_notes_attempted_at"
+    t.datetime "calendar_notes_next_attempt_at"
+    t.string "calendar_notes_error_code"
     t.index ["builder_session_id"], name: "index_builder_session_transcripts_on_builder_session_id", unique: true
+    t.index ["calendar_notes_next_attempt_at"], name: "idx_on_calendar_notes_next_attempt_at_0475ad7c62"
     t.index ["state", "next_attempt_at"], name: "index_builder_session_transcripts_on_state_and_next_attempt_at"
     t.index ["wispr_meeting_id"], name: "index_builder_session_transcripts_on_wispr_meeting_id", unique: true
   end

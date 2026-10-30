@@ -285,6 +285,7 @@
     </section>
 
     <% transcript = @builder_session.transcript %>
+    <%= render "calendar_notes", builder_session: @builder_session, transcript: transcript unless transcript&.state == "deleted" %>
     <% if transcript&.state == "ready" %>
       <section class="session-record">
         <section class="session-analysis-panel" data-session-analysis>

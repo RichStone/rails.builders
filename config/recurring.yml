@@ -40,3 +40,6 @@ production:
   import_google_meet_transcripts:
     class: GoogleMeetTranscriptImportJob
     schedule: every 5 minutes
+  sync_google_calendar_notes:
+    class: GoogleCalendarNotesSyncJob
+    schedule: every minute

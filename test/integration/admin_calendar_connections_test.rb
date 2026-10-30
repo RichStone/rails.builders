@@ -6,6 +6,12 @@ class AdminCalendarConnectionsTest < ActionDispatch::IntegrationTest
   class FakeAuthorization
     attr_reader :revoked
 
+    def initialize(token_store: nil, error: nil, notes_granted: true)
+      @token_store = token_store
+      @error = error
+      @notes_granted = notes_granted
+    end
+
     def authorization_url(request:, redirect_to:, login_hint:)
       raise unless request && redirect_to == "/admin/calendar_connection" && login_hint == "otto@looplabs.cc"
 
@@ -13,12 +19,17 @@ class AdminCalendarConnectionsTest < ActionDispatch::IntegrationTest
     end
 
     def authorize!(request)
+      raise @error if @error
       raise unless request.params["code"] == "authorization-code"
 
+      @token_store&.store("connection", '{"refresh_token":"new-notes-grant"}')
       true
     end
 
     def credentials = Object.new
+    def notes_credentials
+      Object.new if @notes_granted
+    end
     def revoke! = @revoked = true
   end
 
@@ -158,7 +169,121 @@ class AdminCalendarConnectionsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "notes authorization preserves the calendar while a transcript is processing" do
+    connection = connected_calendar
+    original_token = connection.oauth_token_json
+    builder_session = @program.builder_sessions.create!(google_event_id: "completed-event", title: "Completed session",
+      scheduled_starts_at: 2.hours.ago, scheduled_ends_at: 1.hour.ago, ended_at: 1.hour.ago,
+      time_zone: "Europe/Madrid", state: "completed")
+    transcript = builder_session.create_transcript!(state: "processing")
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(token_store: nil, **) { FakeAuthorization.new(token_store:) }) do
+      post authorize_notes_admin_calendar_connection_path
+      assert_redirected_to %r{\Ahttps://accounts\.google\.com/}
+      assert_equal original_token, connection.reload.oauth_token_json
+      assert_equal "connected", connection.status
+
+      client = FakeCalendarClient.new
+      client.define_singleton_method(:account_email) do
+        raise "Token changed before identity verification" unless connection.reload.oauth_token_json == original_token
+
+        "otto@looplabs.cc"
+      end
+      with_stubbed_singleton_method(GoogleWorkspace::CalendarClient, :new, ->(**) { client }) do
+        get callback_admin_calendar_connection_path, params: { code: "authorization-code", state: "signed" }
+      end
+    end
+
+    assert_redirected_to admin_root_path
+    assert_includes connection.reload.oauth_token_json, "new-notes-grant"
+    assert_equal "sessions-calendar", connection.google_calendar_id
+    assert_equal "connected", connection.status
+    assert_equal "processing", transcript.reload.state
+  end
+
+  test "denied notes permission leaves the existing calendar credentials usable" do
+    connection = connected_calendar
+    original = connection.attributes
+    authorization = FakeAuthorization.new(error: RuntimeError.new("denied"))
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(**) { authorization }) do
+      post authorize_notes_admin_calendar_connection_path
+      get callback_admin_calendar_connection_path, params: { error: "access_denied", state: "signed" }
+    end
+
+    assert_redirected_to admin_root_path
+    assert_equal original, connection.reload.attributes
+    assert_nil authorization.revoked
+  end
+
+  test "notes authorization rejects a different account without erasing the existing token" do
+    connection = connected_calendar
+    original = connection.attributes
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(token_store: nil, **) { FakeAuthorization.new(token_store:) }) do
+      post authorize_notes_admin_calendar_connection_path
+      with_stubbed_singleton_method(GoogleWorkspace::CalendarClient, :new, ->(**) { FakeCalendarClient.new(account_email: "somebody@example.com") }) do
+        get callback_admin_calendar_connection_path, params: { code: "authorization-code", state: "signed" }
+      end
+    end
+
+    assert_redirected_to admin_root_path
+    assert_equal original, connection.reload.attributes
+    assert_equal "Connect the main facilitator’s Google account.", flash[:alert]
+  end
+
+  test "partial notes consent does not replace the original grant" do
+    connection = connected_calendar
+    original = connection.attributes
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(token_store: nil, **) { FakeAuthorization.new(token_store:, notes_granted: false) }) do
+      post authorize_notes_admin_calendar_connection_path
+      get callback_admin_calendar_connection_path, params: { code: "authorization-code", state: "signed" }
+    end
+
+    assert_redirected_to admin_root_path
+    assert_equal original, connection.reload.attributes
+  end
+
+  test "notes authorization does not overwrite a concurrent credential refresh" do
+    connection = connected_calendar
+    client = FakeCalendarClient.new
+    client.define_singleton_method(:account_email) do
+      connection.update_columns(oauth_token_json: '{"refresh_token":"concurrent-refresh"}')
+      "otto@looplabs.cc"
+    end
+
+    with_stubbed_singleton_method(GoogleWorkspace::Authorization, :new, ->(token_store: nil, **) { FakeAuthorization.new(token_store:) }) do
+      post authorize_notes_admin_calendar_connection_path
+      with_stubbed_singleton_method(GoogleWorkspace::CalendarClient, :new, ->(**) { client }) do
+        get callback_admin_calendar_connection_path, params: { code: "authorization-code", state: "signed" }
+      end
+    end
+
+    assert_redirected_to admin_root_path
+    assert_includes connection.reload.oauth_token_json, "concurrent-refresh"
+    assert_equal "connected", connection.status
+  end
+
+  test "notes consent is restricted to Administrators" do
+    connection = connected_calendar
+    original = connection.attributes
+    delete sign_out_path
+    sign_in_as(@facilitator)
+
+    post authorize_notes_admin_calendar_connection_path
+
+    assert_redirected_to dashboard_path
+    assert_equal original, connection.reload.attributes
+  end
+
   private
+
+  def connected_calendar
+    @program.create_calendar_connection!(facilitator: @facilitator, google_account_email: @facilitator.email,
+      google_calendar_id: "sessions-calendar", google_calendar_name: "Sessions",
+      oauth_token_json: '{"refresh_token":"keep-me"}', status: "connected")
+  end
 
   def sign_in_as(user)
     token = user.reload.generate_token_for(:email_verification)

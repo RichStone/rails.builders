@@ -214,9 +214,26 @@ class BuilderSession < ApplicationRecord
       close_open_pause!(at:)
       current_speaker&.update!(speaker_state: "skipped", speaker_ended_at: at)
       update!(state: "completed", finish_reason: reason, ended_at: at)
-      create_transcript!(state: "pending") unless transcript
+      record = transcript || create_transcript!(state: "pending")
+      record.update!(calendar_notes_next_attempt_at: at + 1.hour) unless record.state == "deleted"
     end
     self
+  end
+
+  def request_calendar_notes_sync!
+    with_lock do
+      return false unless session_record_writable?
+
+      record = transcript || create_transcript!(state: "pending")
+      record.update!(calendar_notes_next_attempt_at: Time.current, calendar_notes_attempted_at: nil, calendar_notes_error_code: nil)
+    end
+    begin
+      GoogleCalendarNotesSyncJob.perform_later(id)
+    rescue StandardError => error
+      # The recurring sweep recovers the durable request if enqueue fails.
+      Rails.logger.warn("Calendar notes enqueue failed builder_session_id=#{id} error=#{error.class.name}")
+    end
+    true
   end
 
   def cancel_start!(expected_started_at:)
@@ -268,6 +285,9 @@ class BuilderSession < ApplicationRecord
       end
 
       update!(started_at:, ended_at:)
+      if transcript && transcript.calendar_notes_attempted_at.nil? && transcript.calendar_notes_next_attempt_at
+        transcript.update!(calendar_notes_next_attempt_at: ended_at + 1.hour)
+      end
     end
     self
   end

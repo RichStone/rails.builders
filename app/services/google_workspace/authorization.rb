@@ -11,24 +11,26 @@ module GoogleWorkspace
       Google::Apis::CalendarV3::AUTH_CALENDAR_EVENTS_OWNED,
       Google::Apis::MeetV2::AUTH_MEETINGS_SPACE_READONLY
     ].freeze
+    NOTES_SCOPE = "https://www.googleapis.com/auth/documents.readonly".freeze
 
     def self.generate_code_verifier
       SecureRandom.alphanumeric(64)
     end
 
-    def initialize(connection:, callback_uri: nil, code_verifier: nil, client_id: nil)
+    def initialize(connection:, callback_uri: nil, code_verifier: nil, client_id: nil, token_store: nil)
       @connection = connection
       @authorizer = Google::Auth::WebUserAuthorizer.new(
         client_id || configured_client_id,
         SCOPES,
-        TokenStore.new(connection: connection),
+        token_store || TokenStore.new(connection: connection),
         callback_uri: callback_uri,
         code_verifier: code_verifier
       )
     end
 
     def authorization_url(request:, redirect_to:, login_hint:)
-      authorizer.get_authorization_url(request: request, redirect_to: redirect_to, login_hint: login_hint)
+      authorizer.get_authorization_url(request: request, redirect_to: redirect_to, login_hint: login_hint,
+        scope: SCOPES + [ NOTES_SCOPE ])
     end
 
     def authorize!(request)
@@ -36,7 +38,11 @@ module GoogleWorkspace
     end
 
     def credentials
-      authorizer.get_credentials(token_key)
+      authorizer.get_credentials(token_key, nil, SCOPES)
+    end
+
+    def notes_credentials
+      authorizer.get_credentials(token_key, nil, [ NOTES_SCOPE ])
     end
 
     def revoke!

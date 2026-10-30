@@ -1,7 +1,7 @@
 module ApplicationHelper
   PUBLIC_MEET_LINK = %r{(?:(?:https?:)?//)?meet\.google\.com/[^\s<]+}i
   PUBLIC_MEET_CODE = /\b[a-z]{3}-[a-z]{4}-[a-z]{3}\b/i
-  SESSION_MARKDOWN_TAGS = %w[h2 h3 p ul ol li strong em blockquote code pre].freeze
+  SESSION_MARKDOWN_TAGS = %w[h1 h2 h3 h4 h5 h6 p ul ol li strong em blockquote code pre].freeze
 
   def profile_visibility_description(user)
     return "Private. Only you and administrators can see it." unless user.public_profile?
@@ -29,7 +29,7 @@ module ApplicationHelper
     builder_session.title.gsub(PUBLIC_MEET_LINK, "Google Meet").gsub(PUBLIC_MEET_CODE, "Google Meet")
   end
 
-  def render_session_markdown(markdown)
+  def render_session_markdown(markdown, links: false)
     return if markdown.blank?
 
     html = Commonmarker.to_html(
@@ -37,7 +37,7 @@ module ApplicationHelper
       options: { parse: { smart: true }, render: { unsafe: false } },
       plugins: { syntax_highlighter: nil }
     )
-    sanitize(html, tags: SESSION_MARKDOWN_TAGS, attributes: [])
+    sanitize(html, tags: SESSION_MARKDOWN_TAGS + (links ? %w[a] : []), attributes: links ? %w[href] : [])
   end
 
   def format_timer_seconds(total_seconds)
