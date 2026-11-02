@@ -1,6 +1,11 @@
 Rails.application.routes.draw do
   constraints(host: "www.rails.builders") do
-    match "(*path)", to: redirect(status: 308) { |_params, request| "https://rails.builders#{request.fullpath}" }, via: :all
+    apex_redirect = redirect(status: 308) do |_params, request|
+      URI.parse("https://rails.builders#{request.fullpath}").to_s
+    rescue URI::InvalidURIError
+      raise ActionController::BadRequest, "Invalid redirect URL", cause: nil
+    end
+    match "(*path)", to: apex_redirect, via: :all
   end
 
   get "up" => "rails/health#show", as: :rails_health_check

@@ -254,6 +254,28 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_equal "https://rails.builders/admin/calendar_connection?from=www", response.location
   end
 
+  test "www rejects malformed redirect paths without reporting an application error" do
+    host! "www.rails.builders"
+
+    get "/", env: { "PATH_INFO" => "/docs/[topic]" }
+
+    assert_response :bad_request
+    assert_nil response.location
+    exception = request.env.fetch("honeybadger.exception")
+    assert_instance_of ActionController::BadRequest, exception
+    assert_nil exception.cause
+    assert Honeybadger::Notice.new(Honeybadger.config, exception: exception).ignore?
+  end
+
+  test "www redirects preserve encoded paths and query strings" do
+    host! "www.rails.builders"
+
+    get "/docs/%5Btopic%5D?next=%2Fjoin&tag[]=a&tag[]=b"
+
+    assert_response 308
+    assert_equal "https://rails.builders/docs/%5Btopic%5D?next=%2Fjoin&tag[]=a&tag[]=b", response.location
+  end
+
   test "the public page lists waitlisted builders anonymously until their profiles are approved" do
     published_builder = User.create!(email: "waiting-public@example.com", name: "Waiting Builder", og: true,
       verified_at: Time.current, enrollment_status: "waitlisted", waitlist_joined_at: Time.current, waitlist_rank: 1)
