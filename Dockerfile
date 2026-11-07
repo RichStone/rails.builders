@@ -14,7 +14,8 @@ FROM --platform=$BUILDPLATFORM golang:1.27.3 AS thruster
 WORKDIR /src
 ADD https://github.com/basecamp/thruster.git#669643fa3ebc6c4daaba8b5210561f03e33f8c53 .
 ARG TARGETOS TARGETARCH
-RUN go test ./... && \
+RUN go get github.com/klauspost/compress@v1.20.2 && \
+    go test ./... && \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /thrust ./cmd/thrust
 
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
