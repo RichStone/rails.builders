@@ -198,6 +198,10 @@ Calendar sync runs hourly and can also be queued by a facilitator or Administrat
 
 Slack membership is deliberately manual in v1. Administrators can track its status for each builder. Sessions include Calendar-backed scheduling, shared live timers, attendance, speaker order, and read-only transcripts.
 
+Facilitators can draft awards from a Session and link up to two earlier Sessions as private evidence. **Reveal awards** becomes available at the end of the core session. Revealed citations appear in that Session and on the recipient’s signed-in profile. The supporting links stay with facilitators and administrators.
+
+On a completed Session, use **Builder progress** to record what changed for a Builder, any before-and-after measure, and a source or timestamp. The Weekly Builders Cherry import accepts the same entries. **Builders → View cohort progress** shows the current program’s entries in date order, with a timeline on each Builder’s management page. Deleting a transcript also deletes that session’s progress entries and clears award evidence links to it.
+
 The attendance tally shows each person's consecutive absences against the Program's configurable limit (three by default), alongside lifetime totals. Present or missing attendance records break a streak; only completed sessions whose scheduled start has passed count. Becoming active again starts a fresh streak without erasing attendance history.
 
 `StrikeLimitJob` runs every minute, including catch-up for existing qualifying streaks. It marks verified Active Builders inactive at the limit, releases their Seat through the existing waitlist promotion flow, and updates their desired Slack state for manual Slack removal. Facilitators are exempt. These Builders remain eligible to request another Seat through the readiness check and waitlist; they are not placed in the Administrator-only Removed state.

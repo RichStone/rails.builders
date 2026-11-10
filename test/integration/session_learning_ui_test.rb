@@ -78,6 +78,43 @@ class SessionLearningUiTest < ActionDispatch::IntegrationTest
     assert_redirected_to dashboard_path
   end
 
+  test "facilitators save source linked progress and transcript deletion removes it from the cohort history" do
+    @facilitator.update!(administrator: true)
+    sign_in_as(@facilitator)
+    update = { user_id: @builder.id, body: "Made the first step easier for trial users.", comparison: "Four steps → two", source: "Transcript, 14:32", version: "" }
+
+    patch builder_session_progress_path(@session), params: { progress_entry: update }
+    assert_redirected_to builder_session_path(@session, anchor: "progress")
+    patch builder_session_progress_path(@session), params: { progress_entry: update.merge(body: "", comparison: "", source: "") }
+    follow_redirect!
+    assert_includes response.body, "progress changed"
+
+    get builder_progress_entries_path
+    assert_select "[data-progress-history]", text: /Ada.*Made the first step easier.*Four steps → two.*Transcript, 14:32/m
+    assert_select "[data-progress-history] a[href='#{builder_session_path(@session, anchor: "progress")}']"
+    get builder_path(@builder)
+    assert_select "[data-progress-history]", text: /Made the first step easier/
+
+    sign_in_as(@builder)
+    get builder_session_path(@session)
+    assert_not_includes response.body, update[:body]
+    get builder_progress_entries_path
+    assert_redirected_to builder_sessions_path
+    patch builder_session_progress_path(@session), params: { progress_entry: update.merge(body: "Unapproved edit") }
+    assert_redirected_to builder_sessions_path
+
+    sign_in_as(@facilitator)
+    delete builder_session_transcript_path(@session)
+    assert_redirected_to builder_session_path(@session)
+    get builder_progress_entries_path
+    assert_not_includes response.body, update[:body]
+    patch builder_session_progress_path(@session), params: { progress_entry: update }
+    follow_redirect!
+    assert_select "[data-progress-editor]", count: 0
+    get builder_progress_entries_path
+    assert_not_includes response.body, update[:body]
+  end
+
   test "the live speaker sees their last attended session promise after missing a session" do
     @builder.products.create!(name: "Tiny Onboarding", url: "https://example.com/onboarding", focus: true)
     missed = completed_session("missed-week", Time.zone.parse("2026-09-07 15:30"))

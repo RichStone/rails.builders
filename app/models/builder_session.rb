@@ -14,6 +14,8 @@ class BuilderSession < ApplicationRecord
   has_one :exercise, class_name: "BuilderSessionExercise", dependent: :restrict_with_error
   has_many :next_session_promises, dependent: :restrict_with_error
   has_many :peer_feedbacks, dependent: :restrict_with_error
+  has_many :builder_awards, dependent: :destroy
+  has_many :builder_progress_entries, dependent: :destroy
   has_many :session_reminders, dependent: :destroy
   has_many :cancellation_deliveries, class_name: "SessionCancellationDelivery", dependent: :destroy
 
@@ -40,10 +42,16 @@ class BuilderSession < ApplicationRecord
   validate :time_zone_is_supported
 
   scope :active, -> { where(state: ACTIVE_STATES) }
+  scope :with_session_records, -> { where(state: "completed").where.not(id: BuilderSessionTranscript.where(state: "deleted").select(:builder_session_id)) }
   scope :upcoming, ->(at: Time.current) { where(state: "ready", scheduled_ends_at: at..).order(:scheduled_starts_at) }
 
   def active? = state.in?(ACTIVE_STATES)
   def paused? = pauses.where(ended_at: nil).exists?
+  def awards_revealable? = state.in?(%w[closing hangout completed])
+
+  def award_source_sessions
+    program.builder_sessions.with_session_records.where(scheduled_starts_at: ...scheduled_starts_at)
+  end
   def joinable? = state == "ready" || active?
   def run_token = started_at&.iso8601(6)
 
@@ -75,6 +83,29 @@ class BuilderSession < ApplicationRecord
 
   def session_record_writable?
     state == "completed" && !BuilderSessionTranscript.exists?(builder_session_id: id, state: "deleted")
+  end
+
+  def save_progress_entries!(entries)
+    with_lock do
+      unless session_record_writable?
+        errors.add(:base, "This session does not allow progress updates")
+        raise ActiveRecord::RecordInvalid, self
+      end
+
+      entries.each do |attributes|
+        entry = builder_progress_entries.find_or_initialize_by(user_id: attributes.fetch(:user_id))
+        if attributes.key?(:version) && attributes[:version] != entry.updated_at&.iso8601(6).to_s
+          entry.errors.add(:base, "This Builder's progress changed. Review the saved entry before trying again.")
+          raise ActiveRecord::RecordInvalid, entry
+        end
+        entry.assign_attributes(attributes.slice(:body, :comparison, :source))
+        if entry.body.blank? && entry.comparison.blank? && entry.source.blank?
+          entry.destroy! if entry.persisted?
+        else
+          entry.save!
+        end
+      end
+    end
   end
 
   def participated?(user)
@@ -240,6 +271,7 @@ class BuilderSession < ApplicationRecord
     program.with_lock do
       with_lock do
         return false unless active? && same_timer_run?(expected_started_at)
+        return false if builder_awards.revealed.exists?
 
         attendances.update_all(
           arrived_at: nil,

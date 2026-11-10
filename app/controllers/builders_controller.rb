@@ -9,6 +9,7 @@ class BuildersController < ApplicationController
 
   def show
     @program = Program.current
+    @progress_entries = @builder.builder_progress_entries.for_program(@program).recent_first.includes(:builder_session)
   end
 
   def promote

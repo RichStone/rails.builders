@@ -2,6 +2,7 @@
   <p class="eyebrow">Builder management</p>
   <h1>Builders</h1>
   <p>Administrators and Facilitators can inspect enrollment and promote a verified Builder directly to Active Builder.</p>
+  <p><%= link_to "View cohort progress", builder_progress_entries_path %></p>
 
   <% @builders.each do |builder| %>
     <section class="product-list">

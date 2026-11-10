@@ -1,0 +1,26 @@
+<% builders = User.where(id: builder_session.attendances.select(:user_id)).or(User.where(id: builder_session.assigned_facilitator_id)).order(:name) %>
+<% if builders.any? %>
+  <% entries = builder_session.builder_progress_entries.index_by(&:user_id) %>
+  <details class="session-analysis-panel session-context-editor" id="progress" data-progress-editor>
+    <summary>Builder progress<%= " (#{entries.size} saved)" if entries.any? %></summary>
+    <p>Private to facilitators and administrators. Capture what changed and where it was reported. Clear all three fields to remove a saved entry.</p>
+    <p><%= link_to "View cohort progress", builder_progress_entries_path %></p>
+    <% builders.each do |builder| %>
+      <% entry = entries[builder.id] || BuilderProgressEntry.new(user: builder) %>
+      <details class="session-context-editor" id="progress-builder-<%= builder.id %>">
+        <summary><%= session_builder_name(builder) %><%= " · saved" if entry.persisted? %></summary>
+        <%= form_with model: entry, scope: :progress_entry, url: builder_session_progress_path(builder_session), method: :patch, namespace: "progress_#{builder.id}" do |form| %>
+          <%= form.hidden_field :user_id %>
+          <%= form.hidden_field :version, value: entry.updated_at&.iso8601(6).to_s %>
+          <%= form.label :body, "What changed?" %>
+          <%= form.text_area :body, rows: 2, maxlength: 1200 %>
+          <%= form.label :comparison, "Before → after (optional)" %>
+          <%= form.text_field :comparison, maxlength: 300 %>
+          <%= form.label :source, "Source or timestamp" %>
+          <%= form.text_field :source, maxlength: 500 %>
+          <%= form.submit "Save builder progress", class: "button button-quiet" %>
+        <% end %>
+      </details>
+    <% end %>
+  </details>
+<% end %>

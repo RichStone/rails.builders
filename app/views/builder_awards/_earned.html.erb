@@ -1,0 +1,13 @@
+<% if awards.any? %>
+  <section class="product-list" data-builder-awards>
+    <h2>🏆 Rails.Builders awards</h2>
+    <ul>
+      <% awards.each do |award| %>
+        <li>
+          <strong><%= award.title %></strong> · <%= award.citation %>
+          <% if session_member? %><br><%= link_to award.builder_session.title, builder_session_path(award.builder_session, anchor: "awards") %><% end %>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>

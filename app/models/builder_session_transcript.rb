@@ -81,6 +81,9 @@ class BuilderSessionTranscript < ApplicationRecord
         builder_session.chat_log&.destroy!
         builder_session.next_session_promises.destroy_all
         builder_session.peer_feedbacks.destroy_all
+        builder_session.builder_progress_entries.destroy_all
+        BuilderAward.where(baseline_session: builder_session).update_all(baseline_session_id: nil)
+        BuilderAward.where(evidence_session: builder_session).update_all(evidence_session_id: nil)
         update!(
           state: "deleted",
           content: nil,

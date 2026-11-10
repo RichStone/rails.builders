@@ -1,0 +1,14 @@
+<% url = award.persisted? ? builder_session_award_path(builder_session, award) : builder_session_awards_path(builder_session) %>
+<%= form_with model: award, url:, namespace: "award_#{award.id || 'new'}" do |form| %>
+  <%= form.label :user_id, "Builder" %>
+  <%= form.collection_select :user_id, recipients, :id, method(:session_builder_name), { prompt: "Choose a Builder" }, required: true %>
+  <%= form.label :title, "Award title" %>
+  <%= form.text_field :title, required: true, maxlength: 100 %>
+  <%= form.label :citation, "Citation to read aloud" %>
+  <%= form.text_area :citation, required: true, maxlength: 500, rows: 2 %>
+  <%= form.label :baseline_session_id, "Starting point (optional)" %>
+  <%= form.collection_select :baseline_session_id, sources, :id, method(:session_record_label), include_blank: true %>
+  <%= form.label :evidence_session_id, "Evidence session (optional)" %>
+  <%= form.collection_select :evidence_session_id, sources, :id, method(:session_record_label), include_blank: true %>
+  <%= form.submit "Save award draft", class: "button button-quiet" %>
+<% end %>

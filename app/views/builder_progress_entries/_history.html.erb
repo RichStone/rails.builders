@@ -1,0 +1,16 @@
+<section class="product-list" data-progress-history>
+  <h2><%= heading %></h2>
+  <% if entries.any? %>
+    <ol>
+      <% entries.each do |entry| %>
+        <li>
+          <% if show_builder %><strong><%= link_to session_builder_name(entry.user), builder_path(entry.user) %></strong> · <% end %>
+          <%= link_to session_record_label(entry.builder_session), builder_session_path(entry.builder_session, anchor: "progress") %>
+          <p><%= entry.body %><% if entry.comparison? %><br><strong><%= entry.comparison %></strong><% end %><br><small><%= entry.source %></small></p>
+        </li>
+      <% end %>
+    </ol>
+  <% else %>
+    <p>No Builder progress has been recorded for this program yet.</p>
+  <% end %>
+</section>

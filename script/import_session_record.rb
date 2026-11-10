@@ -16,5 +16,6 @@ puts JSON.generate(
   analysis_characters: transcript.session_analysis.to_s.length,
   promises: builder_session.next_session_promises.count,
   feedback: builder_session.peer_feedbacks.count,
+  progress_entries: builder_session.builder_progress_entries.count,
   chat_saved: builder_session.chat_log.present?
 )

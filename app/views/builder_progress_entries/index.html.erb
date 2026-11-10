@@ -1,0 +1,6 @@
+<main class="narrow-page">
+  <p class="eyebrow">Builder management</p>
+  <h1>Cohort progress</h1>
+  <p><%= link_to "← All Builders", builders_path %></p>
+  <%= render "history", entries: @entries, heading: "Session updates", show_builder: true %>
+</main>

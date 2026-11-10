@@ -35,6 +35,7 @@ class BuilderSessionRecordImport
           builder_session.peer_feedbacks.create!(feedback.slice(:author_id, :recipient_id, :body, :sentiment, :source, :source_key))
         end
         import_chat!(attributes[:chat]) if attributes[:chat]
+        builder_session.save_progress_entries!(attributes[:progress_entries]) if attributes[:progress_entries]
         transcript.update!(wispr_meeting_id: meeting_id)
         transcript
       end

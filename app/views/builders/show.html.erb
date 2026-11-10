@@ -4,6 +4,9 @@
   <p><%= @builder.email %></p>
   <p><%= link_to "← All Builders", builders_path %><% if current_user.administrator? %> · <%= link_to "Edit full Administrator record", edit_admin_user_path(@builder) %><% end %></p>
 
+  <%= render "builder_awards/earned", awards: @builder.builder_awards.revealed.where(builder_session: @program.builder_sessions).includes(:builder_session).order(revealed_at: :desc) %>
+  <%= render "builder_progress_entries/history", entries: @progress_entries, heading: "Progress history", show_builder: false if @progress_entries.any? %>
+
   <section class="product-list" data-builder-products>
     <h2>Products & current problems</h2>
     <% @builder.products.each do |product| %>

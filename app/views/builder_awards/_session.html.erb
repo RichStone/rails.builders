@@ -1,0 +1,47 @@
+<% if awards.any? || (session_operator? && builder_session.state != "cancelled") %>
+  <section class="session-analysis-panel" id="awards">
+    <% if awards.any? %>
+      <div data-session-awards>
+        <div class="section-heading"><p class="eyebrow">Celebrate the progress</p><h2>🏆 Session awards</h2></div>
+        <% awards.group_by(&:title).each do |title, recipients| %>
+          <h3><%= title %></h3>
+          <ul>
+            <% recipients.each do |award| %>
+              <li>
+                <strong><%= session_builder_name(award.user) %></strong> · <%= award.citation %>
+                <% if session_operator? && (award.baseline_session_id || award.evidence_session_id) %>
+                  <details><summary>Evidence for <%= session_builder_name(award.user) %></summary><%= render "builder_awards/evidence", award: %></details>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+        <% if builder_session.active? %><p>What changed, and what would you tell another Builder trying this?</p><% end %>
+      </div>
+    <% end %>
+    <% if session_operator? && builder_session.state != "cancelled" %>
+      <details class="session-context-editor" data-award-drafts <%= "open" if drafts.any? && builder_session.awards_revealable? %>>
+        <summary>🏆 Prepare awards<%= " (#{pluralize(drafts.size, 'draft')})" if drafts.any? %></summary>
+        <p>Drafts and evidence are visible only to facilitators and administrators. Reveal shares the citations with Active Builders.</p>
+        <% if drafts.any? && builder_session.awards_revealable? %>
+          <%= button_to "Reveal awards", reveal_builder_session_awards_path(builder_session), method: :patch, params: { version: BuilderAward.draft_version(drafts) }, class: "button button-primary", form: { data: { turbo_confirm: "Reveal all draft awards to the group?" } } %>
+        <% end %>
+        <% recipients = User.active.where.not(verified_at: nil).order(:name).to_a %>
+        <% sources = builder_session.award_source_sessions.order(scheduled_starts_at: :desc).to_a %>
+        <% drafts.each do |award| %>
+          <details class="session-context-editor">
+            <summary><%= award.title %> · <%= session_builder_name(award.user) %></summary>
+            <p><%= award.citation %></p>
+            <%= render "builder_awards/evidence", award: %>
+            <%= render "builder_awards/form", builder_session:, award:, recipients: (recipients | [award.user]), sources: %>
+            <%= button_to "Remove draft", builder_session_award_path(builder_session, award), method: :delete, class: "button button-quiet" %>
+          </details>
+        <% end %>
+        <details class="session-context-editor" <%= "open" if drafts.empty? %>>
+          <summary>Add an award draft</summary>
+          <%= render "builder_awards/form", builder_session:, award: BuilderAward.new, recipients:, sources: %>
+        </details>
+      </details>
+    <% end %>
+  </section>
+<% end %>

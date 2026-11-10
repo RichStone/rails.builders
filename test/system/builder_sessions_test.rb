@@ -158,7 +158,7 @@ class BuilderSessionsSystemTest < ApplicationSystemTestCase
     find("details[data-session-transcript] > summary").click
     assert_selector "details[data-session-transcript][open]", text: /smaller onboarding flow/
 
-    find(".session-context-editor > summary").click
+    find("[data-session-analysis] .session-context-editor > summary").click
     fill_in "Session analysis (Markdown)", with: "## Ada\n\n**Current project:** Loop Labs\n\n**Latest trend:** She narrowed the launch again."
     click_button "Save session analysis"
 

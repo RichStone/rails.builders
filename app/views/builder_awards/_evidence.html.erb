@@ -1,0 +1,3 @@
+<% [award.baseline_session, award.evidence_session].compact.uniq.each do |source| %>
+  <p><%= link_to "Evidence · #{session_record_label(source)}", builder_session_path(source) %></p>
+<% end %>

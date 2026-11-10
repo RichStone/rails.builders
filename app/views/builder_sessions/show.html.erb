@@ -4,6 +4,9 @@
 
 <main class="session-page <%= "is-live" if @builder_session.active? %>">
   <%= render "details", builder_session: @builder_session, display_state: display_state unless @builder_session.active? %>
+  <% unless @builder_session.active? %>
+    <%= render "builder_awards/session", builder_session: @builder_session, awards: @awards, drafts: @award_drafts %>
+  <% end %>
 
   <% if @builder_session.state == "cancelled" %>
     <section class="session-ready-panel">
@@ -102,6 +105,9 @@
     <% run_token = @builder_session.run_token %>
     <div class="live-session-layout">
       <div class="live-session-timer">
+        <% if @builder_session.awards_revealable? %>
+          <%= render "builder_awards/session", builder_session: @builder_session, awards: @awards, drafts: @award_drafts %>
+        <% end %>
         <%= render "exercise", builder_session: @builder_session %>
         <section class="live-session-stage <%= "is-paused" if @builder_session.paused? %>"
           data-controller="session-timer"
@@ -174,13 +180,15 @@
                   params: { run_started_at: run_token }, class: "button button-quiet" %>
               </details>
             <% end %>
-            <details class="session-confirmation cancel-session">
-              <summary>Discard mistaken start</summary>
-              <p>Only use this for a mistaken start. The timer run will be discarded and this session will return to Ready.</p>
-              <%= button_to "Discard session run", cancel_start_builder_session_path(@builder_session),
-                params: { run_started_at: run_token },
-                class: "button button-quiet", form: { data: { turbo: false } } %>
-            </details>
+            <% unless @awards.any? %>
+              <details class="session-confirmation cancel-session">
+                <summary>Discard mistaken start</summary>
+                <p>Only use this for a mistaken start. The timer run will be discarded and this session will return to Ready.</p>
+                <%= button_to "Discard session run", cancel_start_builder_session_path(@builder_session),
+                  params: { run_started_at: run_token },
+                  class: "button button-quiet", form: { data: { turbo: false } } %>
+              </details>
+            <% end %>
           </section>
         <% end %>
       </div>
@@ -286,6 +294,7 @@
 
     <% transcript = @builder_session.transcript %>
     <%= render "calendar_notes", builder_session: @builder_session, transcript: transcript unless transcript&.state == "deleted" %>
+    <%= render "builder_progress_entries/editor", builder_session: @builder_session if session_operator? && transcript&.state != "deleted" %>
     <% if transcript&.state == "ready" %>
       <section class="session-record">
         <section class="session-analysis-panel" data-session-analysis>
@@ -329,7 +338,7 @@
         <%= render "chat_log", builder_session: @builder_session %>
 
         <% if current_user.administrator? %>
-          <%= button_to "Delete transcript", builder_session_transcript_path(@builder_session), method: :delete, class: "button button-quiet session-record-delete", form: { data: { turbo_confirm: "Permanently delete this transcript, notes, analysis, meeting chat, promises, and feedback?" } } %>
+          <%= button_to "Delete transcript", builder_session_transcript_path(@builder_session), method: :delete, class: "button button-quiet session-record-delete", form: { data: { turbo_confirm: "Permanently delete this transcript, notes, analysis, meeting chat, promises, feedback, and progress entries?" } } %>
         <% end %>
       </section>
     <% else %>
@@ -341,7 +350,7 @@
         <% end %>>
         <div class="section-heading"><p class="eyebrow">Captured conversation</p><h2>Transcript</h2></div>
         <% if transcript&.state == "deleted" %>
-          <p>This transcript, its notes, analysis, meeting chat, promises, and feedback were deleted.</p>
+          <p>This transcript, its notes, analysis, meeting chat, promises, feedback, and progress entries were deleted.</p>
         <% elsif transcript&.state == "unavailable" %>
         <div class="transcript-processing">
           <span class="transcript-orbit" aria-hidden="true">◆</span>

@@ -26,6 +26,7 @@ Rails.application.routes.draw do
 
   resource :dashboard, only: :show, controller: :dashboard
   resource :attendance, only: :show, controller: :attendance
+  resources :builder_progress_entries, path: "builders/progress", only: :index
   resources :builders, only: %i[index show] do
     post :promote, on: :member
   end
@@ -33,6 +34,10 @@ Rails.application.routes.draw do
     post :sync_calendar, on: :collection
     resource :transcript, only: %i[create update destroy], controller: "builder_session_transcripts"
     resource :chat_log, only: %i[create update], controller: "builder_session_chat_logs"
+    resource :progress, only: :update, controller: "builder_progress_entries"
+    resources :awards, only: %i[create update destroy], controller: "builder_awards" do
+      patch :reveal, on: :collection
+    end
     member do
       get :join
       post :sync_notes

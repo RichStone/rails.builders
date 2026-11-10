@@ -15,7 +15,12 @@ class BuilderSessionsController < ApplicationController
       .order(scheduled_starts_at: :desc)
   end
 
-  def show; end
+  def show
+    awards = @builder_session.builder_awards.includes(:user).order(:id)
+    awards = awards.includes(:baseline_session, :evidence_session) if session_operator?
+    @awards = awards.revealed
+    @award_drafts = awards.drafts if session_operator?
+  end
 
   def join
     return redirect_to(@builder_session, alert: "This session is not open for joining.") unless @builder_session.joinable?

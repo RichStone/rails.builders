@@ -19,6 +19,8 @@ class User < ApplicationRecord
   has_many :session_cancellation_deliveries, dependent: :destroy
   has_many :builder_session_attendances, dependent: :nullify
   has_many :next_session_promises, dependent: :destroy
+  has_many :builder_awards, dependent: :destroy
+  has_many :builder_progress_entries, dependent: :destroy
   has_many :authored_peer_feedbacks, class_name: "PeerFeedback", foreign_key: :author_id, dependent: :destroy
   has_many :received_peer_feedbacks, class_name: "PeerFeedback", foreign_key: :recipient_id, dependent: :destroy
   has_many :assigned_builder_sessions, class_name: "BuilderSession", foreign_key: :assigned_facilitator_id, dependent: :nullify
