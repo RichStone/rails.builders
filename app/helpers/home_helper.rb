@@ -1,49 +1,37 @@
 module HomeHelper
   ANONYMOUS_ADJECTIVES = %w[
-    Nerdy 42ish Algorithmic APIFirst Async Atomic Automated BandwidthRich BigEndian Binary
-    Bitwise Blockchainy Bootstrapped Branchless Buffered ByteSized CacheFriendly CloudNative CodeComplete Compiling
-    Composable Computed Concurrent Containerized CronPowered CryptoCurious Cybernetic DataDriven Debuggable Declarative
-    Deterministic DevOpsy Distributed Dockerized Dynamic EdgeReady Elegant Encrypted EventDriven FaultTolerant
-    FullStack Functional GarbageCollected GitPowered GraphQLish Hackable Headless HotReloaded Hyperlinked Idempotent
-    Immutable Indexed Iterative KernelLevel LambdaPowered LatencyAware LazyLoaded LogicDriven Loopy MachineLearned
-    MemorySafe Meta Microserviced Modular MultiThreaded Neural NullSafe ObjectOriented Observable OpenSource
-    Overclocked PacketSized Parallel PixelPerfect Polymorphic PromptDriven Quantum Recursive Refactored RegexPowered
-    Resilient RESTful RubyPowered Scalable Schemaless Serverless ShellReady ShipShape Signed Stateful
-    Stateless Streamed Sudo Synced TestDriven Tokenized Typed Unixy Versioned ZeroDowntime
+    Algorithmic Array-Backed Asynchronous Atomic Backpropagating Backtracking Big-Endian Binary Bitwise Bloom-Filtered
+    Branchless Buffered Byte-Sized Cache-Friendly Cacheable Canonicalized Chunked Cloud-Native Clustered Compiled
+    Compressed Concurrent Constant-Time Containerized Continuation-Passing Cryptographic Cybernetic Data-Driven Deadlock-Free Debuggable
+    Declarative Deduplicated Deferred Deterministic Differentiable Distributed Dockerized Dynamic Eager-Loaded Edge-Ready
+    Encrypted Event-Driven Fault-Tolerant Federated Forked Full-Stack Functional Fuzzed Garbage-Collected Git-Powered
+    GraphQL-Powered Hashable Headless Heap-Allocated Hot-Reloaded Hyperlinked Idempotent Immutable Indexed Inlined
+    Interpreted Interrupt-Driven Iterative JIT-Compiled Kernel-Level Lambda-Powered Lazy-Loaded Lock-Free Memoized Memory-Safe
+    Modular Multithreaded Neural Nullable Object-Oriented Observable Optimized Overclocked Packet-Switched Parallel
+    Polymorphic Quantized Quantum Queueable Rate-Limited Reactive Recursive Refactored Regex-Powered Replicated
+    Resilient Sandboxed Scalable Schemaless Serverless Sharded Signed Stateful Stateless Streamed
+    Synchronized Tail-Recursive Test-Driven Tokenized Transactional Transpiled Typed Vectorized Versioned Virtualized
   ].freeze
 
-  ANONYMOUS_FIRST_NAMES = %w[
-    Ada Alan Grace Linus Margaret Tim Guido Yukihiro Brendan James
-    Dennis Ken Brian Bjarne Barbara Donald Edsger John Steve Bill
-    Elon Mark Larry Sergey Jeff Satya Susan Radia Hedy Annie
-    Katherine Mary Evelyn Jean Frances Adele Karen Sophie Carol Lynn
-    Rasmus Anders Miguel Mitchell Martin Robert Ward Kent Rebecca Leah
-    Fei-Fei Demis Geoffrey Yann Andrew Andrej Sam Ilya Mira Jensen
-    Lisa Marissa Sheryl Whitney Melanie Reshma Kimberly Joy Tanmay Arvind
-    David Jason Aaron Matz José Xavier Mina Sandi Avdi Chad
-    Joel Yehuda Tobias Sarah Sara Jessica Julie Taylor Alex Jordan
-    Casey Morgan Riley Jamie Cameron Quinn Robin Terry Drew Skyler
-  ].freeze
-
-  ANONYMOUS_LAST_NAMES = %w[
-    Lovelace Turing Hopper Torvalds Hamilton BernersLee VanRossum Matsumoto Eich Gosling
-    Ritchie Thompson Kernighan Stroustrup Liskov Knuth Dijkstra Carmack Jobs Wozniak
-    Gates Musk Zuckerberg Page Brin Bezos Nadella Wojcicki Perlman Lamarr
-    Easley Johnson Jackson Sammet Goldstine Mahoney Goldberg Allen Kay Engelbart
-    McCarthy Shannon Boole Babbage Clarke Cerf Kahn Metcalfe Stallman Wall
-    Hejlsberg Odersky Hickey Dahl Nygaard Ingalls Pike Joy Rubin Hansson
-    Dorsey Systrom Krieger Koum Acton Hoffman Williams Rometty Su Huang
-    Amodei Hassabis Hinton LeCun Ng Karpathy Altman Sutskever Murati Pichai
-    Sandberg Mayer Bresch Harts Mistry Shah Fried Spolsky Atwood Zakas
-    Fowler Beck Gamma Helm Vlissides Martin Feathers Meszaros DeMarco Brooks
+  ANONYMOUS_NOUNS = %w[
+    Bagel Biscuit Burrito Carrot Churro Cobbler Cookie Croissant Crouton Cupcake
+    Dumpling Falafel Fig Fritter Gnocchi Guacamole Hot\ Dog Jalapeño Jelly\ Bean Kimchi
+    Lemon Mango Mochi Noodle Olive Pancake Peanut Pickle Pierogi Pineapple
+    Popcorn Pretzel Ravioli Samosa Taco Waffle
+    Arc Bead Bubble Circle Cone Crescent Cube Dodecahedron Dome Ellipse
+    Fractal Helix Hexagon Icosahedron Knot Möbius\ Strip Octagon Orbit Oval Parabola
+    Pentagon Polygon Prism Pyramid Rectangle Rhombus Ring Sphere Spiral Square
+    Star Tetrahedron Torus Trapezoid Triangle Vortex
+    Arbitrage Bargain Bear\ Market Bid Bond Bull\ Market Cash\ Cow Coin Coupon Credit
+    Dividend Downtick Equity Futures Gold\ Rush Hedge Index Inflation Ledger Liquidity
+    Market\ Cap Monopoly Nickel Option Paycheck Premium Quota Rally Rebate Rent
+    Surplus Tariff Tradeoff Treasury Windfall Yield\ Curve
   ].freeze
 
   def anonymous_builder_name(builder)
-    random = Random.new(builder.id)
-    [
-      ANONYMOUS_ADJECTIVES.sample(random:),
-      ANONYMOUS_FIRST_NAMES.sample(random:),
-      ANONYMOUS_LAST_NAMES.sample(random:)
-    ].join(" ")
+    key = Rails.application.key_generator.generate_key("private-builder-alias", 32)
+    seed = OpenSSL::HMAC.hexdigest("SHA256", key, builder.id.to_s).to_i(16)
+    random = Random.new(seed)
+    [ ANONYMOUS_ADJECTIVES.sample(random:), ANONYMOUS_NOUNS.sample(random:) ].join(" ")
   end
 end

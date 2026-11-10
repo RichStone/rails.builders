@@ -43,7 +43,9 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     assert_select "#past-builders"
     assert_select ".builder-card", minimum: 2
     assert_select "#active-builders .builder-card.private-card h4", count: 1 do |headings|
-      assert_match(/\A\S+ \S+ \S+\z/, headings.first.text.strip)
+      adjective, noun = headings.first.text.strip.split(" ", 2)
+      assert_includes HomeHelper::ANONYMOUS_ADJECTIVES, adjective
+      assert_includes HomeHelper::ANONYMOUS_NOUNS, noun
       assert_not_equal "Builder in stealth", headings.first.text.strip
     end
     assert_includes response.body, "Public Builder"
@@ -293,7 +295,11 @@ class ProfileAndPublicPageTest < ActionDispatch::IntegrationTest
     anonymous_aliases = css_select("#waitlisted-builders .builder-card.private-card h4").map { |heading| heading.text.strip }.sort
     assert_equal 2, anonymous_aliases.size
     assert_not_includes anonymous_aliases, "Builder in stealth"
-    anonymous_aliases.each { |name| assert_match(/\A\S+ \S+ \S+\z/, name) }
+    anonymous_aliases.each do |name|
+      adjective, noun = name.split(" ", 2)
+      assert_includes HomeHelper::ANONYMOUS_ADJECTIVES, adjective
+      assert_includes HomeHelper::ANONYMOUS_NOUNS, noun
+    end
     assert_not_includes response.body, "Waiting Builder"
     assert_not_includes response.body, "Hidden Builder"
 
