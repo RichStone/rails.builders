@@ -1,4 +1,18 @@
 module BuilderSessionsHelper
+  AWARD_ART = {
+    "new-builders" => "newcomers",
+    "newcomers" => "newcomers",
+    "most-business-progress" => "business",
+    "most-business-value" => "business",
+    "most-business-value-progress" => "business",
+    "most-traffic-progress" => "social",
+    "most-social-traffic" => "social",
+    "best-customer-discovery" => "organic",
+    "most-organic-traffic" => "organic",
+    "most-aeo-converted-traffic" => "aeo",
+    "most-product-progress" => "product"
+  }.freeze
+
   FEEDBACK_SENTIMENTS = {
     "encouraging" => [ "🙌", "Encouraging" ],
     "constructive" => [ "🛠️", "Constructive" ],
@@ -8,6 +22,13 @@ module BuilderSessionsHelper
 
   def session_builder_name(user)
     user&.name.presence || "Builder"
+  end
+
+  def award_illustration(title)
+    type = AWARD_ART[title.parameterize]
+    return unless type
+
+    image_tag "awards/#{type}.webp", alt: "", width: 1280, height: 720, loading: "lazy", class: "session-award-art"
   end
 
   def session_record_label(session)

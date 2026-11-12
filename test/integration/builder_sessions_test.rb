@@ -388,6 +388,24 @@ class BuilderSessionsTest < ActionDispatch::IntegrationTest
     assert_select ".live-session-stage h2, .speaker-queue", text: /Main Facilitator/
   end
 
+  test "marking an already absent Builder absent again leaves the live countdown alone" do
+    sign_in_as(@facilitator)
+    User.create!(email: "queued@example.com", name: "Queued Builder", enrollment_status: "active", verified_at: Time.current)
+    post start_builder_session_path(@builder_session), params: { duration_minutes: 30 }
+    @builder_session.reload
+    absent = @builder_session.unspoken_speakers.where(role: "builder").first.user
+    request = { user_id: absent.id, status: "absent", run_started_at: @builder_session.run_token }
+
+    patch attendance_builder_session_path(@builder_session), params: request
+    travel 1.minute do
+      get builder_session_path(@builder_session)
+      seconds_before = css_select(".live-session-stage").first["data-session-timer-seconds-value"].to_i
+      patch attendance_builder_session_path(@builder_session), params: request
+      follow_redirect!
+      assert_select ".live-session-stage[data-session-timer-seconds-value='#{seconds_before}']"
+    end
+  end
+
   test "starting does not override an explicitly absent assigned facilitator" do
     sign_in_as(@facilitator)
     patch attendance_builder_session_path(@builder_session), params: { user_id: @facilitator.id, status: "absent" }

@@ -47,7 +47,7 @@ class BuilderSession < ApplicationRecord
 
   def active? = state.in?(ACTIVE_STATES)
   def paused? = pauses.where(ended_at: nil).exists?
-  def awards_revealable? = state.in?(%w[closing hangout completed])
+  def awards_revealable? = state.in?(%w[builder_updates closing hangout completed])
 
   def award_source_sessions
     program.builder_sessions.with_session_records.where(scheduled_starts_at: ...scheduled_starts_at)
@@ -184,10 +184,11 @@ class BuilderSession < ApplicationRecord
 
       attendance = attendance_for!(user)
       was_current = attendance.speaker_state == "speaking"
+      was_queued = attendance.speaker_state == "queued"
       attendance.assign_attributes(status: "absent")
       if was_current
         attendance.assign_attributes(speaker_state: "skipped", speaker_ended_at: at)
-      elsif attendance.speaker_state == "queued"
+      elsif was_queued
         attendance.assign_attributes(speaker_state: nil, speaker_position: nil)
       end
       attendance.save!
@@ -195,7 +196,7 @@ class BuilderSession < ApplicationRecord
         if (next_speaker = attendances.where(speaker_state: "queued").order(:speaker_position).first)
           start_speaker!(next_speaker, at:)
         end
-      elsif state == "builder_updates"
+      elsif was_queued && state == "builder_updates"
         distribute_remaining_speaker_time!(at:)
       end
       touch

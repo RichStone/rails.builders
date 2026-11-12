@@ -105,7 +105,7 @@
     <% run_token = @builder_session.run_token %>
     <div class="live-session-layout">
       <div class="live-session-timer">
-        <% if @builder_session.awards_revealable? %>
+        <% if @awards.any? || @award_drafts&.any? %>
           <%= render "builder_awards/session", builder_session: @builder_session, awards: @awards, drafts: @award_drafts %>
         <% end %>
         <%= render "exercise", builder_session: @builder_session %>

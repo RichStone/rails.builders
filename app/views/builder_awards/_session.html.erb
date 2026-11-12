@@ -1,31 +1,46 @@
 <% if awards.any? || (session_operator? && builder_session.state != "cancelled") %>
-  <section class="session-analysis-panel" id="awards">
+  <section class="session-awards" id="awards">
     <% if awards.any? %>
+      <% groups = awards.group_by(&:title) %>
       <div data-session-awards>
-        <div class="section-heading"><p class="eyebrow">Celebrate the progress</p><h2>🏆 Session awards</h2></div>
-        <% awards.group_by(&:title).each do |title, recipients| %>
-          <h3><%= title %></h3>
-          <ul>
-            <% recipients.each do |award| %>
-              <li>
-                <strong><%= session_builder_name(award.user) %></strong> · <%= award.citation %>
-                <% if session_operator? && (award.baseline_session_id || award.evidence_session_id) %>
-                  <details><summary>Evidence for <%= session_builder_name(award.user) %></summary><%= render "builder_awards/evidence", award: %></details>
-                <% end %>
-              </li>
+        <h2>🏆 Session awards</h2>
+        <% if groups.size > 1 %>
+          <nav class="session-award-links" aria-label="Awards in this session">
+            <% groups.each do |title, recipients| %>
+              <%= link_to title, "#session-award-#{recipients.first.id}" %>
             <% end %>
-          </ul>
+          </nav>
         <% end %>
+        <div class="session-award-slides" role="region" tabindex="0" aria-label="Award cards">
+          <% groups.each do |title, recipients| %>
+            <article class="session-award-card" id="session-award-<%= recipients.first.id %>">
+              <%= award_illustration(title) %>
+              <div class="session-award-caption">
+                <h3><%= title %></h3>
+                <ul>
+                  <% recipients.each do |award| %>
+                    <li>
+                      <strong><%= session_builder_name(award.user) %></strong> · <%= award.citation %>
+                      <% if session_operator? && (award.baseline_session_id || award.evidence_session_id) %>
+                        <details><summary>Evidence for <%= session_builder_name(award.user) %></summary><%= render "builder_awards/evidence", award: %></details>
+                      <% end %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            </article>
+          <% end %>
+        </div>
         <% if builder_session.active? %><p>What changed, and what would you tell another Builder trying this?</p><% end %>
       </div>
     <% end %>
     <% if session_operator? && builder_session.state != "cancelled" %>
-      <details class="session-context-editor" data-award-drafts <%= "open" if drafts.any? && builder_session.awards_revealable? %>>
+      <% if drafts.any? && builder_session.awards_revealable? %>
+        <%= button_to "Reveal awards", reveal_builder_session_awards_path(builder_session), method: :patch, params: { version: BuilderAward.draft_version(drafts) }, class: "button button-primary", form: { data: { turbo_confirm: "Reveal all draft awards to the group?" } } %>
+      <% end %>
+      <details class="session-context-editor" data-award-drafts>
         <summary>🏆 Prepare awards<%= " (#{pluralize(drafts.size, 'draft')})" if drafts.any? %></summary>
         <p>Drafts and evidence are visible only to facilitators and administrators. Reveal shares the citations with Active Builders.</p>
-        <% if drafts.any? && builder_session.awards_revealable? %>
-          <%= button_to "Reveal awards", reveal_builder_session_awards_path(builder_session), method: :patch, params: { version: BuilderAward.draft_version(drafts) }, class: "button button-primary", form: { data: { turbo_confirm: "Reveal all draft awards to the group?" } } %>
-        <% end %>
         <% recipients = User.active.where.not(verified_at: nil).order(:name).to_a %>
         <% sources = builder_session.award_source_sessions.order(scheduled_starts_at: :desc).to_a %>
         <% drafts.each do |award| %>

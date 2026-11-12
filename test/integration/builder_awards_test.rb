@@ -1,7 +1,7 @@
 require "test_helper"
 
 class BuilderAwardsTest < ActionDispatch::IntegrationTest
-  test "a facilitator prepares awards privately and reveals them at the end of the session" do
+  test "a facilitator prepares awards privately and reveals them above the live speaker" do
     facilitator = User.create!(email: "facilitator@example.com", name: "Rich", facilitator: true, enrollment_status: "active", verified_at: Time.current)
     builder = User.create!(email: "builder@example.com", name: "Ralph", enrollment_status: "active", verified_at: Time.current)
     program = Program.create!(name: "Continuous", starts_on: Date.current - 60, ends_on: Date.current + 30, capacity: 9, main_facilitator: facilitator)
@@ -26,7 +26,6 @@ class BuilderAwardsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(facilitator)
     ceremony.start!(facilitator:)
-    ceremony.advance_phase!
     get builder_session_path(ceremony)
     version = css_select("form[action='#{reveal_builder_session_awards_path(ceremony)}'] input[name='version']").first["value"]
     patch reveal_builder_session_awards_path(ceremony), params: { version: }
@@ -39,6 +38,8 @@ class BuilderAwardsTest < ActionDispatch::IntegrationTest
     sign_in_as(builder)
     get builder_session_path(ceremony)
     assert_select "[data-session-awards]", text: /Best Customer Discovery.*Ralph.*Found customers/m
+    assert_select ".live-session-timer > #awards [data-session-awards] img[width='1280'][height='720'][src*='organic']"
+    assert_operator response.body.index("id=\"awards\""), :<, response.body.index("data-controller=\"session-timer\"")
     assert_select "[data-award-drafts], [data-session-awards] a", count: 0
     get edit_profile_path
     assert_select "[data-builder-awards] a[href='#{builder_session_path(ceremony, anchor: "awards")}']", text: /Halfway session/

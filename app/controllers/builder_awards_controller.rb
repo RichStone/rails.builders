@@ -21,7 +21,7 @@ class BuilderAwardsController < ApplicationController
     destination = builder_session_path(@builder_session, anchor: "awards")
     @builder_session.with_lock do
       unless @builder_session.awards_revealable?
-        return redirect_to destination, alert: "Reveal awards at the end of the core session."
+        return redirect_to destination, alert: "Reveal awards once the core session starts."
       end
 
       drafts = @builder_session.builder_awards.drafts.order(:id)

@@ -198,7 +198,7 @@ Calendar sync runs hourly and can also be queued by a facilitator or Administrat
 
 Slack membership is deliberately manual in v1. Administrators can track its status for each builder. Sessions include Calendar-backed scheduling, shared live timers, attendance, speaker order, and read-only transcripts.
 
-Facilitators can draft awards from a Session and link up to two earlier Sessions as private evidence. **Reveal awards** becomes available at the end of the core session. Revealed citations appear in that Session and on the recipient’s signed-in profile. The supporting links stay with facilitators and administrators.
+Facilitators can draft awards from a Session and link up to two earlier Sessions as private evidence. **Reveal awards** becomes available when the core session starts. The illustrated cards appear above the live speaker card, and recipients can see their citations on their signed-in profiles. The supporting links stay with facilitators and administrators.
 
 On a completed Session, use **Builder progress** to record what changed for a Builder, any before-and-after measure, and a source or timestamp. The Weekly Builders Cherry import accepts the same entries. **Builders → View cohort progress** shows the current program’s entries in date order, with a timeline on each Builder’s management page. Deleting a transcript also deletes that session’s progress entries and clears award evidence links to it.
 
