@@ -20,6 +20,12 @@ class BuilderSessionsController < ApplicationController
     awards = awards.includes(:baseline_session, :evidence_session) if session_operator?
     @awards = awards.revealed
     @award_drafts = awards.drafts if session_operator?
+    return unless @builder_session.state == "builder_updates"
+
+    @current_speaker = @builder_session.current_speaker_attendance
+    if @current_speaker&.user_id
+      @speaker_awards = [ *@awards, *@award_drafts ].select { |award| award.user_id == @current_speaker.user_id }
+    end
   end
 
   def join

@@ -105,10 +105,16 @@
     <% run_token = @builder_session.run_token %>
     <div class="live-session-layout">
       <div class="live-session-timer">
-        <% if @awards.any? || @award_drafts&.any? %>
+        <% in_core = @builder_session.state == "builder_updates" %>
+        <% if !in_core && (@awards.any? || @award_drafts&.any?) %>
           <%= render "builder_awards/session", builder_session: @builder_session, awards: @awards, drafts: @award_drafts %>
         <% end %>
         <%= render "exercise", builder_session: @builder_session %>
+        <% if @speaker_awards&.any? %>
+          <section class="session-awards" id="awards" data-speaker-awards aria-label="Awards for <%= @current_speaker.display_name %>">
+            <%= render "builder_awards/cards", awards: @speaker_awards, speaker_card: true %>
+          </section>
+        <% end %>
         <section class="live-session-stage <%= "is-paused" if @builder_session.paused? %>"
           data-controller="session-timer"
           data-session-timer-seconds-value="<%= @builder_session.clock_seconds %>"
@@ -121,9 +127,9 @@
           data-session-timer-state-value="<%= @builder_session.state %>">
           <div aria-live="polite">
             <p class="live-phase"><%= @builder_session.paused? ? "Paused" : display_state %></p>
-            <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %>
-              <h2><%= @builder_session.current_speaker_attendance.display_name %></h2>
-              <%= render "speaker_commitment", builder_session: @builder_session %>
+            <% if @current_speaker %>
+              <h2><%= @current_speaker.display_name %></h2>
+              <%= render "speaker_commitment", builder_session: @builder_session, speaker: @current_speaker %>
               <ol class="session-prompts" data-session-prompts>
                 <li>One business challenge</li>
                 <li>One AI-building challenge</li>
@@ -145,7 +151,7 @@
             "Hangout time remaining"
           elsif @builder_session.state == "connection"
             "Pre-core time remaining"
-          elsif @builder_session.current_speaker_attendance
+          elsif @current_speaker
             "Current speaker time remaining"
           else
             "Core time remaining"
@@ -158,8 +164,8 @@
         <% if session_operator? %>
           <section class="session-controls" data-session-controls>
             <%= button_to(@builder_session.paused? ? "Resume" : "Pause", @builder_session.paused? ? resume_builder_session_path(@builder_session) : pause_builder_session_path(@builder_session), params: { run_started_at: run_token }, class: "button button-quiet", form: { data: { turbo: false } }) %>
-            <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance %><%= button_to "Next", next_speaker_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-primary" %><% end %>
-            <% if @builder_session.state == "builder_updates" && @builder_session.current_speaker_attendance && @builder_session.unspoken_speakers.any? %><%= button_to "Push to back", push_speaker_back_builder_session_path(@builder_session), params: { speaker_id: @builder_session.current_speaker_attendance.id, run_started_at: run_token }, class: "button button-quiet" %><% end %>
+            <% if @current_speaker %><%= button_to "Next", next_speaker_builder_session_path(@builder_session), params: { speaker_id: @current_speaker.id, run_started_at: run_token }, class: "button button-primary" %><% end %>
+            <% if @current_speaker && @builder_session.unspoken_speakers.any? %><%= button_to "Push to back", push_speaker_back_builder_session_path(@builder_session), params: { speaker_id: @current_speaker.id, run_started_at: run_token }, class: "button button-quiet" %><% end %>
             <% unless @builder_session.state == "hangout" %>
               <% advance_label = { "connection" => "Start core session", "builder_updates" => "Finish core & start hangout", "closing" => "Start hangout" }.fetch(@builder_session.state) %>
               <% if @builder_session.state == "builder_updates" && @builder_session.unspoken_speakers.any? %>
@@ -190,6 +196,9 @@
               </details>
             <% end %>
           </section>
+        <% end %>
+        <% if in_core && @award_drafts&.any? %>
+          <%= render "builder_awards/session", builder_session: @builder_session, awards: [], drafts: @award_drafts, section_id: (@speaker_awards&.any? ? "award-management" : "awards") %>
         <% end %>
       </div>
 

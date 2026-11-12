@@ -1,0 +1,38 @@
+<% groups = awards.group_by(&:title) %>
+<div data-session-awards>
+  <% unless speaker_card %><h2>🏆 Session awards</h2><% end %>
+  <% if groups.size > 1 %>
+    <nav class="session-award-links" aria-label="Award categories">
+      <% groups.each do |title, recipients| %>
+        <%= link_to title, "#session-award-#{recipients.first.id}" %>
+      <% end %>
+    </nav>
+  <% end %>
+  <div class="session-award-slides" role="region" tabindex="<%= groups.size > 1 ? 0 : -1 %>" aria-label="Award cards">
+    <% groups.each do |title, recipients| %>
+      <article class="session-award-card" id="session-award-<%= recipients.first.id %>">
+        <%= award_illustration(title) %>
+        <div class="session-award-caption">
+          <h3><%= title %></h3>
+          <% if speaker_card %>
+            <p><%= recipients.first.citation %></p>
+            <% if session_operator? && (recipients.first.baseline_session_id || recipients.first.evidence_session_id) %>
+              <details><summary>Evidence</summary><%= render "builder_awards/evidence", award: recipients.first %></details>
+            <% end %>
+          <% else %>
+            <ul>
+              <% recipients.each do |award| %>
+                <li>
+                  <strong><%= session_builder_name(award.user) %></strong> · <%= award.citation %>
+                  <% if session_operator? && (award.baseline_session_id || award.evidence_session_id) %>
+                    <details><summary>Evidence for <%= session_builder_name(award.user) %></summary><%= render "builder_awards/evidence", award: %></details>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+      </article>
+    <% end %>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 require "test_helper"
 
 class BuilderAwardsTest < ActionDispatch::IntegrationTest
-  test "a facilitator prepares awards privately and reveals them above the live speaker" do
+  test "live awards follow the speaker and drafts only appear for facilitators" do
     facilitator = User.create!(email: "facilitator@example.com", name: "Rich", facilitator: true, enrollment_status: "active", verified_at: Time.current)
     builder = User.create!(email: "builder@example.com", name: "Ralph", enrollment_status: "active", verified_at: Time.current)
     program = Program.create!(name: "Continuous", starts_on: Date.current - 60, ends_on: Date.current + 30, capacity: 9, main_facilitator: facilitator)
@@ -14,6 +14,7 @@ class BuilderAwardsTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_select "[data-award-drafts]", text: /Best Customer Discovery/
     assert_select "[data-award-drafts] a[href='#{builder_session_path(source)}']"
+    post builder_session_awards_path(ceremony), params: { builder_award: { user_id: facilitator.id, title: "Most Business Progress", citation: "Closed the first deal." } }
     patch reveal_builder_session_awards_path(ceremony)
 
     sign_in_as(builder)
@@ -26,6 +27,19 @@ class BuilderAwardsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(facilitator)
     ceremony.start!(facilitator:)
+    if ceremony.current_speaker_attendance.user == facilitator
+      post push_speaker_back_builder_session_path(ceremony), params: { speaker_id: ceremony.current_speaker_attendance.id, run_started_at: ceremony.run_token }
+    end
+    get builder_session_path(ceremony)
+    assert_select ".live-session-stage h2", text: "Ralph"
+    assert_select "[data-speaker-awards]", text: /Best Customer Discovery.*Found customers/m
+    assert_select "[data-speaker-awards] h3", text: "Most Business Progress", count: 0
+
+    sign_in_as(builder)
+    get builder_session_path(ceremony)
+    assert_select "[data-speaker-awards], [data-award-drafts]", count: 0
+
+    sign_in_as(facilitator)
     get builder_session_path(ceremony)
     version = css_select("form[action='#{reveal_builder_session_awards_path(ceremony)}'] input[name='version']").first["value"]
     patch reveal_builder_session_awards_path(ceremony), params: { version: }
@@ -37,10 +51,18 @@ class BuilderAwardsTest < ActionDispatch::IntegrationTest
 
     sign_in_as(builder)
     get builder_session_path(ceremony)
-    assert_select "[data-session-awards]", text: /Best Customer Discovery.*Ralph.*Found customers/m
+    assert_select "[data-speaker-awards]", text: /Best Customer Discovery.*Found customers/m
     assert_select ".live-session-timer > #awards [data-session-awards] img[width='1280'][height='720'][src*='organic']"
     assert_operator response.body.index("id=\"awards\""), :<, response.body.index("data-controller=\"session-timer\"")
     assert_select "[data-award-drafts], [data-session-awards] a", count: 0
+
+    sign_in_as(facilitator)
+    post next_speaker_builder_session_path(ceremony), params: { speaker_id: ceremony.reload.current_speaker_attendance.id, run_started_at: ceremony.run_token }
+    sign_in_as(builder)
+    get builder_session_path(ceremony)
+    assert_select ".live-session-stage h2", text: "Rich"
+    assert_select "[data-speaker-awards]", text: /Most Business Progress.*Closed the first deal/m
+    assert_select "[data-speaker-awards] h3", text: "Best Customer Discovery", count: 0
     get edit_profile_path
     assert_select "[data-builder-awards] a[href='#{builder_session_path(ceremony, anchor: "awards")}']", text: /Halfway session/
     get root_path
