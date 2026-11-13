@@ -116,14 +116,25 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_empty missed.next_session_promises
   end
 
-  test "TLDR uses a light reading surface for attendees absentees and facilitators" do
+  test "TLDR renders every builder update on a light reading surface for all recipients" do
+    tldr = [
+      "Ada shipped the first paid plan.",
+      "Grace found trial users were dropping off at checkout.",
+      "Linus cut the build to four minutes.",
+      "Margaret found a billing bug during a customer demo.",
+      "Edsger learned that prospects need an export before switching tools."
+    ]
     [ @builder, @absentee, @facilitator ].each do |recipient|
-      html = Nokogiri::HTML.fragment(render_for(recipient).fetch(:html))
+      email = WeeklyCherryEmail.new(builder_session: @session, recipient: recipient, subject: "This week", tldr: tldr).render
+      assert_includes email.fetch(:text), "TL;DR\n#{tldr.join("\n")}\n"
+      html = Nokogiri::HTML.fragment(email.fetch(:html))
       heading = html.css("p").find { |paragraph| paragraph.text == "TL;DR" }
       assert heading, "Expected a TL;DR heading"
       assert_includes heading.parent["style"], "background-color: #fffaf6"
       assert_includes heading.parent["style"], "border-left: 3px solid #a40f32"
-      heading.parent.css("p").drop(1).each do |paragraph|
+      paragraphs = heading.parent.css("p").drop(1)
+      assert_equal tldr, paragraphs.map(&:text)
+      paragraphs.each do |paragraph|
         assert_includes paragraph["style"], "color: #35292c"
         assert_includes paragraph["style"], "line-height: 26px"
       end
@@ -283,7 +294,7 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     outsider = User.create!(email: "outside@example.com")
     assert_raises(ArgumentError) { render_for(outsider) }
     assert_raises(ArgumentError) { WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "Bad\r\nBcc: evil@example.com", tldr: [ "Useful." ]).render }
-    assert_raises(ArgumentError) { WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "Good", tldr: Array.new(5, "Too much.")).render }
+    assert_raises(ArgumentError) { WeeklyCherryEmail.new(builder_session: @session, recipient: @builder, subject: "Good", tldr: [ "a" * 501 ]).render }
     @session.transcript.delete_content!
     assert_raises(ArgumentError) { render_for(@builder) }
   end

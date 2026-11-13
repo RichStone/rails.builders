@@ -101,7 +101,7 @@ class WeeklyCherryEmail
     raise ArgumentError, "A completed, retained session record is required" unless @builder_session.state == "completed" && @builder_session.transcript&.state == "ready"
     raise ArgumentError, "Recipient must be an active member or this session's facilitator" unless self.class.recipients_for(@builder_session).include?(@recipient)
     raise ArgumentError, "Use a short, single-line subject" unless @subject.is_a?(String) && @subject.present? && @subject.length <= 180 && !@subject.match?(/[\r\n]/)
-    raise ArgumentError, "Use up to four concise TL;DR items" unless @tldr.is_a?(Array) && @tldr.length.in?((attended ? 1 : 0)..4) && @tldr.all? { |line| line.is_a?(String) && line.present? && line.length <= 500 }
+    raise ArgumentError, "Use concise TL;DR items" unless @tldr.is_a?(Array) && (!attended || @tldr.any?) && @tldr.all? { |line| line.is_a?(String) && line.present? && line.length <= 500 }
     raise ArgumentError, "Use up to five evidenced mentions" unless @mentions.is_a?(Array) && @mentions.length <= 5 && @mentions.all? { |line| line.is_a?(String) && line.present? && line.length <= 700 }
     raise ArgumentError, "Use up to 12 recommendation groups with concise labels and safe HTTP(S) links" unless valid_recommendations?
     raise ArgumentError, "Use concise plain-text edition notices" unless [ @warning_notice, @info_notice ].all? { |notice| notice.nil? || (notice.is_a?(String) && notice.present? && notice.length <= 1_000) }
