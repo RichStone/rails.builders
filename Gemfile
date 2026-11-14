@@ -84,4 +84,4 @@ end
 
 # Honeybadger owns error monitoring; PostHog owns product analytics.
 gem "honeybadger", "~> 6.10"
-gem "posthog-ruby", "~> 3.29", require: "posthog"
+gem "posthog-ruby", "~> 3.32", require: "posthog"
