@@ -14,18 +14,21 @@ class BuilderSessionRecordImport
       transcript = builder_session.transcript || builder_session.create_transcript!
 
       transcript.with_lock do
-        meeting_id = attributes.fetch(:wispr_meeting_id).to_s.strip
-        reject_record!(transcript, "Wispr meeting is required") if meeting_id.blank?
+        meeting_id = attributes.fetch(:wispr_meeting_id)&.to_s&.strip
+        reject_record!(transcript, "Wispr meeting ID cannot be blank") if meeting_id == ""
         if transcript.wispr_meeting_id.present?
           reject_record!(transcript, "A different Wispr meeting is already attached") unless transcript.wispr_meeting_id == meeting_id
           next transcript
+        end
+        if meeting_id.nil? && (transcript.state == "ready" || builder_session.builder_progress_entries.exists?)
+          reject_record!(transcript, "A transcript or progress is already saved; use the session editors to make changes")
         end
 
         context = attributes.slice(:summary_notes, :session_analysis)
         if transcript.state == "ready"
           transcript.update_session_context!(context)
         else
-          transcript.replace_with_manual!(attributes.fetch(:transcript), **context)
+          transcript.replace_with_manual!(attributes[:transcript], **context)
         end
 
         attributes.fetch(:promises, []).each do |promise|
@@ -36,7 +39,7 @@ class BuilderSessionRecordImport
         end
         import_chat!(attributes[:chat]) if attributes[:chat]
         builder_session.save_progress_entries!(attributes[:progress_entries]) if attributes[:progress_entries]
-        transcript.update!(wispr_meeting_id: meeting_id)
+        transcript.update!(wispr_meeting_id: meeting_id) if meeting_id
         transcript
       end
     end
