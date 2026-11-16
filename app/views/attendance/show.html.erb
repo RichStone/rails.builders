@@ -42,7 +42,7 @@
         <li><span class="attendance-key is-present" aria-hidden="true">✓</span> Attended</li>
         <li><span class="attendance-key is-absent" aria-hidden="true">×</span> Missed</li>
         <li><span class="attendance-key is-unrecorded" aria-hidden="true">—</span> No record</li>
-        <li><span class="attendance-key is-cancelled" aria-hidden="true">☠️</span> Canceled</li>
+        <li><span class="attendance-key is-cancelled" aria-hidden="true"><%= render "trash_icon" %></span> Canceled</li>
       </ul>
     </div>
 
@@ -80,11 +80,15 @@
                 </th>
                 <% @builder_sessions.each do |builder_session| %>
                   <% status = builder_session.state == "cancelled" ? "cancelled" : attendances[builder_session.id]&.status || "unrecorded" %>
-                  <% label, symbol = { "present" => [ "Attended", "✓" ], "absent" => [ "Missed", "×" ], "unrecorded" => [ "No record", "—" ], "cancelled" => [ "Canceled", "☠️" ] }.fetch(status) %>
+                  <% label, symbol = { "present" => [ "Attended", "✓" ], "absent" => [ "Missed", "×" ], "unrecorded" => [ "No record", "—" ], "cancelled" => [ "Canceled", nil ] }.fetch(status) %>
                   <% description = "#{name} · #{builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime('%d %B %Y')} · #{label}" %>
                   <td>
                     <%= link_to builder_session_path(builder_session), class: "attendance-mark is-#{status}", title: description, aria: { label: description } do %>
-                      <span aria-hidden="true"><%= symbol %></span>
+                      <% if symbol %>
+                        <span aria-hidden="true"><%= symbol %></span>
+                      <% else %>
+                        <%= render "trash_icon" %>
+                      <% end %>
                     <% end %>
                   </td>
                 <% end %>

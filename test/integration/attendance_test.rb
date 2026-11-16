@@ -104,7 +104,7 @@ class AttendanceTest < ActionDispatch::IntegrationTest
       css_select(".attendance-matrix thead a").map { |link| link["href"] }
     assert_select ".attendance-stats div", text: /Completed sessions\s*3/
     assert_select ".attendance-matrix tr[data-builder-id='#{@builder.id}']" do
-      assert_select ".attendance-mark.is-cancelled[href='#{builder_session_path(cancelled)}'][aria-label$='Canceled']", text: "☠️"
+      assert_select ".attendance-mark.is-cancelled[href='#{builder_session_path(cancelled)}'][aria-label$='Canceled'] svg[aria-hidden='true']"
       assert_select ".attendance-streak", text: "2/3 🫠"
       assert_select ".attendance-total", text: /0\s*\/\s*2 attended/
     end
