@@ -48,6 +48,7 @@
 .attendance-mark.is-present, .attendance-key.is-present { color: #216046; background: #e3f3e9; }
 .attendance-mark.is-absent, .attendance-key.is-absent { color: #a02243; background: #ffe0e5; }
 .attendance-mark.is-unrecorded, .attendance-key.is-unrecorded { color: #7f7773; background: #f3f0ed; }
+.attendance-mark.is-cancelled, .attendance-key.is-cancelled { background: #f3f0ed; }
 .attendance-mark.is-unrecorded { border: 1px dashed #d8cdc8; font-size: 17px; font-weight: 400; }
 .attendance-matrix .attendance-total { min-width: 130px; padding-right: 20px; padding-left: 20px; text-align: left; white-space: nowrap; }
 .attendance-total small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }

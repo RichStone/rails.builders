@@ -23,7 +23,7 @@
       </div>
       <div>
         <dt>Completed sessions</dt>
-        <dd><%= @builder_sessions.size %></dd>
+        <dd><%= @completed_count %></dd>
       </div>
       <div>
         <dt>Total absences</dt>
@@ -42,6 +42,7 @@
         <li><span class="attendance-key is-present" aria-hidden="true">✓</span> Attended</li>
         <li><span class="attendance-key is-absent" aria-hidden="true">×</span> Missed</li>
         <li><span class="attendance-key is-unrecorded" aria-hidden="true">—</span> No record</li>
+        <li><span class="attendance-key is-cancelled" aria-hidden="true">☠️</span> Canceled</li>
       </ul>
     </div>
 
@@ -78,8 +79,8 @@
                   </div>
                 </th>
                 <% @builder_sessions.each do |builder_session| %>
-                  <% status = attendances[builder_session.id]&.status || "unrecorded" %>
-                  <% label, symbol = { "present" => [ "Attended", "✓" ], "absent" => [ "Missed", "×" ], "unrecorded" => [ "No record", "—" ] }.fetch(status) %>
+                  <% status = builder_session.state == "cancelled" ? "cancelled" : attendances[builder_session.id]&.status || "unrecorded" %>
+                  <% label, symbol = { "present" => [ "Attended", "✓" ], "absent" => [ "Missed", "×" ], "unrecorded" => [ "No record", "—" ], "cancelled" => [ "Canceled", "☠️" ] }.fetch(status) %>
                   <% description = "#{name} · #{builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime('%d %B %Y')} · #{label}" %>
                   <td>
                     <%= link_to builder_session_path(builder_session), class: "attendance-mark is-#{status}", title: description, aria: { label: description } do %>
@@ -111,7 +112,7 @@
           </tbody>
         </table>
       </div>
-      <p class="attendance-footnote">Completed sessions only. A dash means no attendance record, not an absence, and breaks a missed-session streak. Returning to active membership starts a fresh streak. At the limit, Builders become inactive and their seat is released automatically; email and Calendar removal retry until processed. Email Paused means enrollment notifications are switched off. Facilitators are exempt. Totals cover the people shown here; deleted accounts are excluded.<% if session_operator? %> To correct a mark, open its session and update attendance.<% end %></p>
+      <p class="attendance-footnote">Canceled sessions don’t count toward totals or break missed-session streaks. A dash means no attendance record, not an absence, and breaks a missed-session streak. Returning to active membership starts a fresh streak. At the limit, Builders become inactive and their seat is released automatically; email and Calendar removal retry until processed. Email Paused means enrollment notifications are switched off. Facilitators are exempt. Totals cover the people shown here; deleted accounts are excluded.<% if session_operator? %> To correct a mark, open its session and update attendance.<% end %></p>
     <% else %>
       <div class="attendance-empty">
         <span aria-hidden="true">▦</span>

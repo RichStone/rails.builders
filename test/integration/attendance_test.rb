@@ -82,13 +82,16 @@ class AttendanceTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "only completed current-program sessions appear in chronological order" do
+  test "completed and cancelled current-program sessions appear in order, with cancellations excluded from tallies" do
     later = create_builder_session("later", "2026-09-07 18:00")
     earlier = create_builder_session("earlier", "2026-08-24 18:00")
     same_time = create_builder_session("same-time", "2026-08-24 18:00")
-    %w[ready connection cancelled].each do |state|
+    cancelled = create_builder_session("cancelled", "2026-08-31 18:00", state: "cancelled")
+    %w[ready connection].each do |state|
       create_builder_session(state, "2026-08-17 18:00", state: state)
     end
+    [ same_time, later ].each { |session| record_attendance(session, @builder, "absent") }
+    record_attendance(cancelled, @builder, "present")
     other_program = Program.create!(name: "Other cohort", starts_on: Date.new(2025, 8, 20), ends_on: Date.new(2025, 12, 17), capacity: 9)
     other_session = create_builder_session("other-program", "2025-08-24 18:00", program: other_program)
     former_builder = User.create!(email: "other-cohort@example.com", name: "Other Cohort Builder", enrollment_status: "withdrawn", verified_at: Time.current)
@@ -97,9 +100,14 @@ class AttendanceTest < ActionDispatch::IntegrationTest
 
     get attendance_path
 
-    assert_equal [ earlier, same_time, later ].map { |session| builder_session_path(session) },
+    assert_equal [ earlier, same_time, cancelled, later ].map { |session| builder_session_path(session) },
       css_select(".attendance-matrix thead a").map { |link| link["href"] }
-    assert_select ".attendance-matrix tr[data-builder-id='#{@builder.id}'] .attendance-mark", count: 3
+    assert_select ".attendance-stats div", text: /Completed sessions\s*3/
+    assert_select ".attendance-matrix tr[data-builder-id='#{@builder.id}']" do
+      assert_select ".attendance-mark.is-cancelled[href='#{builder_session_path(cancelled)}'][aria-label$='Canceled']", text: "☠️"
+      assert_select ".attendance-streak", text: "2/3 🫠"
+      assert_select ".attendance-total", text: /0\s*\/\s*2 attended/
+    end
     assert_select ".attendance-matrix tr[data-builder-id='#{former_builder.id}']", count: 0
   end
 
