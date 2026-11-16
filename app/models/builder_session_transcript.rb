@@ -11,6 +11,7 @@ class BuilderSessionTranscript < ApplicationRecord
   ].freeze
 
   belongs_to :builder_session
+  has_many :weekly_cherry_deliveries, dependent: :delete_all
 
   after_update_commit -> { builder_session.touch }
 
@@ -78,6 +79,7 @@ class BuilderSessionTranscript < ApplicationRecord
   def delete_content!
     builder_session.with_lock do
       with_lock do
+        weekly_cherry_deliveries.delete_all
         builder_session.chat_log&.destroy!
         builder_session.next_session_promises.destroy_all
         builder_session.peer_feedbacks.destroy_all

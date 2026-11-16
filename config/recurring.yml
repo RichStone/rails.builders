@@ -43,3 +43,6 @@ production:
   sync_google_calendar_notes:
     class: GoogleCalendarNotesSyncJob
     schedule: every minute
+  send_weekly_builders_cherry:
+    class: WeeklyCherryDeliveryJob
+    schedule: every minute

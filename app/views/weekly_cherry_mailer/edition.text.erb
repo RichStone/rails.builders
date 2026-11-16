@@ -1,0 +1,10 @@
+Weekly Builders Cherry delivery summary
+
+<%= @copy.fetch("sent") %> sent · <%= @copy.fetch("skipped") %> skipped · <%= @copy.fetch("failed") %> unconfirmed after retries
+Session: <%= @copy.fetch("session_url") %>
+
+<% @copy.fetch("members").each do |member| %>
+<%= member.fetch("name") %>
+<%= member.fetch("personal") %>
+
+<% end %>

@@ -20,7 +20,7 @@ class NotificationPreferencesController < ApplicationController
   end
 
   def notification_params
-    permitted = %i[notifications_enabled enrollment_notifications session_reminders session_reminder_hours]
+    permitted = %i[notifications_enabled enrollment_notifications session_reminders session_reminder_hours weekly_cherry_notifications]
     permitted << :product_update_notifications if current_user.facilitator?
     params.require(:user).permit(*permitted)
   end

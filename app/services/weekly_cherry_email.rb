@@ -60,6 +60,9 @@ class WeeklyCherryEmail
     {
       to: @recipient.email,
       subject: attended ? @subject : "You missed #{@subject}",
+      personal: %w[personal return_session].filter_map { |section|
+        renderer.render(partial: "weekly_cherry_email/#{section}", formats: [ :text ], assigns: assigns).strip.presence
+      }.join("\n\n"),
       html: renderer.render(template: "weekly_cherry_email/weekly", formats: [ :html ], layout: "layouts/mailer", assigns: assigns),
       text: renderer.render(template: "weekly_cherry_email/weekly", formats: [ :text ], layout: false, assigns: assigns)
     }

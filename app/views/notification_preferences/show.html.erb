@@ -4,11 +4,6 @@
   <h1>Configure your notifications</h1>
   <p>Choose which emails you receive and when to get a session reminder.</p>
 
-  <p class="form-warning">
-    <span aria-hidden="true">🏗️</span> Personalized session summaries and trend analysis aren’t fully automated yet, so you can’t opt out of them here.
-    To opt out, email Rich directly at <%= mail_to "rich@looplabs.cc" %>.
-  </p>
-
   <% if current_user.errors.any? %>
     <p role="alert"><%= current_user.errors.full_messages.to_sentence %></p>
   <% end %>
@@ -20,6 +15,10 @@
     </label>
     <fieldset>
       <legend>Notification groups</legend>
+      <label class="check-row">
+        <%= form.check_box :weekly_cherry_notifications %>
+        <span><strong>Weekly Builders Cherry</strong><small>Session highlights, your next promise, and feedback or mentions after each published recap.</small></span>
+      </label>
       <label class="check-row">
         <%= form.check_box :enrollment_notifications %>
         <span><strong>Enrollment notifications</strong><small>Waitlist updates, Seat Offers, offer reminders, and membership changes. If you turn these off, check your dashboard for Seat Offers and deadlines.</small></span>

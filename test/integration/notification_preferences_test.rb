@@ -11,9 +11,7 @@ class NotificationPreferencesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: "Configure your notifications"
-    assert_select ".form-warning", /🏗️.*Personalized session summaries and trend analysis aren’t fully automated yet, so you can’t opt out of them here./m do
-      assert_select "a[href='mailto:rich@looplabs.cc']", text: "rich@looplabs.cc"
-    end
+    assert_select "input[name='user[weekly_cherry_notifications]'][checked]"
     assert_select ".check-row small", /Uncheck to pause the automated notification emails listed below./
     assert_select "input[name='user[notifications_enabled]'][checked]"
     assert_select "input[name='user[enrollment_notifications]'][checked]"
@@ -24,12 +22,12 @@ class NotificationPreferencesTest < ActionDispatch::IntegrationTest
 
     patch notification_preferences_path, params: { user: {
       notifications_enabled: "0", enrollment_notifications: "0", session_reminders: "1",
-      session_reminder_hours: "2", administrator: "1", email: "someone-else@example.com"
+      session_reminder_hours: "2", weekly_cherry_notifications: "0", administrator: "1", email: "someone-else@example.com"
     } }
 
     assert_redirected_to notification_preferences_path
     follow_redirect!
-    assert_select ".form-warning a[href='mailto:rich@looplabs.cc']"
+    assert_select "input[name='user[weekly_cherry_notifications]'][checked]", count: 0
     assert_select "input[name='user[notifications_enabled]'][checked]", count: 0
     assert_select "input[name='user[enrollment_notifications]'][checked]", count: 0
     assert_select "input[name='user[session_reminders]'][checked]"

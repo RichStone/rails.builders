@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_10_100100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_16_170000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -145,6 +145,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_100100) do
     t.datetime "calendar_notes_attempted_at"
     t.datetime "calendar_notes_next_attempt_at"
     t.string "calendar_notes_error_code"
+    t.datetime "weekly_cherry_queued_at"
     t.index ["builder_session_id"], name: "index_builder_session_transcripts_on_builder_session_id", unique: true
     t.index ["calendar_notes_next_attempt_at"], name: "idx_on_calendar_notes_next_attempt_at_0475ad7c62"
     t.index ["state", "next_attempt_at"], name: "index_builder_session_transcripts_on_state_and_next_attempt_at"
@@ -338,9 +339,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_100100) do
     t.datetime "waitlist_joined_at"
     t.integer "waitlist_rank"
     t.datetime "attendance_streak_reset_at"
+    t.boolean "weekly_cherry_notifications", default: true, null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["enrollment_status"], name: "index_users_on_enrollment_status"
     t.index ["waitlist_rank", "waitlist_joined_at"], name: "index_users_on_waitlist_rank_and_waitlist_joined_at"
+  end
+
+  create_table "weekly_cherry_deliveries", force: :cascade do |t|
+    t.integer "builder_session_transcript_id", null: false
+    t.integer "user_id", null: false
+    t.boolean "summary", default: false, null: false
+    t.text "copy"
+    t.datetime "first_attempted_at"
+    t.datetime "sent_at"
+    t.datetime "skipped_at"
+    t.datetime "failed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["builder_session_transcript_id", "user_id", "summary"], name: "index_weekly_cherry_deliveries_on_recipient", unique: true
+    t.index ["builder_session_transcript_id"], name: "index_weekly_cherry_deliveries_on_summary", unique: true, where: "summary = TRUE"
+    t.index ["id"], name: "index_weekly_cherry_deliveries_pending", where: "sent_at IS NULL AND skipped_at IS NULL AND failed_at IS NULL"
+    t.index ["user_id"], name: "index_weekly_cherry_deliveries_on_user_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -373,4 +392,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_10_100100) do
   add_foreign_key "session_cancellation_deliveries", "users"
   add_foreign_key "session_reminders", "builder_sessions"
   add_foreign_key "session_reminders", "users"
+  add_foreign_key "weekly_cherry_deliveries", "builder_session_transcripts"
+  add_foreign_key "weekly_cherry_deliveries", "users"
 end

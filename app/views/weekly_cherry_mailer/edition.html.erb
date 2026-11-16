@@ -1,0 +1,7 @@
+<h1>Weekly Builders Cherry delivery summary</h1>
+<p><%= @copy.fetch("sent") %> sent · <%= @copy.fetch("skipped") %> skipped · <%= @copy.fetch("failed") %> unconfirmed after retries</p>
+<p><%= link_to "Review the session", @copy.fetch("session_url") %></p>
+<% @copy.fetch("members").each do |member| %>
+  <h2><%= member.fetch("name") %></h2>
+  <p style="white-space: pre-wrap;"><%= member.fetch("personal") %></p>
+<% end %>
