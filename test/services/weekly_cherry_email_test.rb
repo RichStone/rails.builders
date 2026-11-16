@@ -116,7 +116,7 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_empty missed.next_session_promises
   end
 
-  test "TLDR renders every builder update on a light reading surface for all recipients" do
+  test "TLDR renders every builder update in a flat, spacious section for all recipients" do
     tldr = [
       "Ada shipped the first paid plan.",
       "Grace found trial users were dropping off at checkout.",
@@ -128,15 +128,15 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       email = WeeklyCherryEmail.new(builder_session: @session, recipient: recipient, subject: "This week", tldr: tldr).render
       assert_includes email.fetch(:text), "TL;DR\n#{tldr.join("\n")}\n"
       html = Nokogiri::HTML.fragment(email.fetch(:html))
-      heading = html.css("p").find { |paragraph| paragraph.text == "TL;DR" }
-      assert heading, "Expected a TL;DR heading"
-      assert_includes heading.parent["style"], "background-color: #fffaf6"
-      assert_includes heading.parent["style"], "border-left: 3px solid #a40f32"
-      paragraphs = heading.parent.css("p").drop(1)
+      section = html.at_css("[data-tldr]")
+      assert_equal "TL;DR", section.at_css("h2").text
+      assert_nil section["style"]
+      assert_equal 1, html.css("table").size
+      paragraphs = section.css("p")
       assert_equal tldr, paragraphs.map(&:text)
       paragraphs.each do |paragraph|
         assert_includes paragraph["style"], "color: #35292c"
-        assert_includes paragraph["style"], "line-height: 26px"
+        assert_includes paragraph["style"], "line-height: 27px"
       end
     end
   end
@@ -152,7 +152,7 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       section = html.at_css("[data-recommendations]")
       assert section, "Expected a Recommendations & Mentions section"
       assert_includes section.text, "Recommendations & Mentions"
-      assert_equal [ "Video Software", "Software Making" ], section.css("strong").map(&:text)
+      assert_equal [ "Video Software", "Software Making" ], section.css("h3").map(&:text)
       assert_equal [ "HeyGen", "Remotion", "Mutineer" ], section.css("a").map(&:text)
       assert_equal [ "https://www.heygen.com/", "https://www.remotion.dev/", "https://github.com/davidteren/mutineer" ], section.css("a").map { |link| link["href"] }
       [ html.text, email.fetch(:text) ].each do |content|
@@ -168,8 +168,8 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     [ @builder, @absentee ].each do |recipient|
       email = render_for(recipient)
       html = Nokogiri::HTML.fragment(email.fetch(:html))
-      assert_empty html.css("h1")
-      assert_includes html.text, "The Weekly Builders Cherry ·"
+      assert_equal "The Weekly Builders Cherry", html.at_css("h1").text
+      assert_not_includes html.text, "A little momentum"
       assert_includes email.fetch(:text), "THE WEEKLY BUILDERS CHERRY ·"
       assert_not_includes email.fetch(:text), "A little momentum"
       assert_includes html.text, "Hey #{recipient.name},"
@@ -259,7 +259,7 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     email = render_for(@builder)
     assert_includes email.fetch(:text), "Google Meet: https://meet.google.com/abc-defg-hij"
     html = Nokogiri::HTML.fragment(email.fetch(:html))
-    assert_equal "https://meet.google.com/abc-defg-hij", html.at_css("a[href='https://meet.google.com/abc-defg-hij']").text
+    assert_equal "Join on Google Meet", html.at_css("a[href='https://meet.google.com/abc-defg-hij']").text
 
     @next_session.update!(meet_url: nil)
     email = render_for(@builder)

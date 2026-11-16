@@ -1,74 +1,74 @@
-<% content_for :preheader, @attended ? "Your session, useful nudges, and this week's cherry on top." : "Catch up on the ideas worth carrying into next week." %>
-<p style="margin: 0 0 12px; color: #a40f32; font-size: 11px; line-height: 18px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">The Weekly Builders Cherry · <%= @session_date %></p>
+<% content_for :preheader, @attended ? "Your promise, feedback, and the highlights from this week." : "Catch up on the highlights from this week." %>
+<h1 style="margin: 0 0 4px; color: #35040f; font-size: 22px; line-height: 30px;">The Weekly Builders Cherry</h1>
+<p style="margin: 0 0 24px; color: #65575a; font-size: 14px; line-height: 21px;"><%= @session_date %></p>
 <% if @warning_notice.present? %>
-  <p data-edition-notice="warning" style="margin: 16px 0; padding: 18px 20px; border-radius: 12px; background-color: #fff4ce; color: #614a0b; font-size: 15px; line-height: 24px;"><%= @warning_notice %></p>
+  <p data-edition-notice="warning" style="margin: 0 0 16px; padding: 10px 12px; background-color: #fff4ce; color: #614a0b;"><%= @warning_notice %></p>
 <% end %>
 <% if @info_notice.present? %>
-  <p data-edition-notice="info" style="margin: 16px 0; padding: 18px 20px; border-radius: 12px; background-color: #e8f2ff; color: #173b65; font-size: 15px; line-height: 24px;"><%= @info_notice %></p>
+  <p data-edition-notice="info" style="margin: 0 0 16px; padding: 10px 12px; background-color: #e8f2ff; color: #173b65;"><%= @info_notice %></p>
 <% end %>
-<p style="font-size: 16px; line-height: 26px;">Hey <%= @recipient_name %>,</p>
+<p style="margin: 0 0 16px;">Hey <%= @recipient_name %>,</p>
 <% if @promise.present? %>
-  <div style="margin: 24px 0; padding: 22px; border-left: 4px solid #e31340; background-color: #fffaf6; border-radius: 0 14px 14px 0;">
-    <p style="margin: 0 0 8px; color: #a40f32; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;"><%= @attended ? "Your promise until next session" : "Your promise from your last session" %></p>
-    <p style="margin: 0; color: #35040f; font-family: Georgia, serif; font-size: 23px; line-height: 31px; font-weight: 700;">You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %></p>
-  </div>
+  <h2 style="margin: 24px 0 8px; color: #35040f; font-size: 19px; line-height: 26px;"><%= @attended ? "Your promise until next session" : "Your promise from your last session" %></h2>
+  <p style="margin: 0 0 16px;">You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %></p>
 <% elsif @attended %>
-  <p style="font-size: 16px; line-height: 26px;">No explicit next-session promise was captured for you this week.</p>
+  <p style="margin: 0 0 16px;">No explicit next-session promise was captured for you this week.</p>
 <% end %>
 <% if @attended %>
-  <% @feedback.each do |item| %>
-    <div style="margin: 14px 0; padding: 18px 20px; border: 1px solid #ead8d5; border-radius: 14px;">
-      <p style="margin: 0 0 7px; color: #a40f32; font-size: 13px; line-height: 20px; font-weight: 700;"><%= item.fetch(:emoji) %> <%= item.fetch(:name) %> → you</p>
-      <p style="margin: 0; color: #35292c; font-size: 16px; line-height: 25px;"><%= item.fetch(:body) %></p>
-    </div>
-  <% end %>
-  <% @mentions.each do |mention| %>
-    <p style="padding: 18px 20px; border: 1px solid #ead8d5; border-radius: 14px; color: #35292c; font-size: 16px; line-height: 25px;"><%= mention %></p>
+  <% if @feedback.any? || @mentions.any? %>
+    <h2 style="margin: 24px 0 8px; color: #35040f; font-size: 19px; line-height: 26px;">Feedback and mentions</h2>
+    <% @feedback.each do |item| %>
+      <p style="margin: 0 0 12px;"><strong><%= item.fetch(:emoji) %> <%= item.fetch(:name) %> → you:</strong> <%= item.fetch(:body) %></p>
+    <% end %>
+    <% @mentions.each do |mention| %>
+      <p style="margin: 0 0 12px;"><%= mention %></p>
+    <% end %>
   <% end %>
 <% else %>
-  <p style="padding: 22px; background-color: #ffe6ed; border-radius: 14px; color: #501027; font-size: 17px; line-height: 28px;"><%= @absence_warning %></p>
+  <p style="margin: 0 0 12px;"><%= @absence_warning %></p>
   <% if @mentions.any? || @feedback.any? %>
-    <p style="font-size: 16px; line-height: 26px;">The Builders said this about you this time:</p>
+    <p style="margin: 0 0 8px;"><strong>The Builders said this about you this time:</strong></p>
     <% @mentions.each do |mention| %>
-      <p style="padding: 18px; border: 1px solid #ead8d5; border-radius: 14px; font-size: 16px; line-height: 26px;"><%= mention %></p>
+      <p style="margin: 0 0 12px;"><%= mention %></p>
     <% end %>
     <% @feedback.each do |item| %>
-      <p style="padding: 18px; border: 1px solid #ead8d5; border-radius: 14px; font-size: 16px; line-height: 26px;"><strong><%= item.fetch(:emoji) %> <%= item.fetch(:name) %>:</strong> <%= item.fetch(:body) %></p>
+      <p style="margin: 0 0 12px;"><strong><%= item.fetch(:emoji) %> <%= item.fetch(:name) %>:</strong> <%= item.fetch(:body) %></p>
     <% end %>
   <% else %>
-    <p style="font-size: 16px; line-height: 26px;">The Builders didn't mention you this time.</p>
+    <p style="margin: 0 0 12px;">The Builders didn't mention you this time.</p>
   <% end %>
 <% end %>
 <% if @tldr.any? %>
-<div style="margin: 30px 0 24px; padding: 24px; border-radius: 18px; background-color: #fffaf6; border: 1px solid #ead8d5; border-left: 3px solid #a40f32;">
-  <p style="margin: 0 0 14px; color: #a40f32; font-size: 13px; font-weight: 700; letter-spacing: 1px;">TL;DR</p>
-  <% @tldr.each do |line| %>
-    <p style="margin: 10px 0 0; color: #35292c; font-size: 16px; line-height: 26px;"><%= line %></p>
-  <% end %>
-</div>
+  <div data-tldr>
+    <h2 style="margin: 32px 0 12px; color: #35040f; font-size: 19px; line-height: 26px;">TL;DR</h2>
+    <% @tldr.each do |line| %>
+      <p style="margin: 0 0 12px; color: #35292c; font-size: 17px; line-height: 27px;"><%= line %></p>
+    <% end %>
+  </div>
 <% end %>
 <% if @recommendations.any? %>
-<div data-recommendations style="margin: 30px 0 24px; color: #35292c; font-size: 16px; line-height: 26px;">
-  <h2 style="margin: 0 0 18px; color: #35040f; font-size: 20px; line-height: 28px;">Recommendations &amp; Mentions</h2>
-  <% @recommendations.each do |group| %>
-    <p style="margin: 20px 0 6px;"><strong><%= group.fetch(:title) %></strong></p>
-    <% group.fetch(:links).each do |link| %>
-      <p style="margin: 6px 0;"><a href="<%= link.fetch(:url) %>" style="color: #a40f32;"><%= link.fetch(:label) %></a></p>
+  <div data-recommendations>
+    <h2 style="margin: 32px 0 12px; color: #35040f; font-size: 19px; line-height: 26px;">Recommendations &amp; Mentions</h2>
+    <% @recommendations.each do |group| %>
+      <h3 style="margin: 18px 0 4px; font-size: 16px; line-height: 24px;"><%= group.fetch(:title) %></h3>
+      <% group.fetch(:links).each do |link| %>
+        <p style="margin: 0 0 6px;"><a href="<%= link.fetch(:url) %>" style="color: #a40f32; text-decoration: underline;"><%= link.fetch(:label) %></a></p>
+      <% end %>
     <% end %>
-  <% end %>
-</div>
+  </div>
 <% end %>
 <% if @attended %>
-<p style="font-size: 16px; line-height: 26px;"><a href="<%= @session_url %>" style="color: #a40f32; font-weight: 700;">Review the last session -&gt;</a></p>
+  <p style="margin: 24px 0 0;"><a href="<%= @session_url %>" style="color: #a40f32; font-weight: 700; text-decoration: underline;">Review the last session -&gt;</a></p>
 <% end %>
-<p style="font-size: 16px; line-height: 26px;"><%= @next_time ? "The next session is on #{@next_time}." : "Next session time: to be confirmed." %></p>
-<p style="font-size: 16px; line-height: 26px;"><% if @next_meet_url %>Google Meet: <a href="<%= @next_meet_url %>" style="color: #a40f32; font-weight: 700;"><%= @next_meet_url %></a><% else %>The Google Meet link will be available on the session page.<% end %></p>
+<h2 style="margin: 32px 0 8px; color: #35040f; font-size: 19px; line-height: 26px;">Next session</h2>
+<p style="margin: 0 0 8px;"><%= @next_time ? "The next session is on #{@next_time}." : "Next session time: to be confirmed." %></p>
+<p style="margin: 0 0 12px;"><% if @next_meet_url %><a href="<%= @next_meet_url %>" style="color: #a40f32; font-weight: 700; text-decoration: underline;"><%= @skipping_next_session ? "Google Meet link" : "Join on Google Meet" %></a><% else %>The Google Meet link will be available on the session page.<% end %></p>
 <% if @skipping_next_session %>
-  <p style="font-size: 16px; line-height: 26px;"><strong>You’re marked as skipping this session.</strong></p>
-  <p style="font-size: 16px; line-height: 26px;"><%= @return_time ? "Your next session is on #{@return_time}." : "Your next session after the ones you’re skipping: to be confirmed." %></p>
+  <p style="margin: 0 0 8px;"><strong>You’re marked as skipping this session.</strong></p>
+  <p style="margin: 0 0 8px;"><%= @return_time ? "Your next session is on #{@return_time}." : "Your next session after the ones you’re skipping: to be confirmed." %></p>
   <% if @return_time %>
-    <p style="font-size: 16px; line-height: 26px;"><% if @return_meet_url %>Google Meet: <a href="<%= @return_meet_url %>" style="color: #a40f32; font-weight: 700;"><%= @return_meet_url %></a><% else %>The Google Meet link will be available on the session page.<% end %></p>
+    <p style="margin: 0 0 12px;"><% if @return_meet_url %><a href="<%= @return_meet_url %>" style="color: #a40f32; font-weight: 700; text-decoration: underline;">Join your return session on Google Meet</a><% else %>The Google Meet link will be available on the session page.<% end %></p>
   <% end %>
 <% end %>
-<p style="margin: 24px 0 0; font-size: 16px; line-height: 26px;">Sincerely yours,<br><strong>Rich and Otto Labot</strong></p>
-<img src="cid:<%= @cherry_cid %>" width="160" height="160" alt="The Weekly Builders Cherry: a ruby gem and a red cherry" style="display: block; width: 160px; height: 160px; margin: 24px auto 0; border: 0;">
+<p style="margin: 32px 0 0;">Sincerely yours,<br><strong>Rich and Otto Labot</strong></p>
+<img src="cid:<%= @cherry_cid %>" width="80" height="80" alt="The Weekly Builders Cherry: a ruby gem and a red cherry" style="display: block; width: 80px; height: 80px; margin: 16px 0 0; border: 0;">
