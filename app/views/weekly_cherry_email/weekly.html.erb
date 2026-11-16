@@ -8,9 +8,12 @@
   <p data-edition-notice="info" style="margin: 0 0 16px; padding: 10px 12px; background-color: #e8f2ff; color: #173b65;"><%= @info_notice %></p>
 <% end %>
 <p style="margin: 0 0 16px;">Hey <%= @recipient_name %>,</p>
+<% unless @attended %>
+  <blockquote style="margin: 0 0 16px; padding: 14px 18px; border-left: 3px solid #c96579; border-radius: 0 10px 10px 0; background-color: #fff0f2; color: #62283a; font-family: Georgia, serif; font-size: 18px; font-style: italic; line-height: 27px;"><%= @absence_warning %></blockquote>
+<% end %>
 <% if @promise.present? %>
-  <h2 style="margin: 24px 0 8px; color: #35040f; font-size: 19px; line-height: 26px;"><%= @attended ? "Your promise until next session" : "Your promise from your last session" %></h2>
-  <p style="margin: 0 0 16px;">You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %></p>
+  <h2 style="margin: 20px 0 8px; color: #234464; font-size: 18px; line-height: 25px;"><%= @attended ? "Your promise until next session" : "You promised this last time:" %></h2>
+  <blockquote style="margin: 0 0 16px; padding: 14px 18px; border-left: 3px solid #789fc8; border-radius: 0 10px 10px 0; background-color: #eaf4ff; color: #234464; font-family: Georgia, serif; font-size: 19px; font-style: italic; line-height: 28px;"><%= @attended ? "You promised to #{@promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase }}" : @promise %></blockquote>
 <% elsif @attended %>
   <p style="margin: 0 0 16px;">No explicit next-session promise was captured for you this week.</p>
 <% end %>
@@ -25,15 +28,17 @@
     <% end %>
   <% end %>
 <% else %>
-  <p style="margin: 0 0 12px;"><%= @absence_warning %></p>
   <% if @mentions.any? || @feedback.any? %>
-    <p style="margin: 0 0 8px;"><strong>The Builders said this about you this time:</strong></p>
-    <% @mentions.each do |mention| %>
-      <p style="margin: 0 0 12px;"><%= mention %></p>
-    <% end %>
-    <% @feedback.each do |item| %>
-      <p style="margin: 0 0 12px;"><strong><%= item.fetch(:emoji) %> <%= item.fetch(:name) %>:</strong> <%= item.fetch(:body) %></p>
-    <% end %>
+    <div style="margin: 0; padding: 14px 18px 6px; border-radius: 14px; background-color: #f2f3f5; color: #35292c;">
+      <p style="margin: 0 0 6px;"><strong>The Builders said this about you this time:</strong></p>
+      <% @mentions.each do |mention| %>
+        <p style="margin: 0 0 8px;"><%= mention %></p>
+      <% end %>
+      <% @feedback.each do |item| %>
+        <p style="margin: 0 0 8px;"><strong><%= item.fetch(:emoji) %> <%= item.fetch(:name) %>:</strong> <%= item.fetch(:body) %></p>
+      <% end %>
+    </div>
+    <div aria-hidden="true" style="width: 0; height: 0; margin: 0 0 0 18px; border-top: 8px solid #f2f3f5; border-right: 12px solid transparent; font-size: 0; line-height: 0;"></div>
   <% else %>
     <p style="margin: 0 0 12px;">The Builders didn't mention you this time.</p>
   <% end %>
@@ -42,7 +47,8 @@
   <div data-tldr>
     <h2 style="margin: 32px 0 12px; color: #35040f; font-size: 19px; line-height: 26px;">TL;DR</h2>
     <% @tldr.each do |line| %>
-      <p style="margin: 0 0 12px; color: #35292c; font-size: 17px; line-height: 27px;"><%= line %></p>
+      <% name, rest = line.split(/(?=[\s:])/, 2) %>
+      <p style="margin: 0 0 12px; color: #35292c; font-size: 17px; line-height: 27px;"><% if @tldr_names.include?(name) %><strong><em><%= name %></em></strong><%= rest %><% else %><%= line %><% end %></p>
     <% end %>
   </div>
 <% end %>

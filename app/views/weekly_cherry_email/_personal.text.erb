@@ -1,8 +1,15 @@
-<% if @promise.present? %>
 <% unless @attended %>
-Your promise from your last session:
+<%= @absence_warning %>
+
 <% end %>
+<% if @promise.present? %>
+<% if @attended %>
 You promised to <%= @promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase } %>
+<% else %>
+You promised this last time:
+<%= @promise %>
+
+<% end %>
 <% elsif @attended %>
 No explicit next-session promise was captured for you this week.
 <% end %>
@@ -16,8 +23,6 @@ No explicit next-session promise was captured for you this week.
 <%= mention %>
 <% end %>
 <% else %>
-<%= @absence_warning %>
-
 <% if @mentions.any? || @feedback.any? %>
 The Builders said this about you this time:
 <% @mentions.each do |mention| %>

@@ -107,19 +107,23 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     email = render_for(@absentee)
 
     [ :text, :html ].each do |format|
-      assert_includes email.fetch(format), "Your promise from your last session"
-      assert_includes email.fetch(format), "You promised to test the offer with three customers."
+      assert_includes email.fetch(format), "You promised this last time:"
+      assert_includes email.fetch(format), "Test the offer with three customers."
       assert_includes email.fetch(format), "2nd missed session in a row"
+      assert_operator email.fetch(format).index("2nd missed session"), :<, email.fetch(format).index("You promised this last time:")
       assert_not_includes email.fetch(format), "No explicit next-session promise"
     end
+    quotes = Nokogiri::HTML.fragment(email.fetch(:html)).css("blockquote")
+    assert_includes quotes.first["style"], "background-color: #fff0f2"
+    assert_includes quotes.last["style"], "background-color: #eaf4ff"
     assert_empty @session.next_session_promises
     assert_empty missed.next_session_promises
   end
 
   test "TLDR renders every builder update in a flat, spacious section for all recipients" do
     tldr = [
-      "Ada shipped the first paid plan.",
-      "Grace found trial users were dropping off at checkout.",
+      "Builder shipped the first paid plan.",
+      "Rich found trial users were dropping off at checkout.",
       "Linus cut the build to four minutes.",
       "Margaret found a billing bug during a customer demo.",
       "Edsger learned that prospects need an export before switching tools."
@@ -134,6 +138,7 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
       assert_equal 1, html.css("table").size
       paragraphs = section.css("p")
       assert_equal tldr, paragraphs.map(&:text)
+      assert_equal [ "Builder", "Rich" ], section.css("strong em").map(&:text)
       paragraphs.each do |paragraph|
         assert_includes paragraph["style"], "color: #35292c"
         assert_includes paragraph["style"], "line-height: 27px"
@@ -273,6 +278,8 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
     assert_includes email.fetch(:text), "The Builders said this about you this time:"
     assert_not_includes email.fetch(:text), "didn't mention you"
     assert_includes email.fetch(:html), "&lt;b&gt;your demo was useful&lt;/b&gt;"
+    bubble = Nokogiri::HTML.fragment(email.fetch(:html)).css("div").find { |node| node["style"]&.include?("background-color: #f2f3f5") }
+    assert_equal "The Builders said this about you this time:", bubble.at_css("strong").text
     assert_not_includes email.fetch(:text), "TL;DR"
     assert_not_includes email.fetch(:html), "TL;DR"
   end

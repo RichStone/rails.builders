@@ -44,6 +44,7 @@ class WeeklyCherryEmail
       promise: promise&.body,
       feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: item.author.name.to_s.split.first || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
       tldr: @tldr,
+      tldr_names: tldr_names,
       mentions: @mentions,
       recommendations: @recommendations,
       warning_notice: @warning_notice,
@@ -69,6 +70,12 @@ class WeeklyCherryEmail
   end
 
   private
+
+  def tldr_names
+    facilitator = @builder_session.assigned_facilitator || @builder_session.program.main_facilitator
+    names = @builder_session.attendances.where(status: "present").pluck(:display_name)
+    (names << facilitator&.name).filter_map { |name| name.to_s.split.first }.uniq
+  end
 
   def session_time(session)
     return unless session
