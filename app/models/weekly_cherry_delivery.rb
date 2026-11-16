@@ -29,6 +29,7 @@ class WeeklyCherryDelivery < ApplicationRecord
       email = WeeklyCherryEmail.new(
         builder_session: session, recipient: recipient, subject: edition["subject"], tldr: edition["tldr"],
         mentions: mentions.fetch(recipient.id.to_s, []), recommendations: edition.fetch("recommendations", []),
+        first_names: edition.fetch("first_names", {}),
         warning_notice: edition["warning_notice"], info_notice: edition["info_notice"]
       ).render
       attendance = session.attendances.find_by(user: recipient)&.status
@@ -103,7 +104,7 @@ class WeeklyCherryDelivery < ApplicationRecord
     members = other_deliveries
     sent_to_others = members.where.not(sent_at: nil).where.not(user_id: user_id).includes(:user).order(:id).to_a
     rows = sent_to_others.map do |delivery|
-      { name: delivery.user.name.to_s.split.first || "Builder", personal: delivery.copy.fetch("personal") }
+      { name: delivery.copy.fetch("recipient_name") { delivery.user.name.to_s.split.first || "Builder" }, personal: delivery.copy.fetch("personal") }
     end
     session = builder_session_transcript.builder_session
     {
@@ -123,7 +124,7 @@ class WeeklyCherryDelivery < ApplicationRecord
       update!(**status, copy: nil)
       other_deliveries.update_all(copy: nil)
     elsif status.key?(:sent_at) && builder_session_transcript.weekly_cherry_deliveries.exists?(summary: true)
-      update!(**status, copy: copy.slice("personal"))
+      update!(**status, copy: copy.slice("personal", "recipient_name"))
     else
       update!(**status, copy: nil)
     end

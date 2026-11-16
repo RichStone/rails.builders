@@ -6,13 +6,14 @@ class WeeklyCherryEmail
     (User.active.order(:id).to_a + [ facilitator ]).compact.uniq(&:id)
   end
 
-  def initialize(builder_session:, recipient:, subject:, tldr: [], mentions: [], recommendations: [], warning_notice: nil, info_notice: nil, cherry_cid: "weekly-cherry")
+  def initialize(builder_session:, recipient:, subject:, tldr: [], mentions: [], recommendations: [], first_names: {}, warning_notice: nil, info_notice: nil, cherry_cid: "weekly-cherry")
     @builder_session = builder_session
     @recipient = recipient
     @subject = subject
     @tldr = tldr
     @mentions = mentions
     @recommendations = recommendations.is_a?(Array) ? recommendations.map { |group| group.is_a?(Hash) ? group.deep_symbolize_keys : group } : recommendations
+    @first_names = first_names.is_a?(Hash) ? first_names.stringify_keys : first_names
     @warning_notice = warning_notice
     @info_notice = info_notice
     @cherry_cid = cherry_cid
@@ -36,13 +37,14 @@ class WeeklyCherryEmail
       skipped_session_ids = BuilderSessionAttendance.where(user: @recipient, status: "absent").select(:builder_session_id)
       return_session = upcoming_sessions.where.not(id: skipped_session_ids).first
     end
+    session_date = @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone)
     assigns = {
-      recipient_name: @recipient.name.to_s.split.first || "Builder",
-      session_date: @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone).strftime("%-d %B %Y"),
+      recipient_name: first_name_for(@recipient.id, @recipient.name) || "Builder",
+      session_date: session_date.strftime("%B #{session_date.day.ordinalize} %Y"),
       session_url: "https://rails.builders/sessions/#{@builder_session.id}",
       attended: attended,
       promise: promise&.body,
-      feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: item.author.name.to_s.split.first || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
+      feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: first_name_for(item.author_id, item.author.name) || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
       tldr: @tldr,
       tldr_names: tldr_names,
       mentions: @mentions,
@@ -60,6 +62,7 @@ class WeeklyCherryEmail
     renderer = ApplicationController.renderer.new(http_host: "rails.builders", https: true)
     {
       to: @recipient.email,
+      recipient_name: assigns.fetch(:recipient_name),
       subject: attended ? @subject : "You missed #{@subject}",
       personal: %w[personal return_session].filter_map { |section|
         renderer.render(partial: "weekly_cherry_email/#{section}", formats: [ :text ], assigns: assigns).strip.presence
@@ -71,10 +74,15 @@ class WeeklyCherryEmail
 
   private
 
+  def first_name_for(user_id, full_name)
+    @first_names.fetch(user_id.to_s) { full_name.to_s.split.first }
+  end
+
   def tldr_names
     facilitator = @builder_session.assigned_facilitator || @builder_session.program.main_facilitator
-    names = @builder_session.attendances.where(status: "present").pluck(:display_name)
-    (names << facilitator&.name).filter_map { |name| name.to_s.split.first }.uniq
+    names = @builder_session.attendances.where(status: "present").pluck(:user_id, :display_name)
+    names << [ facilitator.id, facilitator.name ] if facilitator
+    names.filter_map { |user_id, name| first_name_for(user_id, name) }.uniq
   end
 
   def session_time(session)
@@ -113,6 +121,9 @@ class WeeklyCherryEmail
     raise ArgumentError, "Use a short, single-line subject" unless @subject.is_a?(String) && @subject.present? && @subject.length <= 180 && !@subject.match?(/[\r\n]/)
     raise ArgumentError, "Use concise TL;DR items" unless @tldr.is_a?(Array) && (!attended || @tldr.any?) && @tldr.all? { |line| line.is_a?(String) && line.present? && line.length <= 500 }
     raise ArgumentError, "Use up to five evidenced mentions" unless @mentions.is_a?(Array) && @mentions.length <= 5 && @mentions.all? { |line| line.is_a?(String) && line.present? && line.length <= 700 }
+    unless @first_names.is_a?(Hash) && @first_names.all? { |id, name| id.match?(/\A[1-9]\d*\z/) && name.is_a?(String) && name.match?(/\A\p{L}[\p{L}\p{M}'’-]{0,49}\z/) }
+      raise ArgumentError, "Supply preferred first names by Builder ID"
+    end
     raise ArgumentError, "Use up to 12 recommendation groups with concise labels and safe HTTP(S) links" unless valid_recommendations?
     raise ArgumentError, "Use concise plain-text edition notices" unless [ @warning_notice, @info_notice ].all? { |notice| notice.nil? || (notice.is_a?(String) && notice.present? && notice.length <= 1_000) }
     raise ArgumentError, "Invalid image content ID" unless @cherry_cid.is_a?(String) && @cherry_cid.match?(/\A[a-zA-Z0-9_.@-]{1,100}\z/)

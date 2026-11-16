@@ -23,19 +23,28 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
   test "greetings use first names for attendees absentees and facilitators" do
     [ @builder, @absentee, @facilitator ].each do |recipient|
       recipient.update!(name: "Ada Lovelace")
-      email = render_for(recipient)
-      assert_includes email.fetch(:text), "Hey Ada,"
-      assert_includes email.fetch(:html), "Hey Ada,"
+      email = WeeklyCherryEmail.new(
+        builder_session: @session, recipient: recipient, subject: "This week", tldr: [ "Ada found a useful lead." ],
+        first_names: { @absentee.id => "Addie" }
+      ).render
+      first_name = recipient == @absentee ? "Addie" : "Ada"
+      assert_includes email.fetch(:text), "Hey #{first_name},"
+      assert_includes email.fetch(:html), "Hey #{first_name},"
       assert_not_includes email.fetch(:text), "Hey Ada Lovelace,"
+      assert_equal "Ada Lovelace", recipient.reload.name
     end
   end
 
   test "feedback author labels use first names" do
     @facilitator.update!(name: "Ada Lovelace")
     @session.peer_feedbacks.create!(author: @facilitator, recipient: @builder, body: "Test the onboarding.", sentiment: "idea", source: "transcript", source_key: "onboarding")
-    email = render_for(@builder)
-    assert_includes email.fetch(:text), "Ada → you:"
-    assert_includes email.fetch(:html), "Ada → you"
+    email = WeeklyCherryEmail.new(
+      builder_session: @session, recipient: @builder, subject: "This week", tldr: [ "Addie tried a better question." ],
+      first_names: { @facilitator.id.to_s => "Addie" }
+    ).render
+    assert_includes email.fetch(:text), "Addie → you:"
+    assert_includes email.fetch(:html), "Addie → you"
+    assert_includes email.fetch(:html), "<strong><em>Addie</em></strong> tried a better question."
     assert_not_includes email.fetch(:text), "Ada Lovelace"
   end
 
@@ -170,12 +179,14 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
   end
 
   test "email openings skip the decorative headline and attendee review links use the requested label" do
+    @session.update!(scheduled_starts_at: Time.utc(2026, 11, 11, 23, 30), scheduled_ends_at: Time.utc(2026, 11, 12, 0, 30))
     [ @builder, @absentee ].each do |recipient|
       email = render_for(recipient)
       html = Nokogiri::HTML.fragment(email.fetch(:html))
       assert_equal "The Weekly Builders Cherry", html.at_css("h1").text
+      assert_equal "Session from November 12th 2026", html.at_css("h1").next_element.text
       assert_not_includes html.text, "A little momentum"
-      assert_includes email.fetch(:text), "THE WEEKLY BUILDERS CHERRY ·"
+      assert email.fetch(:text).start_with?("THE WEEKLY BUILDERS CHERRY\nSession from November 12th 2026\n")
       assert_not_includes email.fetch(:text), "A little momentum"
       assert_includes html.text, "Hey #{recipient.name},"
 

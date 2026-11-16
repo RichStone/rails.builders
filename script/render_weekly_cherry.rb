@@ -12,6 +12,7 @@ emails = input.fetch("emails").map do |copy|
     tldr: copy.fetch("tldr", []),
     mentions: copy.fetch("mentions", []),
     recommendations: input.fetch("recommendations", []),
+    first_names: input.fetch("first_names", {}),
     warning_notice: input["warning_notice"],
     info_notice: input["info_notice"]
   ).render
