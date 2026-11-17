@@ -127,6 +127,9 @@ class AttendanceTest < ActionDispatch::IntegrationTest
 
     assert_select ".attendance-matrix tr[data-builder-id='#{withdrawn.id}']", text: /Former Builder/ do
       assert_select ".attendance-mark.is-absent", count: 1
+      assert_select ".attendance-streak", text: "- ☠️"
+      assert_select ".attendance-total small", text: "missed in a row", count: 0
+      assert_select ".attendance-total", text: /1 missed.*0\s*\/\s*1 attended/m
     end
     assert_select ".attendance-matrix tr[data-builder-id='#{@facilitator.id}']", text: /Main Facilitator/
     assert_select ".attendance-matrix tr[data-builder-id='#{removed_facilitator.id}']", count: 0
@@ -206,6 +209,7 @@ class AttendanceTest < ActionDispatch::IntegrationTest
     @builder.update!(enrollment_status: "inactive")
     latest.update!(strike_inactivated_at: Time.current, strike_absence_limit: 3, strike_email_sent_at: Time.current)
     get attendance_path
+    assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-streak", text: "- ☠️"
     assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-email", text: "Email Sent"
     assert_select "tr[data-builder-id='#{@builder.id}'] .attendance-total", text: /Seat released.*Calendar Pending/m
 

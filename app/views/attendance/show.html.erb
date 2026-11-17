@@ -68,6 +68,7 @@
           <tbody>
             <% @builders.each do |builder| %>
               <% name = builder.name.presence || "Builder" %>
+              <% past_member = !builder.active? && !builder.facilitator? %>
               <% attendances = @attendance_by_user.fetch(builder.id, {}) %>
               <% present = attendances.values.count { |attendance| attendance.status == "present" } %>
               <% missed = attendances.size - present %>
@@ -75,7 +76,7 @@
                 <th scope="row" class="attendance-person">
                   <div class="attendance-identity">
                     <span class="attendance-initials" aria-hidden="true"><%= name.split.first(2).map { |part| part.first }.join.upcase %></span>
-                    <span><strong><%= name %><% if builder == current_user %> <small class="attendance-you">you</small><% end %></strong><small><%= builder.facilitator? ? "Facilitator" : "Builder" %><%= " · Past member" unless builder.active? || builder.facilitator? %></small></span>
+                    <span><strong><%= name %><% if builder == current_user %> <small class="attendance-you">you</small><% end %></strong><small><%= builder.facilitator? ? "Facilitator" : "Builder" %><%= " · Past member" if past_member %></small></span>
                   </div>
                 </th>
                 <% @builder_sessions.each do |builder_session| %>
@@ -95,8 +96,12 @@
                 <td class="attendance-total">
                   <% if attendances.any? %>
                     <% streak = @absence_streaks.fetch(builder.id) %>
-                    <strong class="attendance-streak <%= 'has-misses' if streak.any? %>"><%= streak.size %>/<%= @program.consecutive_absence_limit %> <span aria-hidden="true"><%= attendance_streak_emoji(streak.size, @program.consecutive_absence_limit) %></span></strong>
-                    <small>missed in a row</small>
+                    <% if past_member %>
+                      <strong class="attendance-streak is-past" aria-hidden="true">- ☠️</strong>
+                    <% else %>
+                      <strong class="attendance-streak <%= 'has-misses' if streak.any? %>"><%= streak.size %>/<%= @program.consecutive_absence_limit %> <span aria-hidden="true"><%= attendance_streak_emoji(streak.size, @program.consecutive_absence_limit) %></span></strong>
+                      <small>missed in a row</small>
+                    <% end %>
                     <% if !builder.facilitator? && streak.size >= @program.consecutive_absence_limit %>
                       <% email_sent = streak.any?(&:strike_email_sent_at) %>
                       <small class="attendance-email">Email <%= email_sent ? "Sent" : (builder.receives_enrollment_notifications? ? "Pending" : "Paused") %></small>

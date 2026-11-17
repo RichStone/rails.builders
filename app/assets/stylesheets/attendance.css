@@ -58,6 +58,7 @@
 .attendance-missed.has-misses { color: #a02243; }
 .attendance-streak { color: #216046; font-size: 16px; }
 .attendance-streak.has-misses { color: #a02243; }
+.attendance-streak.is-past { color: var(--muted); }
 .attendance-streak ~ .attendance-missed { display: block; margin-top: 12px; }
 .attendance-no-record { color: var(--muted); font-size: 12px; }
 .attendance-matrix .attendance-self > * { background-color: #fff9f5; }

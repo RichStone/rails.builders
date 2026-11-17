@@ -38,7 +38,7 @@ class AttendanceSystemTest < ApplicationSystemTestCase
     assert_selector ".attendance-mark.is-absent"
     assert_selector ".attendance-mark.is-unrecorded"
     assert_selector ".attendance-matrix tbody tr", count: 7
-    [ "0/3 😊", "1/3 😮", "2/3 🫠", "3/3 ☠️", "4/3 ☠️" ].zip(builders).each do |label, builder|
+    [ "0/3 😊", "1/3 😮", "2/3 🫠", "- ☠️", "4/3 ☠️" ].zip(builders).each do |label, builder|
       assert_selector "tr[data-builder-id='#{builder.id}'] .attendance-streak", text: label
     end
     within("tr[data-builder-id='#{builders[3].id}']") do
