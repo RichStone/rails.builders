@@ -13,7 +13,7 @@
 <% end %>
 <% if @promise.present? %>
   <h2 style="margin: 20px 0 8px; color: #234464; font-size: 18px; line-height: 25px;"><%= @attended ? "Your promise until next session" : "You promised this last time:" %></h2>
-  <blockquote style="margin: 0 0 16px; padding: 14px 18px; border-left: 3px solid #789fc8; border-radius: 0 10px 10px 0; background-color: #eaf4ff; color: #234464; font-family: Georgia, serif; font-size: 19px; font-style: italic; line-height: 28px;"><%= @attended ? "You promised to #{@promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase }}" : @promise %></blockquote>
+  <%= render "layouts/promise_quote", text: @attended ? "You promised to #{@promise.sub(/\A\p{Lu}(?=\p{Ll})/) { |initial| initial.downcase }}" : @promise %>
 <% elsif @attended %>
   <p style="margin: 0 0 16px;">No explicit next-session promise was captured for you this week.</p>
 <% end %>

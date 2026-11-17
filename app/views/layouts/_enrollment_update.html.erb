@@ -1,0 +1,5 @@
+<%= render "layouts/heading", eyebrow: eyebrow, title: "Enrollment changed." %>
+<p style="margin: 0 0 18px;"><%= @status.in?(%w[waitlisted offered]) ? "A builder has requested to join. Review their profile and confirm their place by promoting them to Active Builder when a seat is available." : "A builder’s enrollment status changed." %></p>
+<p style="margin: 0 0 8px;"><strong>Builder:</strong> <span style="word-break: break-word;"><%= @user.email %></span></p>
+<p style="margin: 0 0 16px;"><strong>New status:</strong> <%= @status.humanize %></p>
+<%= render "layouts/button", label: "Review builder profile", url: @url %>

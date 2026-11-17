@@ -1,7 +1,7 @@
-<h1>Weekly Builders Cherry delivery summary</h1>
+<%= render "layouts/heading", eyebrow: "Facilitator update", title: "Weekly Builders Cherry delivery summary" %>
 <p><%= @copy.fetch("sent") %> sent · <%= @copy.fetch("skipped") %> skipped · <%= @copy.fetch("failed") %> unconfirmed after retries</p>
-<p><%= link_to "Review the session", @copy.fetch("session_url") %></p>
+<p style="margin: 0 0 20px;"><%= link_to "Review the session", @copy.fetch("session_url"), style: "color: #a40f32; text-decoration: underline;" %></p>
 <% @copy.fetch("members").each do |member| %>
-  <h2><%= member.fetch("name") %></h2>
-  <p style="white-space: pre-wrap;"><%= member.fetch("personal") %></p>
+  <h2 style="margin: 24px 0 8px; color: #35040f; font-size: 19px; line-height: 26px;"><%= member.fetch("name") %></h2>
+  <p style="margin: 0 0 16px; white-space: pre-wrap;"><%= member.fetch("personal") %></p>
 <% end %>
