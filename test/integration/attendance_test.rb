@@ -82,11 +82,12 @@ class AttendanceTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "completed and cancelled current-program sessions appear in order, with cancellations excluded from tallies" do
+  test "past completed and cancelled current-program sessions appear in order, with cancellations excluded from tallies" do
     later = create_builder_session("later", "2026-09-07 18:00")
     earlier = create_builder_session("earlier", "2026-08-24 18:00")
     same_time = create_builder_session("same-time", "2026-08-24 18:00")
     cancelled = create_builder_session("cancelled", "2026-08-31 18:00", state: "cancelled")
+    create_builder_session("future-cancelled", 1.day.from_now.iso8601, state: "cancelled")
     %w[ready connection].each do |state|
       create_builder_session(state, "2026-08-17 18:00", state: state)
     end

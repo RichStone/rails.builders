@@ -3,9 +3,8 @@ class AttendanceController < ApplicationController
 
   def show
     @program = Program.current
-    sessions = @program.builder_sessions
-    @builder_sessions = sessions.where(state: "completed", scheduled_starts_at: ..Time.current)
-      .or(sessions.where(state: "cancelled")).order(:scheduled_starts_at, :id).to_a
+    @builder_sessions = @program.builder_sessions.where(state: %w[completed cancelled], scheduled_starts_at: ..Time.current)
+      .order(:scheduled_starts_at, :id).to_a
     completed_sessions = @builder_sessions.select { |session| session.state == "completed" }
     @completed_count = completed_sessions.size
     records = BuilderSessionAttendance.where(builder_session_id: completed_sessions.map(&:id)).where.not(user_id: nil).to_a
