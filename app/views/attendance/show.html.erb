@@ -56,7 +56,7 @@
               <th scope="col" class="attendance-person">The crew</th>
               <% @builder_sessions.each do |builder_session| %>
                 <% date = builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone) %>
-                <th scope="col" class="attendance-date">
+                <th scope="col" class="attendance-date<%= ' attendance-cancelled' if builder_session.state == 'cancelled' %>">
                   <%= link_to builder_session_path(builder_session), title: "#{builder_session.title} · #{date.strftime('%d %B %Y · %H:%M %Z')}" do %>
                     <time datetime="<%= date.iso8601 %>"><span><%= date.strftime("%b") %></span><strong><%= date.strftime("%d") %></strong><small><%= date.year %></small></time>
                   <% end %>
@@ -83,7 +83,7 @@
                   <% status = builder_session.state == "cancelled" ? "cancelled" : attendances[builder_session.id]&.status || "unrecorded" %>
                   <% label, symbol = { "present" => [ "Attended", "✓" ], "absent" => [ "Missed", "×" ], "unrecorded" => [ "No record", "—" ], "cancelled" => [ "Canceled", nil ] }.fetch(status) %>
                   <% description = "#{name} · #{builder_session.scheduled_starts_at.in_time_zone(builder_session.time_zone).strftime('%d %B %Y')} · #{label}" %>
-                  <td>
+                  <td class="<%= 'attendance-cancelled' if status == 'cancelled' %>">
                     <%= link_to builder_session_path(builder_session), class: "attendance-mark is-#{status}", title: description, aria: { label: description } do %>
                       <% if symbol %>
                         <span aria-hidden="true"><%= symbol %></span>
