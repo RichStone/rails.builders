@@ -14,7 +14,24 @@ Hey <%= @recipient_name %>,
 
 <%= render "weekly_cherry_email/personal" %>
 
-<% if @tldr.any? %>
+<% if @own_update || @other_updates.any? %>
+<% if @own_update %>
+Your TL;DR
+
+<%= render "weekly_cherry_email/speaker_update", update: @own_update, own: true %>
+<% end %>
+<% if @other_updates.any? %>
+Others' TL;DRs
+
+<% @other_updates.each_with_index do |update, index| %>
+<% unless index.zero? %>
+────────────────────────
+
+<% end %>
+<%= render "weekly_cherry_email/speaker_update", update: update, own: false %>
+<% end %>
+<% end %>
+<% elsif @tldr.any? %>
 TL;DR
 <% @tldr.each do |line| %>
 <%= line %>

@@ -1,0 +1,12 @@
+<%= "#{update.fetch(:name)}: " unless own %><%= update.fetch(:summary) %>
+
+<% if (worked = update[:worked]) %>
+<%= worked.fetch(:emoji) %> What worked? <%= worked.fetch(:text) %>
+
+<% end %>
+<% if (failed = update[:failed]) %>
+<%= failed.fetch(:emoji) %> What failed? <%= failed.fetch(:text) %>
+
+<% end %>
+🤖 Otto's tip: <%= update.fetch(:tip) %>
+

@@ -18,7 +18,10 @@ class WeeklyCherryDelivery < ApplicationRecord
     raise ArgumentError, "A completed, retained transcript is required" unless session.state == "completed" && transcript.state == "ready"
     return if transcript.weekly_cherry_queued_at?
 
-    raise ArgumentError, "The Weekly Builders Cherry requires a subject and shared recap" unless edition.is_a?(Hash) && edition["subject"].present? && edition["tldr"].is_a?(Array) && edition["tldr"].any?
+    unless edition.is_a?(Hash) && edition["subject"].present? &&
+        [ edition["tldr"], edition["speaker_updates"] ].any? { |recap| recap.is_a?(Array) && recap.any? }
+      raise ArgumentError, "The Weekly Builders Cherry requires a subject and shared recap"
+    end
 
     mentions = edition.fetch("mentions", {})
     raise ArgumentError, "Supply mentions by Builder ID" unless mentions.is_a?(Hash)
@@ -27,7 +30,8 @@ class WeeklyCherryDelivery < ApplicationRecord
       next unless recipient.receives_weekly_cherry?
 
       email = WeeklyCherryEmail.new(
-        builder_session: session, recipient: recipient, subject: edition["subject"], tldr: edition["tldr"],
+        builder_session: session, recipient: recipient, subject: edition["subject"], tldr: edition.fetch("tldr", []),
+        speaker_updates: edition.fetch("speaker_updates", []),
         mentions: mentions.fetch(recipient.id.to_s, []), recommendations: edition.fetch("recommendations", []),
         first_names: edition.fetch("first_names", {}),
         warning_notice: edition["warning_notice"], info_notice: edition["info_notice"]

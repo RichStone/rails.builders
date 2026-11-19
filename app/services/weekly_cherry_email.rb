@@ -6,11 +6,12 @@ class WeeklyCherryEmail
     (User.active.order(:id).to_a + [ facilitator ]).compact.uniq(&:id)
   end
 
-  def initialize(builder_session:, recipient:, subject:, tldr: [], mentions: [], recommendations: [], first_names: {}, warning_notice: nil, info_notice: nil, cherry_cid: "weekly-cherry")
+  def initialize(builder_session:, recipient:, subject:, tldr: [], speaker_updates: [], mentions: [], recommendations: [], first_names: {}, warning_notice: nil, info_notice: nil, cherry_cid: "weekly-cherry")
     @builder_session = builder_session
     @recipient = recipient
     @subject = subject
     @tldr = tldr
+    @speaker_updates = speaker_updates.is_a?(Array) ? speaker_updates.map { |update| update.is_a?(Hash) ? update.deep_symbolize_keys : update } : speaker_updates
     @mentions = mentions
     @recommendations = recommendations.is_a?(Array) ? recommendations.map { |group| group.is_a?(Hash) ? group.deep_symbolize_keys : group } : recommendations
     @first_names = first_names.is_a?(Hash) ? first_names.stringify_keys : first_names
@@ -19,7 +20,7 @@ class WeeklyCherryEmail
     @cherry_cid = cherry_cid
   end
 
-  # Render only. Gmail draft creation and facilitator delivery are explicit agent actions.
+  # Render only. Delivery and Gmail draft creation are explicit actions.
   def render
     attended = @builder_session.attendances.exists?(user: @recipient, status: "present")
     validate!(attended: attended)
@@ -38,6 +39,7 @@ class WeeklyCherryEmail
       return_session = upcoming_sessions.where.not(id: skipped_session_ids).first
     end
     session_date = @builder_session.scheduled_starts_at.in_time_zone(@builder_session.time_zone)
+    updates = @speaker_updates.map { |update| update.merge(name: first_name_for(update[:user_id], speaker_names.fetch(update[:user_id].to_s))) }
     assigns = {
       recipient_name: first_name_for(@recipient.id, @recipient.name) || "Builder",
       session_date: session_date.strftime("%B #{session_date.day.ordinalize} %Y"),
@@ -47,6 +49,8 @@ class WeeklyCherryEmail
       feedback: @builder_session.peer_feedbacks.where(recipient: @recipient).includes(:author).order(:id).map { |item| { name: first_name_for(item.author_id, item.author.name) || "Builder", body: item.body, emoji: SENTIMENT_EMOJIS.fetch(item.sentiment) } },
       tldr: @tldr,
       tldr_names: tldr_names,
+      own_update: updates.find { |update| update[:user_id].to_s == @recipient.id.to_s },
+      other_updates: updates.reject { |update| update[:user_id].to_s == @recipient.id.to_s },
       mentions: @mentions,
       recommendations: @recommendations,
       warning_notice: @warning_notice,
@@ -85,6 +89,11 @@ class WeeklyCherryEmail
     names.filter_map { |user_id, name| first_name_for(user_id, name) }.uniq
   end
 
+  def speaker_names
+    @speaker_names ||= @builder_session.attendances.where(status: "present").where.not(user_id: nil)
+      .pluck(:user_id, :display_name).to_h.stringify_keys
+  end
+
   def session_time(session)
     return unless session
 
@@ -119,7 +128,8 @@ class WeeklyCherryEmail
     raise ArgumentError, "A completed, retained session record is required" unless @builder_session.state == "completed" && @builder_session.transcript&.state == "ready"
     raise ArgumentError, "Recipient must be an active member or this session's facilitator" unless self.class.recipients_for(@builder_session).include?(@recipient)
     raise ArgumentError, "Use a short, single-line subject" unless @subject.is_a?(String) && @subject.present? && @subject.length <= 180 && !@subject.match?(/[\r\n]/)
-    raise ArgumentError, "Use concise TL;DR items" unless @tldr.is_a?(Array) && (!attended || @tldr.any?) && @tldr.all? { |line| line.is_a?(String) && line.present? && line.length <= 500 }
+    raise ArgumentError, "Use source-linked speaker updates with a summary, Otto's tip and optional outcomes" unless valid_speaker_updates?
+    raise ArgumentError, "Use concise TL;DR items" unless @tldr.is_a?(Array) && (!attended || @tldr.any? || @speaker_updates.any?) && @tldr.all? { |line| line.is_a?(String) && line.present? && line.length <= 500 }
     raise ArgumentError, "Use up to five evidenced mentions" unless @mentions.is_a?(Array) && @mentions.length <= 5 && @mentions.all? { |line| line.is_a?(String) && line.present? && line.length <= 700 }
     unless @first_names.is_a?(Hash) && @first_names.all? { |id, name| id.match?(/\A[1-9]\d*\z/) && name.is_a?(String) && name.match?(/\A\p{L}[\p{L}\p{M}'’-]{0,49}\z/) }
       raise ArgumentError, "Supply preferred first names by Builder ID"
@@ -127,6 +137,21 @@ class WeeklyCherryEmail
     raise ArgumentError, "Use up to 12 recommendation groups with concise labels and safe HTTP(S) links" unless valid_recommendations?
     raise ArgumentError, "Use concise plain-text edition notices" unless [ @warning_notice, @info_notice ].all? { |notice| notice.nil? || (notice.is_a?(String) && notice.present? && notice.length <= 1_000) }
     raise ArgumentError, "Invalid image content ID" unless @cherry_cid.is_a?(String) && @cherry_cid.match?(/\A[a-zA-Z0-9_.@-]{1,100}\z/)
+  end
+
+  def valid_speaker_updates?
+    return false unless @speaker_updates.is_a?(Array)
+
+    ids = @speaker_updates.filter_map { |update| update[:user_id].to_s if update.is_a?(Hash) }
+    ids.uniq.size == @speaker_updates.size && @speaker_updates.all? do |update|
+      update.is_a?(Hash) && speaker_names.key?(update[:user_id].to_s) &&
+        recommendation_text?(update[:summary], 500) && recommendation_text?(update[:tip], 500) &&
+        %i[worked failed].all? do |field|
+          outcome = update[field]
+          outcome.nil? || (outcome.is_a?(Hash) && recommendation_text?(outcome[:text], 500) &&
+            outcome[:emoji].is_a?(String) && outcome[:emoji].length.between?(1, 16) && outcome[:emoji].match?(/\A[\p{So}\p{M}\u200D]+\z/))
+        end
+    end
   end
 
   def valid_recommendations?

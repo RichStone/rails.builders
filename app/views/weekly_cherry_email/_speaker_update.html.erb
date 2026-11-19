@@ -1,0 +1,8 @@
+<p style="margin: 0 0 16px; color: #35292c; font-size: 17px; line-height: 27px;"><% unless own %><strong><em><%= update.fetch(:name) %>:</em></strong> <% end %><%= update.fetch(:summary) %></p>
+<% if (worked = update[:worked]) %>
+  <p style="margin: 0 0 12px;"><%= worked.fetch(:emoji) %> <strong>What worked?</strong> <%= worked.fetch(:text) %></p>
+<% end %>
+<% if (failed = update[:failed]) %>
+  <p style="margin: 0 0 12px;"><%= failed.fetch(:emoji) %> <strong>What failed?</strong> <%= failed.fetch(:text) %></p>
+<% end %>
+<p style="margin: 0 0 16px;">🤖 <strong>Otto's tip:</strong> <%= update.fetch(:tip) %></p>

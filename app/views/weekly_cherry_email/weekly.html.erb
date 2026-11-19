@@ -43,7 +43,25 @@
     <p style="margin: 0 0 12px;">The Builders didn't mention you this time.</p>
   <% end %>
 <% end %>
-<% if @tldr.any? %>
+<% if @own_update || @other_updates.any? %>
+  <% if @own_update %>
+    <div data-own-update>
+      <h2 style="margin: 32px 0 16px; color: #35040f; font-size: 22px; line-height: 30px;">Your TL;DR</h2>
+      <%= render "weekly_cherry_email/speaker_update", update: @own_update, own: true %>
+    </div>
+  <% end %>
+  <% if @other_updates.any? %>
+    <div data-other-updates>
+      <h2 style="margin: 36px 0 16px; color: #35040f; font-size: 22px; line-height: 30px;">Others' TL;DRs</h2>
+      <% @other_updates.each_with_index do |update, index| %>
+        <% unless index.zero? %>
+          <div role="separator" style="height: 3px; margin: 28px 0; border-top: 1px solid #d9a6b3; border-bottom: 2px solid #f8e9ed;"></div>
+        <% end %>
+        <%= render "weekly_cherry_email/speaker_update", update: update, own: false %>
+      <% end %>
+    </div>
+  <% end %>
+<% elsif @tldr.any? %>
   <div data-tldr>
     <h2 style="margin: 32px 0 12px; color: #35040f; font-size: 19px; line-height: 26px;">TL;DR</h2>
     <% @tldr.each do |line| %>

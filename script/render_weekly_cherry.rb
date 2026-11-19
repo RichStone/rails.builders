@@ -10,6 +10,7 @@ emails = input.fetch("emails").map do |copy|
     recipient: recipient,
     subject: copy.fetch("subject"),
     tldr: copy.fetch("tldr", []),
+    speaker_updates: input.fetch("speaker_updates", []),
     mentions: copy.fetch("mentions", []),
     recommendations: input.fetch("recommendations", []),
     first_names: input.fetch("first_names", {}),
