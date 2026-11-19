@@ -192,8 +192,8 @@ class WeeklyCherryEmailTest < ActiveSupport::TestCase
 
       link = html.at_css("a[href='https://rails.builders/sessions/#{@session.id}']")
       if recipient == @builder
-        assert_equal "Review the last session ->", link.text
-        assert_includes email.fetch(:text), "Review the last session -> https://rails.builders/sessions/#{@session.id}"
+        assert_equal "All transcripts and notes", link.text
+        assert_includes email.fetch(:text), "All transcripts and notes https://rails.builders/sessions/#{@session.id}"
       else
         assert_nil link
       end
