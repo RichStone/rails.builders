@@ -10,7 +10,7 @@
 ARG RUBY_VERSION=4.0.10
 
 # Rebuild the current Thruster release with the Go security patches.
-FROM --platform=$BUILDPLATFORM golang:1.27.3 AS thruster
+FROM --platform=$BUILDPLATFORM golang:1.27.4 AS thruster
 WORKDIR /src
 ADD https://github.com/basecamp/thruster.git#669643fa3ebc6c4daaba8b5210561f03e33f8c53 .
 ARG TARGETOS TARGETARCH
