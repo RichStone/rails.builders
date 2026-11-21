@@ -106,18 +106,26 @@ class WeeklyCherryDelivery < ApplicationRecord
 
   def summary_copy
     members = other_deliveries
-    sent_to_others = members.where.not(sent_at: nil).where.not(user_id: user_id).includes(:user).order(:id).to_a
-    rows = sent_to_others.map do |delivery|
+    sent = members.where.not(sent_at: nil).includes(:user).order(:id).to_a
+    own, others = sent.partition { |delivery| delivery.user_id == user_id }
+    rows = others.map do |delivery|
       { name: delivery.copy.fetch("recipient_name") { delivery.user.name.to_s.split.first || "Builder" }, personal: delivery.copy.fetch("personal") }
     end
     session = builder_session_transcript.builder_session
+    date = session.scheduled_starts_at.in_time_zone(session.time_zone)
+    if sent.all? { |delivery| delivery.copy.key?("attendance") }
+      attendee_editions = sent.count { |delivery| delivery.copy["attendance"] == "present" }
+    end
     {
       "to" => user.email,
-      "subject" => "Weekly Builders Cherry delivery summary · #{session.scheduled_starts_at.in_time_zone(session.time_zone).strftime('%-d %B %Y')}",
+      "subject" => "Weekly Builders Cherry delivery summary · #{date.strftime('%-d %B %Y')}",
+      "session_date" => date.strftime("%B #{date.day.ordinalize} %Y"),
+      "recipient_name" => own.first&.copy&.fetch("recipient_name", nil) || user.name.to_s.split.first || "Builder",
       "session_url" => "https://rails.builders/sessions/#{session.id}",
       "members" => rows.map(&:stringify_keys),
-      "member_delivery_ids" => sent_to_others.map(&:id),
-      "sent" => members.where.not(sent_at: nil).count,
+      "member_delivery_ids" => others.map(&:id),
+      "sent" => sent.size,
+      "attendee_editions" => attendee_editions,
       "skipped" => members.where.not(skipped_at: nil).count,
       "failed" => members.where.not(failed_at: nil).count
     }
@@ -128,7 +136,7 @@ class WeeklyCherryDelivery < ApplicationRecord
       update!(**status, copy: nil)
       other_deliveries.update_all(copy: nil)
     elsif status.key?(:sent_at) && builder_session_transcript.weekly_cherry_deliveries.exists?(summary: true)
-      update!(**status, copy: copy.slice("personal", "recipient_name"))
+      update!(**status, copy: copy.slice("personal", "recipient_name", "attendance"))
     else
       update!(**status, copy: nil)
     end

@@ -1,7 +1,6 @@
 <% content_for :preheader, @attended ? "Your promise, feedback, and the highlights from this week." : "Catch up on the highlights from this week." %>
 <% section_heading_style = "color: #1c1c1c; font-family: Georgia, 'Times New Roman', serif; font-size: 22px; line-height: 30px;" %>
-<h1 style="margin: 0 0 4px; color: #1c1c1c; font-family: Georgia, 'Times New Roman', serif; font-size: 26px; line-height: 34px;">The Weekly Builders Cherry</h1>
-<p style="margin: 0 0 24px; color: #65575a; font-size: 14px; line-height: 21px;">Session from <%= @session_date %></p>
+<%= render "weekly_cherry_email/masthead", session_date: @session_date %>
 <% if @warning_notice.present? %>
   <p data-edition-notice="warning" style="margin: 0 0 16px; padding: 10px 12px; background-color: #fff4ce; color: #614a0b;"><%= @warning_notice %></p>
 <% end %>

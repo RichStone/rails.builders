@@ -1,10 +1,22 @@
-Weekly Builders Cherry delivery summary
+The Weekly Builders Cherry
+<% if @copy["session_date"] %>
+Session from <%= @copy.fetch("session_date") %>
+<% end %>
+<% if @copy["recipient_name"] %>
 
-<%= @copy.fetch("sent") %> sent · <%= @copy.fetch("skipped") %> skipped · <%= @copy.fetch("failed") %> unconfirmed after retries
-Session: <%= @copy.fetch("session_url") %>
+Hey <%= @copy.fetch("recipient_name") %>,
+<% end %>
+
+Personal recaps
+<%= @copy.fetch("sent") %> sent<% if @copy["attendee_editions"] %> (<%= @copy.fetch("attendee_editions") %> attendee, <%= @copy.fetch("sent") - @copy.fetch("attendee_editions") %> missed-session)<% end %> · <%= @copy.fetch("skipped") %> skipped · <%= @copy.fetch("failed") %> unconfirmed after retries
+<% if @copy.fetch("members").any? %>
+
+Here’s what each of the other recipients received in their personal section.
+<% end %>
 
 <% @copy.fetch("members").each do |member| %>
 <%= member.fetch("name") %>
 <%= member.fetch("personal") %>
 
 <% end %>
+All transcripts and notes <%= @copy.fetch("session_url") %>

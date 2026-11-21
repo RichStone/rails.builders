@@ -1,7 +1,14 @@
-<%= render "layouts/heading", eyebrow: "Facilitator update", title: "Weekly Builders Cherry delivery summary" %>
-<p><%= @copy.fetch("sent") %> sent · <%= @copy.fetch("skipped") %> skipped · <%= @copy.fetch("failed") %> unconfirmed after retries</p>
-<p style="margin: 0 0 20px;"><%= link_to "Review the session", @copy.fetch("session_url"), style: "color: #a40f32; text-decoration: underline;" %></p>
-<% @copy.fetch("members").each do |member| %>
-  <h2 style="margin: 24px 0 8px; color: #35040f; font-size: 19px; line-height: 26px;"><%= member.fetch("name") %></h2>
-  <p style="margin: 0 0 16px; white-space: pre-wrap;"><%= member.fetch("personal") %></p>
+<%= render "weekly_cherry_email/masthead", session_date: @copy["session_date"] %>
+<% if @copy["recipient_name"] %>
+  <p style="margin: 0 0 16px;">Hey <%= @copy.fetch("recipient_name") %>,</p>
 <% end %>
+<p style="margin: 0 0 16px;"><strong>Personal recaps</strong><br>
+  <%= @copy.fetch("sent") %> sent<% if @copy["attendee_editions"] %> (<%= @copy.fetch("attendee_editions") %> attendee, <%= @copy.fetch("sent") - @copy.fetch("attendee_editions") %> missed-session)<% end %> · <%= @copy.fetch("skipped") %> skipped · <%= @copy.fetch("failed") %> unconfirmed after retries</p>
+<% if @copy.fetch("members").any? %>
+  <p style="margin: 0 0 20px;">Here’s what each of the other recipients received in their personal section.</p>
+<% end %>
+<% @copy.fetch("members").each do |member| %>
+  <h2 style="margin: 24px 0 8px; color: #1c1c1c; font-family: Georgia, 'Times New Roman', serif; font-size: 22px; line-height: 30px;"><%= member.fetch("name") %></h2>
+  <p style="margin: 0 0 16px;"><%= safe_join(member.fetch("personal").lines(chomp: true), tag.br) %></p>
+<% end %>
+<p style="margin: 24px 0 0;"><%= link_to "All transcripts and notes", @copy.fetch("session_url"), style: "color: #a40f32; font-weight: 700; text-decoration: underline;" %></p>
