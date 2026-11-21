@@ -6,6 +6,13 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     # Exercise the app's reduced-motion CSS: scrolling/entrance animations must
     # not move controls between WebDriver locating them and delivering a click.
     options.add_argument("--force-prefers-reduced-motion")
+    options.add_argument("--window-size=1280,900")
+  end
+
+  def after_teardown
+    page.driver.quit
+  ensure
+    super
   end
 
   private
