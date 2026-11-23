@@ -104,9 +104,8 @@
           <%= render "waiting_monster" %>
         <% else %>
           <div class="membership-readiness">
-            <h3>The readiness checklist</h3>
-            <p class="readiness-promise">Check each point, then request your place.</p>
-            <p>These are the shared ingredients behind the live sessions. Once every point is checked, the “Join Builders” switch appears below. Need help with a point? Ask Rich before joining.</p>
+            <h3>Check every box!</h3>
+            <p>Every checkmark is required to unlock “Join Builders” below. Once the team approves your request, you’ll become an Active Builder and be added to the meetup calendar.</p>
             <%= render "shared/readiness_points", program: @program, checkbox_name: "readiness[]" %>
             <div class="readiness-effects" data-readiness-checklist-target="effects" aria-hidden="true"></div>
           </div>
