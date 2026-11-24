@@ -3,6 +3,8 @@ class BuildersController < ApplicationController
   before_action :require_recent_authentication, only: :promote
   before_action :set_builder, only: %i[show promote]
 
+  rescue_from ActionController::InvalidAuthenticityToken, with: :refresh_promotion_form
+
   def index
     @builders = User.where.not(verified_at: nil).avatar_first.order(:name, :email)
   end
@@ -25,6 +27,10 @@ class BuildersController < ApplicationController
   end
 
   private
+
+  def refresh_promotion_form
+    redirect_to builder_path(params[:id]), status: :see_other, alert: "This form has expired. Review the options and try again."
+  end
 
   def set_builder
     @builder = User.find(params[:id])

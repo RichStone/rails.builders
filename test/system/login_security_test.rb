@@ -32,6 +32,37 @@ class LoginSecuritySystemTest < ApplicationSystemTestCase
     assert @builder.reload.administrator?
   end
 
+  test "a Builder promotion can be retried after email confirmation in another tab" do
+    previous_forgery_protection = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = true
+    @builder.issue_offer!
+
+    visit verify_email_path(token: @admin.generate_token_for(:email_verification))
+    assert_current_path dashboard_path
+    visit builder_path(@builder)
+    assert_text "Status: Offered"
+    travel 16.minutes
+
+    within_window(open_new_window) do
+      token = @admin.login_sessions.sole.generate_token_for(:reauthentication)
+      visit edit_reauthentication_path(token: token)
+      click_button "Confirm identity"
+      assert_text "Email confirmed."
+    end
+
+    accept_confirm { click_button "Promote to Active Builder" }
+    assert_text "This form has expired. Review the options and try again."
+    assert_text "Status: Offered"
+    assert @builder.reload.offered?
+
+    accept_confirm { click_button "Promote to Active Builder" }
+    assert_text "Builder promoted to Active Builder."
+    assert_text "Status: Active"
+    assert @builder.reload.active?
+  ensure
+    ActionController::Base.allow_forgery_protection = previous_forgery_protection
+  end
+
   test "a builder can sign out all devices from their profile" do
     visit verify_email_path(token: @builder.generate_token_for(:email_verification))
     assert_current_path dashboard_path
