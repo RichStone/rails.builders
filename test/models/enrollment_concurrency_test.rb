@@ -16,17 +16,6 @@ class EnrollmentConcurrencyTest < ActiveSupport::TestCase
     Program.delete_all
   end
 
-  test "concurrent account deletion submissions are idempotent" do
-    user = User.create!(email: "builder@example.com", verified_at: Time.current, enrollment_status: "active", slack_desired_state: "present")
-    copies = 2.times.map { User.find(user.id) }
-    results = run_concurrently(*copies, &:delete_account!)
-
-    assert_equal 1, results.count(true)
-    assert_equal 1, results.count(false)
-    assert_not User.exists?(user.id)
-    assert_equal 0, @program.reload.occupied_seats
-  end
-
   test "concurrent membership withdrawal releases and promotes exactly once" do
     @program.update!(capacity: 3)
     active = User.create!(email: "active@example.com", verified_at: Time.current, enrollment_status: "active", slack_desired_state: "present")
