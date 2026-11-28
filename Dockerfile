@@ -12,10 +12,9 @@ ARG RUBY_VERSION=4.0.10
 # Rebuild the current Thruster release with the Go security patches.
 FROM --platform=$BUILDPLATFORM golang:1.27.4 AS thruster
 WORKDIR /src
-ADD https://github.com/basecamp/thruster.git#669643fa3ebc6c4daaba8b5210561f03e33f8c53 .
+ADD https://github.com/basecamp/thruster.git#afa5f358a3aefb584294297e611137d3f2fc21ee .
 ARG TARGETOS TARGETARCH
-RUN go get github.com/klauspost/compress@v1.20.2 && \
-    go test ./... && \
+RUN go test ./... && \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /thrust ./cmd/thrust
 
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
